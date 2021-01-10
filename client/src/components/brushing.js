@@ -2,15 +2,31 @@ import React, { useEffect } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 
-function initializeScatterplotD3(coor, density, id, margin, gSize, xScale, yScale, opacityScale, url) {
+function initializeScatterplotD3(coor, density, id, margin, gSize, xScale, yScale, opacityScale, url, isXLonger) {
     // Add Grouping for the scatterplot
     const radius = 2.7;
+    const lensRadius = 70;
     const color = "black";
     const injection = new Array(density.length).fill(0);
     
+    // lens radius without scaled
+    const realLensRadius = isXLonger ? 
+                           xScale.invert(lensRadius) - xScale.invert(0) : 
+                           yScale.invert(lensRadius) - yScale.invert(0);
+    console.group(realLensRadius);
     
     // For lens
-    const lensSvg = d3.select("#" + id).append("g");
+    const lensSvg = d3.select("#" + id).append("g").attr("transform", "translate(" + margin + "," + margin + ")");
+
+    const lens = lensSvg.append("circle")
+                        .attr("r", lensRadius)
+                        .attr("fill", "none")
+                        .style("stroke-width", 2)
+                        .style("stroke", "black")
+                        .style("stroke-dasharray", "3, 3")
+                        .attr("cx", 350)
+                        .attr("cy", 350)
+                        .style("opacity", 0)
 
 
     // For scatterplot
@@ -58,14 +74,36 @@ function initializeScatterplotD3(coor, density, id, margin, gSize, xScale, yScal
                          }
                      );
            });
-       })
-       .on("mouseout", function() {
-           circle.data(injection)
-                 .attr("r", radius)
-                 .attr("fill", color)
-                 .style("opacity", (_, i) => opacityScale(density[i]));
 
-       })
+           lens.transition()
+               .duration(300)
+               .attr("cx", xScale(coor[i][0]))
+               .attr("cy", yScale(coor[i][1]))
+               .style("opacity", 1);
+
+           })
+           .on("mouseout", function() {
+               circle.data(injection)
+                     .attr("r", radius)
+                     .attr("fill", color)
+                     .style("opacity", (_, i) => opacityScale(density[i]));
+               lens.transition()
+                   .duration(1000)
+                   .style("opacity", 0);
+           })
+           .on("click", function() {
+               const nodes = circle.nodes();
+               const i = nodes.indexOf(this);
+               axios.get(url + "/pointlens", {
+                   params: {
+                       index: i,
+                       radisu: realLensRadius
+                   }
+               }).then(response => {
+                   console.log(response);
+               });
+           })
+           
 
 
 }
@@ -110,23 +148,23 @@ const Brushing = (props) => {
         if (xDomainSize > yDomainSize) {
             let difference = gSize * ((xDomainSize - yDomainSize) / xDomainSize);
             xRange = [0, gSize];
-            yRange = [difference, gSize -difference];
+            yRange = [difference, gSize - difference];
         }
         else {
             let difference = gSize * ((yDomainSize - xDomainSize) / xDomainSize);
-            xRange = [difference, gSize -difference];
+            xRange = [difference, gSize - difference];
             yRange = [0, gSize];
         }
 
 
         xScale = d3.scaleLinear().domain(xDomain).range(xRange);
         yScale = d3.scaleLinear().domain(yDomain).range(yRange);
-        opacityScale = d3.scaleLinear().domain([d3.min(density),d3.max(density)]).range([0.1, 1]);
+        opacityScale = d3.scaleLinear().domain([d3.min(density), d3.max(density)]).range([0.1, 1]);
 
-        console.log(d3.min(xCoor) - d3.max(xCoor))
-        console.log(d3.min(yCoor) - d3.max(yCoor))
-
-        initializeScatterplotD3(coor, density, "d3-brushing", margin, gSize, xScale, yScale, opacityScale, url);
+        initializeScatterplotD3 (
+            coor, density, "d3-brushing", margin, gSize, 
+            xScale, yScale, opacityScale, url, xDomainSize > yDomainSize
+        );
 
     }, []);
 

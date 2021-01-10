@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import math
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -84,6 +85,31 @@ def similarity():
         "max": max_similarity
     }
     
+@app.route('/pointlens')
+def pointLens():
+    global SIMILARITY
+    global EMB
+    index  = request.args.get("index")
+    radius = request.args.get("radius")
+    list_similarity = SIMILARITY[int(index)]["similarity"]
+
+    ## naive implementation for the filtering (should be parallelized)
+    modified_emb = []
+
+    center_coor = EMB[int(index)]
+    for i, coor in enumerate(EMB):
+        if i == int(index):
+            modified_emb.append(coor)
+
+        distance = math.dist(center_coor, coor)
+        if (distance > radius):
+            modified_emb.append(coor)
+            
+
+    
+
+
+    return "CLICKED"
 
 
 if __name__ == '__main__':
