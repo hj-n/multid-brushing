@@ -103,8 +103,6 @@ def pointLens():
     center_coor = EMB[int(index)]
     for i, coor in enumerate(EMB):
         if i == int(index):
-            print(center_coor)
-            print(coor)
             modified_emb.append(coor)
             continue
 
