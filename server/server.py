@@ -103,14 +103,17 @@ def pointLens():
     center_coor = EMB[int(index)]
     for i, coor in enumerate(EMB):
         if i == int(index):
+            print(center_coor)
+            print(coor)
             modified_emb.append(coor)
             continue
 
         
         distance = math.dist(center_coor, coor)
         if (distance > radius):
-            modified_emb.append(coor)
-            continue
+            if (list_similarity[i] / max_similarity) < 0.5:
+                modified_emb.append(coor)
+                continue
 
     
         direction = np.array(coor) - np.array(center_coor)

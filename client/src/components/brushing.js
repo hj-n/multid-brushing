@@ -18,6 +18,7 @@ const Brushing = (props) => {
     let url;
     
     let isSelected = false;
+    let isTransition = false;
 
 
 
@@ -69,58 +70,66 @@ const Brushing = (props) => {
         circle.on("mouseover", function(e, d) {
                const nodes = circle.nodes();
                const i = nodes.indexOf(this);
-               axios.get(url + "/similarity", {
-                   params: {index: i}
-               }).then(response => {
-                   const max = response.data.max;
-                   const similarity = response.data.similarity;
-                   
-                   circle.data(similarity)
-                         .join(
-                             enter => {},
-                             update => {
-                                 update.attr("r", (d, idx) => { 
-                                            if (d > 0 && i !== idx) return radius * 1.5;
-                                            else if (i === idx) return radius * 2.5;
-                                            else return radius;
-                                       })
-                                       .attr("fill", (d, idx) => { 
-                                            if (d > 0 && i !== idx) return "red";
-                                            else return "black";
-                                       })
-                                       .style("opacity", (d, idx) => { 
-                                            if (d > 0 && i !== idx) return d / max;
-                                            else return opacityScale(density[idx]);
-                                       });
-                             }
-                         );
-               });
-               
-               if (!isSelected) {
-                   lens.transition()
-                       .duration(300)
-                       .attr("cx", xScale(coor[i][0]))
-                       .attr("cy", yScale(coor[i][1]))
-                       .style("opacity", 1);
-               }
+               if (!isTransition) {
+                    axios.get(url + "/similarity", {
+                        params: {index: i}
+                    }).then(response => {
+                        const max = response.data.max;
+                        const similarity = response.data.similarity;
+                
+                    
+                        circle.data(similarity)                                .join(
+                                   enter => {},
+                                   update => {
+                                       update.transition()
+                                           .duration(300)
+                                           .attr("r", (d, idx) => { 
+                                                   if (d > 0 && i !== idx) return radius * 1.5;
+                                                   else if (i === idx) return radius * 2.5;
+                                                   else return radius;
+                                           })
+                                           .attr("fill", (d, idx) => { 
+                                                   if (d > 0 && i !== idx) return "red";
+                                                   else return "black";
+                                           })
+                                           .style("opacity", (d, idx) => { 
+                                                   if (d > 0 && i !== idx) return d / max;
+                                                   else return opacityScale(density[idx]);
+                                           });
+                                   }
+                               );
+                   });
+                }
+                if (!isSelected) {
+                    lens.transition()
+                        .duration(300)
+                        .attr("cx", xScale(coor[i][0]))
+                        .attr("cy", yScale(coor[i][1]))
+                        .style("opacity", 1);
+                }
     
                })
                .on("mouseout", function() {
-                   circle.data(injection)
-                         .attr("r", radius)
-                         .attr("fill", color)
-                         .style("opacity", (_, i) => opacityScale(density[i]));
+                    if(!isTransition) {
+                        circle.transition()
+                                .duration(1500)
+                                .attr("r", radius)
+                                .attr("fill", color)
+                                .style("opacity", (_, i) => opacityScale(density[i]));
+                    }
 
                    if (!isSelected) {
                        lens.transition()
-                           .duration(1000)
+                           .duration(1500)
                            .style("opacity", 0);
                    }
                })
-               .on("click", function() {
+               .on("click", async function() {
+                   isSelected = true;
+                   isTransition = true;
                    const nodes = circle.nodes();
                    const i = nodes.indexOf(this);
-                   axios.get(url + "/pointlens", {
+                   await axios.get(url + "/pointlens", {
                        params: {
                            index: i,
                            radius: realLensRadius
@@ -131,13 +140,17 @@ const Brushing = (props) => {
                              .duration(500)
                              .attr("cx", (_, idx) => xScale(modified_coor[idx][0]))
                              .attr("cy", (_, idx) => yScale(modified_coor[idx][1]));
+
                        lens.transition()
                            .duration(500)
                            .attr("cx", xScale(modified_coor[i][0]))
                            .attr("cy", yScale(modified_coor[i][1]))
                            .style("stroke-dasharray", "5, 0");
                         
-                        isSelected = true;
+                       setTimeout(() => {
+                           isTransition = false;
+                       }, 600);
+                       
                    });
                });
                
