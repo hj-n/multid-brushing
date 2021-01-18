@@ -117,11 +117,20 @@ const Brushing = (props) => {
                                 r: realBrusherRadius
                             }
                         }).then(response => {
-                            console.log(response.data)
                             if(response.data.changed) {
                                 // test
-                                let currentSelectionLen = response.data.selection.filter(d => (d === 1)).length;
-                                console.log(currentSelectionLen);
+                                const selection = response.data.selection;
+                                console.log(selection)
+                                circle.transition()
+                                      .duration(50)
+                                      .attr("fill", function(d, i) {
+                                          if (selection[i] === 0) return d3.select(this).attr("fill");
+                                          else return "#0040ff";
+                                      })
+                                      .style("opacity", function(d, i) {
+                                        if (selection[i] === 0) return d3.select(this).style("opacity");
+                                        else return 1;
+                                      })
                             }
                         });
                     }, 100);
