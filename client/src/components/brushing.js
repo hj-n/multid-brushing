@@ -28,6 +28,7 @@ const Brushing = (props) => {
         // Add Grouping for the scatterplot
         const radius = 2.7;
         const lensRadius = 70;
+        const brusherRadius = 20;
         const color = "black";
         const injection = new Array(density.length).fill(0);
         
@@ -36,10 +37,16 @@ const Brushing = (props) => {
                                xScale.invert(lensRadius) - xScale.invert(0) : 
                                yScale.invert(lensRadius) - yScale.invert(0);
         console.group(realLensRadius);
+
+
         
-        // For lens
+        
+        
+        // svg for lens
         const lensSvg = d3.select("#" + id).append("g").attr("transform", "translate(" + margin + "," + margin + ")");
-    
+        
+
+        // lens
         const lens = lensSvg.append("circle")
                             .attr("r", lensRadius)
                             .attr("fill", "none")
@@ -48,14 +55,38 @@ const Brushing = (props) => {
                             .style("stroke-dasharray", "3, 3")
                             .attr("cx", 350)
                             .attr("cy", 350)
-                            .style("opacity", 0)
-    
-    
+                            .style("opacity", 0);
+        
+        // brusher
+                                   
+        const brusher = lensSvg.append("circle")
+                               .attr("r", brusherRadius)
+                               .attr("fill", "#54d1b4")
+                               .style("opacity", 0.5)
+                               .attr("cx", 350)
+                               .attr("cy", 350)
+                               .attr("visibility", "hidden");
+
+        d3.select("#" + id).on("mousemove", function(e) {
+            if(e.shiftKey) {
+                brusher.attr("cx", e.offsetX - margin)
+                       .attr("cy", e.offsetY - margin)
+                       .attr("visibility", "visible")
+            }
+            else {
+                brusher.attr("visibility", "hidden")
+            }
+        });
+
         // For scatterplot
         const svg = d3.select("#" + id)
                       .append("g")
                       .attr("id", id + "-g")
                       .attr("transform", "translate(" + margin + "," + margin + ")");
+
+    
+        
+
     
         const circle = svg.selectAll("circle")
                           .data(injection)
@@ -70,7 +101,7 @@ const Brushing = (props) => {
         circle.on("mouseover", function(e, d) {
                const nodes = circle.nodes();
                const i = nodes.indexOf(this);
-               if (!isTransition) {
+               if (!isTransition && !e.shiftKey) {
                     axios.get(url + "/similarity", {
                         params: {index: i}
                     }).then(response => {
@@ -78,7 +109,8 @@ const Brushing = (props) => {
                         const similarity = response.data.similarity;
                 
                     
-                        circle.data(similarity)                                .join(
+                        circle.data(similarity)                                
+                              .join(
                                    enter => {},
                                    update => {
                                        update.transition()
@@ -100,7 +132,7 @@ const Brushing = (props) => {
                                );
                    });
                 }
-                if (!isSelected) {
+                if (!isSelected && !e.shiftKey) {
                     lens.transition()
                         .duration(300)
                         .attr("cx", xScale(coor[i][0]))
@@ -124,7 +156,8 @@ const Brushing = (props) => {
                            .style("opacity", 0);
                    }
                })
-               .on("click", async function() {
+               .on("click", async function(e) {
+                   if (e.shiftKey) return
                    isSelected = true;
                    isTransition = true;
                    const nodes = circle.nodes();
