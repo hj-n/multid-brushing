@@ -5,6 +5,9 @@ import * as d3 from 'd3';
 
 
 
+// WHile Brushing, changes comes only from the lens position adjustment,
+// computed by the server 
+
 const Brushing = (props) => {
 
 
@@ -20,6 +23,8 @@ const Brushing = (props) => {
     let isSelected = false;
     let isTransition = false;
 
+    const lensRadius = 70;
+    const brusherRadius = 15;
 
 
 
@@ -27,8 +32,7 @@ const Brushing = (props) => {
     function initializeScatterplotD3(coor, density, id, isXLonger) {
         // Add Grouping for the scatterplot
         const radius = 2.7;
-        const lensRadius = 70;
-        const brusherRadius = 20;
+
         const color = "black";
         const injection = new Array(density.length).fill(0);
         
@@ -36,9 +40,13 @@ const Brushing = (props) => {
         const realLensRadius = isXLonger ? 
                                xScale.invert(lensRadius) - xScale.invert(0) : 
                                yScale.invert(lensRadius) - yScale.invert(0);
-        console.group(realLensRadius);
+        
+        const realBrusherRadius = isXLonger ?
+                                  xScale.invert(brusherRadius) - xScale.invert(0) : 
+                                  yScale.invert(brusherRadius) - yScale.invert(0);
 
 
+        let circle;
         
         
         
@@ -58,7 +66,6 @@ const Brushing = (props) => {
                             .style("opacity", 0);
         
         // brusher
-                                   
         const brusher = lensSvg.append("circle")
                                .attr("r", brusherRadius)
                                .attr("fill", "#54d1b4")
@@ -66,17 +73,75 @@ const Brushing = (props) => {
                                .attr("cx", 350)
                                .attr("cy", 350)
                                .attr("visibility", "hidden");
+        
+        // about brushing
 
-        d3.select("#" + id).on("mousemove", function(e) {
+        //// status variables
+        let isMouseDown = false;
+        let isBrushing = false;
+        let currentX, currentY;
+
+        //// setInterval variable
+        let brushingStatusChecker;
+
+        //// functionalities
+        d3.select("#" + id)
+          .on("mousemove", function(e) {
             if(e.shiftKey) {
-                brusher.attr("cx", e.offsetX - margin)
-                       .attr("cy", e.offsetY - margin)
-                       .attr("visibility", "visible")
+                currentX = e.offsetX - margin;
+                currentY = e.offsetY - margin
+                brusher.attr("cx", currentX)
+                       .attr("cy", currentY)
+                       .attr("visibility", "visible");
             }
             else {
                 brusher.attr("visibility", "hidden")
+                if (isBrushing) {
+                    isBrushing = false;
+                    clearInterval(brushingStatusChecker);
+                    axios.get(url + "/brushingfinish");
+                }
             }
-        });
+          })
+          .on("mousedown", function(e) {
+            if(e.shiftKey) {
+                brusher.style("opacity", 0.8)
+                isMouseDown = true;
+                if (!isBrushing) {
+                    isBrushing = true;
+                    brushingStatusChecker = setInterval(function() {
+                        axios.get(url + "/brushing", {
+                            params: {
+                                x: xScale.invert(currentX),
+                                y: yScale.invert(currentY),
+                                r: realBrusherRadius
+                            }
+                        }).then(response => {
+                            console.log(response.data)
+                            if(response.data.changed) {
+                                // test
+                                let currentSelectionLen = response.data.selection.filter(d => (d === 1)).length;
+                                console.log(currentSelectionLen);
+                            }
+                        });
+                    }, 100);
+                }
+            }
+          })
+          .on("mouseup", function(e) {
+              if(e.shiftKey) {
+                  brusher.style("opacity", 0.5)
+                  isMouseDown = false;
+                  if (isBrushing) {
+                      isBrushing = false;
+                      clearInterval(brushingStatusChecker);
+                      axios.get(url + "/brushingfinish");
+                  }
+              }
+              else {
+                  brusher.attr("visibility", "hidden");
+              }
+          })
 
         // For scatterplot
         const svg = d3.select("#" + id)
@@ -88,15 +153,15 @@ const Brushing = (props) => {
         
 
     
-        const circle = svg.selectAll("circle")
-                          .data(injection)
-                          .enter()
-                          .append("circle")
-                          .attr("r", radius)
-                          .attr("fill", color)
-                          .attr("cx", (_, i) => xScale(coor[i][0]))
-                          .attr("cy", (_, i) => yScale(coor[i][1]))
-                          .style("opacity", (_, i) => opacityScale(density[i]));
+        circle = svg.selectAll("circle")
+                    .data(injection)
+                    .enter()
+                    .append("circle")
+                    .attr("r", radius)
+                    .attr("fill", color)
+                    .attr("cx", (_, i) => xScale(coor[i][0]))
+                    .attr("cy", (_, i) => yScale(coor[i][1]))
+                    .style("opacity", (_, i) => opacityScale(density[i]));
         
         circle.on("mouseover", function(e, d) {
                const nodes = circle.nodes();
@@ -141,8 +206,8 @@ const Brushing = (props) => {
                 }
     
                })
-               .on("mouseout", function() {
-                    if(!isTransition) {
+               .on("mouseout", function(e) {
+                    if(!isTransition && !e.shiftKey) {
                         circle.transition()
                                 .duration(1500)
                                 .attr("r", radius)
@@ -157,7 +222,7 @@ const Brushing = (props) => {
                    }
                })
                .on("click", async function(e) {
-                   if (e.shiftKey) return
+                   if (e.shiftKey) return;
                    isSelected = true;
                    isTransition = true;
                    const nodes = circle.nodes();

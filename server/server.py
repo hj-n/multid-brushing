@@ -9,12 +9,16 @@ from pathlib import Path
 app = Flask(__name__)
 CORS(app)
 
-## Global Variables 
+## Global Variables -- Constant 
 DENSITY = None
 SIMILARITY = None
 EMB = None
 METADATA = None
 CURRENT_PATH = None
+
+## Global Variables -- Modified
+CURRENT_EMB = None
+CURRENT_SELECTION = None
 
 
 
@@ -43,6 +47,9 @@ def init():
     global EMB
     global METADATA
 
+    global CURRENT_EMB
+    global CURRENT_SELECTION
+
     dataset, method, sample = parseArgs(request) 
     ## If no such dataset 
     path = dataset + "/" + method + "/" + sample
@@ -55,12 +62,15 @@ def init():
         density_file = open("./json/" + path + "/snn_density.json")
         similarity_file = open("./json/" + path + "/snn_similarity.json")
         emb_file = open("./json/" + path + "/emb.json")
+        current_emb_file = open("./json/" + path + "/emb.json")
         metadata_file = open("./json/" + path + "/metadata.json")
         DENSITY = json.load(density_file)
         SIMILARITY = json.load(similarity_file)
         EMB = json.load(emb_file)
+        CURRENT_EMB = json.load(current_emb_file)
         METADATA = json.load(metadata_file)
         CURRENT_PATH = "path"
+        CURRENT_SELECTION = set()
 
     return "success", 200
 
@@ -93,6 +103,8 @@ def pointLens():
     global SIMILARITY
     global EMB
     global METADATA
+    global CURRENT_EMB
+
     index  = request.args.get("index")
     radius = float(request.args.get("radius"))
     list_similarity = SIMILARITY[int(index)]["similarity"]
@@ -120,9 +132,45 @@ def pointLens():
         
         new_coor = direction + np.array(center_coor)
         modified_emb.append(new_coor.tolist())
-    
 
+    CURRENT_EMB = modified_emb
     return jsonify(modified_emb)
+
+@app.route('/brushing')
+def brushing_status():
+    global CURRENT_EMB
+    global CURRENT_SELECTION
+
+    x = float(request.args.get("x"))
+    y = float(request.args.get("y"))
+    radius = float(request.args.get("r"))
+    
+    current_length = len(CURRENT_SELECTION)
+    ## should be accelerated by parallelization afterward
+    for i, coor in enumerate(CURRENT_EMB):
+        direction = np.array([coor[0] - x, coor[1] - y])
+        distance = np.linalg.norm(direction)
+        if (distance < radius) and (i not in CURRENT_SELECTION):
+            CURRENT_SELECTION.add(i)
+
+    if(current_length != len(CURRENT_SELECTION)):
+        selection_to_list = [0] * len(CURRENT_EMB)
+        for idx in CURRENT_SELECTION:
+            selection_to_list[idx] = 1
+        return jsonify({
+            "changed": True,
+            "selection": selection_to_list
+        })
+    else:
+        return jsonify({
+            "changed": False
+        })
+
+@app.route('/brushingfinish')
+def brushing_finish():
+    global CURRENT_SELECTION
+    CURRENT_SELECTION = set()
+    return "return"
 
 
 if __name__ == '__main__':
