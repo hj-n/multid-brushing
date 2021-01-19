@@ -17,6 +17,8 @@ SIMILARITY = None
 EMB = None
 METADATA = None
 CURRENT_PATH = None
+MAX_EMB = None
+MIN_EMB = None
 
 ## Global Variables -- Modified
 CURRENT_EMB = None
@@ -48,6 +50,8 @@ def init():
     global DENSITY
     global EMB
     global METADATA
+    global MAX_EMB
+    global MIN_EMB
 
     global CURRENT_EMB
     global CURRENT_SELECTION
@@ -73,6 +77,11 @@ def init():
         METADATA = json.load(metadata_file)
         CURRENT_PATH = "path"
         CURRENT_SELECTION = set()
+
+        np_emb = np.array(EMB)
+        MAX_EMB = np.max(np_emb, axis = 0)
+        MIN_EMB = np.min(np_emb, axis = 0)
+
 
     return "success", 200
 
@@ -142,6 +151,8 @@ def pointLens():
 def brushing_status():
     global CURRENT_EMB
     global CURRENT_SELECTION
+    global MAX_EMB
+    global MIN_EMB
 
     x = float(request.args.get("x"))
     y = float(request.args.get("y"))
@@ -159,6 +170,9 @@ def brushing_status():
         selection_to_list = [0] * len(CURRENT_EMB)
         for idx in CURRENT_SELECTION:
             selection_to_list[idx] = 1
+        
+        Contour.generate(CURRENT_SELECTION, CURRENT_EMB, MAX_EMB, MIN_EMB)
+
         return jsonify({
             "changed": True,
             "selection": selection_to_list
