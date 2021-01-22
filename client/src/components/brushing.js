@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import BrushedArea from "./brushedArea"
+
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 
@@ -26,7 +28,12 @@ const Brushing = (props) => {
     const lensRadius = 70;
     const brusherRadius = 15;
 
+    const [brushingStatus, setBrushingStatus] = useState(0)
 
+    const [xRangeState, setXRange] = useState()
+    const [yRangeState, setYRange] = useState()
+
+    const [polygon, setPolygon] = useState()
 
 
     function initializeScatterplotD3(coor, density, id, isXLonger) {
@@ -119,8 +126,8 @@ const Brushing = (props) => {
                         }).then(response => {
                             if(response.data.changed) {
                                 // test
+                                // console.log(response.data)
                                 const selection = response.data.selection;
-                                console.log(selection)
                                 circle.transition()
                                       .duration(50)
                                       .attr("fill", function(d, i) {
@@ -131,6 +138,10 @@ const Brushing = (props) => {
                                         if (selection[i] === 0) return d3.select(this).style("opacity");
                                         else return 1;
                                       })
+                                
+
+                                setBrushingStatus(brushingStatus => (brushingStatus + 1) % 2)
+                                setPolygon(_ => response.data.polygon)
                             }
                         });
                     }, 100);
@@ -300,10 +311,15 @@ const Brushing = (props) => {
             yRange = [0, gSize];
         }
 
+        setXRange(_ => xRange)
+        setYRange(_ => yRange)
 
         xScale = d3.scaleLinear().domain(xDomain).range(xRange);
         yScale = d3.scaleLinear().domain(yDomain).range(yRange);
         opacityScale = d3.scaleLinear().domain([d3.min(density), d3.max(density)]).range([0.1, 1]);
+
+
+        
 
         initializeScatterplotD3 (
             coor, density, "d3-brushing", xDomainSize > yDomainSize
@@ -315,14 +331,35 @@ const Brushing = (props) => {
 
     return (
         <div style={{margin: "auto", width: size}}>
-            <svg id="d3-brushing" 
-                 width={size}
-                 height={size}
-                 style={{
-                     marginTop: 30,
-                     border: "1px solid black",
-                 }}
-            ></svg>
+            <div style={{
+                
+                zIndex: `-1`,
+                position: "absolute",
+                
+            }}>
+                <BrushedArea
+                        width={size}
+                        height={size}
+                        margin={margin}
+                        marginTop={30}
+                        status={brushingStatus}
+                        xRange={xRangeState}
+                        yRange={yRangeState}
+                        polygon={polygon}
+                />
+            </div>
+            <div style={{zIndex: `50`}}>
+                <svg id="d3-brushing" 
+                    width={size}
+                    height={size}
+                    style={{
+                        marginTop: 30,
+                        border: "1px solid black",
+                    }}
+                ></svg>
+            </div>
+            
+            
         </div>
     );
 }

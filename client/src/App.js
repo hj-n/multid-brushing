@@ -3,7 +3,7 @@ import Brushing from "./components/brushing";
 
 
 function App() {
-  const PATH = "http://127.0.0.1:5000/";
+  const PATH = "http://gpu.hcil.snu.ac.kr:5000/";
   return (
     <div className="App">
       <Brushing 
