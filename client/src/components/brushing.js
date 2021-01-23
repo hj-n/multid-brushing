@@ -342,6 +342,9 @@ const Brushing = (props) => {
             yRange = [0, gSize];
         }
 
+        // 응급처치
+        if(props.method == "pca") yRange[1] += 80
+
         setXRange(_ => xRange)
         setYRange(_ => yRange)
 

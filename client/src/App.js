@@ -8,8 +8,8 @@ function App() {
     <div className="App">
       <Brushing 
         url={PATH}
-        dataset={"spheres"}
-        method={"umap"}
+        dataset={"mnist"}
+        method={"pca"}
         sample={5}
       />
     </div>
