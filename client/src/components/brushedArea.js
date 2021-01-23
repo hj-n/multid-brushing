@@ -4,20 +4,17 @@ import * as d3 from 'd3'
 
 const BrushedArea = (props) => {
 
-    let polygon;
-    useEffect(() => {
-        polygon = d3.select("#brushed")
-                    .append("polygon")
-                    .style("fill", "#ffaaff");
-          
+    const polygon = d3.select("#brushed")
+                        .append("polygon")
+                        .attr("id", "brushed-polygon")
+                        .style("fill", "#ffaaff");
     
-    }, [])
     
     useEffect(() => {  
-        console.log(props.status)
-        console.log(props.polygon)
+        // console.log(props.status)
+        // console.log(props.polygon)
         
-        console.log(props.xRange)
+        // console.log(props.xRange)
         if(props.polygon === undefined) return;
         let path_str = ""
         
@@ -28,7 +25,7 @@ const BrushedArea = (props) => {
             path_str += " "
         })
 
-        polygon.attr("points", path_str)
+        d3.select("#brushed-polygon").attr("points", path_str)
         // console.log(path_str)
         
 

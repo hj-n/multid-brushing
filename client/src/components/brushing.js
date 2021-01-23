@@ -13,6 +13,8 @@ import * as d3 from 'd3';
 const Brushing = (props) => {
 
 
+    let basicInfo;
+
     // Global variables for the hook
     const size = 740;
     const margin = 20;
@@ -253,7 +255,10 @@ const Brushing = (props) => {
                            radius: realLensRadius
                        }
                    }).then(response => {
-                       const modified_coor = response.data;
+                       const modified_coor = response.data.modified_emb;
+                       const from_outside_idx = response.data.from_outside_idx;
+
+                       console.log(from_outside_idx)
                        circle.transition()
                              .duration(500)
                              .attr("cx", (_, idx) => xScale(modified_coor[idx][0]))
@@ -264,6 +269,32 @@ const Brushing = (props) => {
                            .attr("cx", xScale(modified_coor[i][0]))
                            .attr("cy", yScale(modified_coor[i][1]))
                            .style("stroke-dasharray", "5, 0");
+
+                       svg.selectAll("path").remove();
+
+                       from_outside_idx.forEach(idx => {
+                           svg.append("path")
+                              .attr("stroke", "blue")
+                              .attr("stroke-width", 5)
+                              .attr("fill", "none")
+                              .style("opacity", 0.5)
+                              .attr("d", function() {
+                                  const start = basicInfo.data.emb[idx];
+                                  return d3.line()([[xScale(start[0]), yScale(start[1])], 
+                                                    [xScale(start[0]), yScale(start[1])]]);
+
+                              })
+                              .transition()
+                              .duration(500)
+                              .attr("d", function() {
+                                  const start = basicInfo.data.emb[idx];
+                                  const end   = modified_coor[idx];
+                                  return d3.line()([[xScale(start[0]), yScale(start[1])], 
+                                                    [xScale(end[0]),   yScale(end[1])  ]]);
+                              })
+                              
+                              
+                       })
                         
                        setTimeout(() => {
                            isTransition = false;
@@ -285,7 +316,7 @@ const Brushing = (props) => {
         const result = await axios.get(url + "init", { params: params });
         if (result.status === 400) { alert('No such dataset exists!!'); return; }
 
-        const basicInfo = await axios.get(url + "basic", { parmas : params });
+        basicInfo = await axios.get(url + "basic", { parmas : params });
         console.log(basicInfo);
 
         let coor = basicInfo.data.emb;
