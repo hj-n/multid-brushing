@@ -1,4 +1,4 @@
-import Brushing from "./components/brushing";
+import Brushing from "./components/Brushing";
 
 
 
@@ -8,6 +8,7 @@ function App() {
     <div className="App">
       <Brushing 
         url={PATH}
+        size={500}
         dataset={"mnist"}
         method={"pca"}
         sample={5}
