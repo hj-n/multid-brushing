@@ -5,15 +5,18 @@ import { Scatterplot } from "../helpers/scatterplot";
 const Brushing = (props) => {
     
     const size = 100000;
+    const radius = 5;
 
     // data
     let randomData = new RandomData(size);
     let data = randomData.emb;
     let opacity = randomData.opacity;
+    let color = randomData.color;
+    let radiusArr = Array(size).fill(radius);
+    
 
 
 
-    const radius = 2;
 
     // reference to the canvas
     const splotRef = useRef(null);
@@ -21,7 +24,7 @@ const Brushing = (props) => {
     let scatterplot;
 
     useEffect(() => {
-        scatterplot = new Scatterplot(data, opacity, radius, splotRef.current);
+        scatterplot = new Scatterplot(data, opacity, color, radiusArr, splotRef.current);
     }, [splotRef])
 
 
@@ -30,8 +33,10 @@ const Brushing = (props) => {
         let newRandomData = new RandomData(size);
         let newData = newRandomData.emb;
         let newOpacity = newRandomData.opacity;
+        let newColor = newRandomData.color;
+        let newRadius = Array(size).fill(radius * Math.random() * 3);
 
-        scatterplot.update(newData, newOpacity, 500, 1000);
+        scatterplot.update(newData, newOpacity, newColor, newRadius, 500, 1000);
     }
 
 

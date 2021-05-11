@@ -9,14 +9,17 @@
 // TODO add update support
 
 export class Scatterplot {
-  constructor (points, opacity, radius, dom) {
+  constructor (points, opacity, color, radiusArr, dom) {
     this.points = points;
     this.opacity = opacity;
+    this.color = color;
     this.dom = dom;
-    this.radius = radius;
+    this.radius = radiusArr;
 
     this.currentPositions = points;  // current position of the points
     this.currentOpacity = opacity;   // current opacity values of the points
+    this.currentColor = color;       // current color
+    this.currentRadius = radiusArr;  // current radius
 
     this.isUpdating = false;
 
@@ -31,7 +34,7 @@ export class Scatterplot {
       });
 
       const initializeSplot = this.initializeCommand();
-      initializeSplot({ radius })
+      initializeSplot({ })
 
       if (frameLoop) {
         frameLoop.cancel();
@@ -46,6 +49,7 @@ export class Scatterplot {
         precision highp float;
 
         varying float fragOpacity;
+        varying vec3 fragColor;
 
         void main() {
           float r = 0.0;
@@ -55,16 +59,17 @@ export class Scatterplot {
           if (r > 1.0) {
             discard;
           }
-          gl_FragColor = vec4(0, 0, 0, fragOpacity);
+          gl_FragColor = vec4(fragColor, fragOpacity);
         }
       `,
       vert: `
         attribute vec2 position;
         attribute float opacity;
-
-        uniform float radius;
+        attribute vec3 color;
+        attribute float radius;
 
         varying float fragOpacity;
+        varying vec3 fragColor;
 
         
         void main() {
@@ -72,14 +77,14 @@ export class Scatterplot {
           gl_Position = vec4(position, 0, 1);     
           
           fragOpacity = opacity;
+          fragColor = color / 255.0;
         }
       `,
       attributes: {
         position: this.points,
-        opacity: this.opacity
-      },
-      uniforms: {
-        radius: this.regl.prop('radius'),
+        opacity: this.opacity,
+        color: this.color,
+        radius: this.radius
       },
       count: this.points.length,
       primitive:  'points',
@@ -87,14 +92,14 @@ export class Scatterplot {
   }
 
   // update scatterplot
-  update(newPositions, newOpacity, delay, duration) {
+  update(newPositions, newOpacity, newColor, newRadius, delay, duration) {
 
     if (this.isUpdating) return;
     else this.isUpdating = true;
 
     let startTime = null;
 
-    const updateSplot = this.updateCommand(newPositions, newOpacity);
+    const updateSplot = this.updateCommand(newPositions, newOpacity, newColor, newRadius);
 
     const frameLoop = this.regl.frame(({time}) => {
       if (startTime === null) {
@@ -108,7 +113,6 @@ export class Scatterplot {
 
 
       updateSplot({
-        radius: this.radius,
         delay,
         duration,
         startTime
@@ -118,6 +122,8 @@ export class Scatterplot {
         frameLoop.cancel();
         this.currentPositions = newPositions;
         this.currentOpacity = newOpacity;
+        this.currentColor = newColor;
+        this.currentRadius = newRadius;
         this.isUpdating = false;
 
       }
@@ -129,12 +135,13 @@ export class Scatterplot {
 
 
   // REGL command for updating scatterplot
-  updateCommand(newPositions, newOpacity) {
+  updateCommand(newPositions, newOpacity, newColor, newRadius) {
     return this.regl({
       frag: `
         precision highp float;
 
         varying float fragOpacity;
+        varying vec3 fragColor;
 
         void main() {
           float r = 0.0;
@@ -144,7 +151,7 @@ export class Scatterplot {
           if (r > 1.0) {
             discard;
           }
-          gl_FragColor = vec4(0, 0, 0, fragOpacity);
+          gl_FragColor = vec4(fragColor, fragOpacity);
         }
       `,
       vert: `
@@ -152,8 +159,13 @@ export class Scatterplot {
         attribute vec2 endPosition;
         attribute float startOpacity;
         attribute float endOpacity;
+        attribute vec3 startColor;
+        attribute vec3 endColor;
+        attribute float startRadius;
+        attribute float endRadius;
 
         varying float fragOpacity;
+        varying vec3 fragColor;
 
         uniform float radius;
         uniform float delay;        
@@ -171,15 +183,18 @@ export class Scatterplot {
         }
 
         void main() {
-          gl_PointSize = radius;
+
 
           float t;
           if (duration == 0.0)       t = 1.0;
           else if (elapsed < delay)  t = 0.0;
           else                       t = easeCubicInOut((elapsed - delay) / duration);
 
+          gl_PointSize = mix(startRadius, endRadius, t);
+
           vec2 position = mix(startPosition, endPosition, t);
           fragOpacity = mix(startOpacity, endOpacity, t);
+          fragColor = mix(startColor, endColor, t) / 255.0;
 
           gl_Position = vec4(position, 0.0, 1.0);
 
@@ -188,11 +203,14 @@ export class Scatterplot {
       attributes: {
         startPosition: this.currentPositions,
         startOpacity: this.currentOpacity,
+        startColor: this.currentColor,
+        startRadius: this.currentRadius,
         endPosition: newPositions,
-        endOpacity: newOpacity
+        endOpacity: newOpacity,
+        endColor: newColor,
+        endRadius: newRadius
       },
       uniforms: {
-        radius: this.regl.prop('radius'),
         delay: this.regl.prop('delay'),
         duration: this.regl.prop('duration'),
         startTime: this.regl.prop('duration'),
