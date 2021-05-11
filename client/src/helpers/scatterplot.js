@@ -18,6 +18,8 @@ export class Scatterplot {
     this.currentPositions = points;  // current position of the points
     this.currentOpacity = opacity;   // current opacity values of the points
 
+    this.isUpdating = false;
+
     let gl = this.dom.getContext("webgl");
     this.regl = require('regl')(gl);
 
@@ -87,6 +89,9 @@ export class Scatterplot {
   // update scatterplot
   update(newPositions, newOpacity, delay, duration) {
 
+    if (this.isUpdating) return;
+    else this.isUpdating = true;
+
     let startTime = null;
 
     const updateSplot = this.updateCommand(newPositions, newOpacity);
@@ -113,6 +118,8 @@ export class Scatterplot {
         frameLoop.cancel();
         this.currentPositions = newPositions;
         this.currentOpacity = newOpacity;
+        this.isUpdating = false;
+
       }
 
 

@@ -4,9 +4,10 @@ import { Scatterplot } from "../helpers/scatterplot";
 
 const Brushing = (props) => {
     
+    const size = 100000;
 
     // data
-    let randomData = new RandomData(10000);
+    let randomData = new RandomData(size);
     let data = randomData.emb;
     let opacity = randomData.opacity;
 
@@ -17,16 +18,21 @@ const Brushing = (props) => {
     // reference to the canvas
     const splotRef = useRef(null);
 
-    useEffect(() => {
-        const scatterplot = new Scatterplot(data, opacity, radius, splotRef.current);
+    let scatterplot;
 
-        let newRandomData = new RandomData(10000);
+    useEffect(() => {
+        scatterplot = new Scatterplot(data, opacity, radius, splotRef.current);
+    }, [splotRef])
+
+
+
+    function updateScatterPlot() {
+        let newRandomData = new RandomData(size);
         let newData = newRandomData.emb;
         let newOpacity = newRandomData.opacity;
 
         scatterplot.update(newData, newOpacity, 500, 1000);
-    
-    }, [splotRef])
+    }
 
 
 
@@ -43,6 +49,7 @@ const Brushing = (props) => {
                     height: props.size
                 }}
             />
+            <button onClick={updateScatterPlot}>Click to update</button>
         </div>
     );
 }
