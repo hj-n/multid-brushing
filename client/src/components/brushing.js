@@ -1,9 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import { RandomData } from '../helpers/data';
 import { Scatterplot } from "../helpers/scatterplot";
+import { heatmapData } from "../helpers/heatmapData";
+import { Heatmap } from '../helpers/heatmap';
 
 const Brushing = (props) => {
-    
+    /*
+
+
+    // FOR SCATTERPLOT 
     const size = 100000;
     const radius = 5;
 
@@ -21,14 +26,13 @@ const Brushing = (props) => {
     let scatterplot;
 
     useEffect(() => {
-
         scatterplot = new Scatterplot({
             position: data,
             opacity: opacity,
             color: color,
             radius: radiusArr
         }, splotRef.current);
-    }, [splotRef])
+    }, [splotRef]);
 
 
 
@@ -42,16 +46,39 @@ const Brushing = (props) => {
         scatterplot.update({
             position: newData,
             opacity: newOpacity,
-            color: color,
-            radius: radiusArr
+            color: newColor,
+            radius: newRadius
         }, 1000, 0);
     }
 
 
+    */
+
+    // FOR HEATMAP
+    const resolution = 50;  // resol * resol
+
+    const hmapRef = useRef(null);
+
+    let hmapData = heatmapData(resolution);
+
+    let heatmap;
+
+    useEffect(() => {
+        heatmap = new Heatmap({
+            resolution: resolution,
+            pixelValue: hmapData
+        }, hmapRef.current);
+    }, [hmapRef]);
+    
+
+    function updateHeatmap() {
+        
+    }
+
 
     return (
         <div>
-            <canvas 
+            {/* <canvas 
                 ref={splotRef}
                 width={props.size}
                 height={props.size}
@@ -62,7 +89,19 @@ const Brushing = (props) => {
                     height: props.size
                 }}
             />
-            <button onClick={updateScatterPlot}>Click to update</button>
+            <button onClick={updateScatterPlot}>Click to update Scatterplot</button> */}
+            <canvas
+                ref={hmapRef}
+                width={props.size}
+                height={props.size}
+                style={{
+                    border: "1px black solid",
+                    margin: "10px",
+                    width: props.size,
+                    height: props.size
+                }}
+            />
+            <button onClick={updateHeatmap}>Click to update Heatmap</button>
         </div>
     );
 }

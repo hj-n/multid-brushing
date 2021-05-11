@@ -46,12 +46,12 @@ export class Scatterplot {
 
     let frameLoop = this.regl.frame(() => {
       this.regl.clear({
-        color: [255, 255, 255, 1],
+        color: [255, 255, 255, 0],
         depth: 1,
       });
 
       const initializeSplot = this.initializeCommand();
-      initializeSplot({ })
+      initializeSplot({})
 
       if (frameLoop) {
         frameLoop.cancel();
@@ -88,7 +88,6 @@ export class Scatterplot {
         varying float fragOpacity;
         varying vec3 fragColor;
 
-        
         void main() {
           gl_PointSize = radius;
           gl_Position = vec4(position, 0, 1);     
@@ -129,7 +128,7 @@ export class Scatterplot {
       }
 
       this.regl.clear({
-        color: [255, 255, 255, 1],
+        color: [255, 255, 255, 0],
         depth: 1,
       });
 
