@@ -74,7 +74,7 @@ export class Heatmap {
 
         void main() {
           gl_PointSize = pixelSize;
-          gl_Position = vec4(2.0 * (x / resolution) - 1.0, 2.0 * (y / resolution) - 1.0, 0, 1);
+          gl_Position = vec4(2.0 * ( (x + 0.5) / resolution) - 1.0, 2.0 * ( (y + 0.5) / resolution) - 1.0, 0, 1);
 
           fragColor = pixelValue;
         }
