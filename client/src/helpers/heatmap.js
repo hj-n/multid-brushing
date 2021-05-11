@@ -7,7 +7,12 @@
 
 /**
  * INITIALIZATION
+ * const heatmap = new Heatmap (data, dom)
+ * "data" parameter should hold the initial information of the scatterplot
+ * "dom" paramter should hold the dom element where the scatterplot will be rendered
  *
+ * UPDATE
+ * 
  */
 
 export class Heatmap {
@@ -52,6 +57,8 @@ export class Heatmap {
 
   }
 
+
+  // regl command for the initialization of the heatmap
   initializeCommand() {
     return this.regl({
       frag: `
@@ -92,5 +99,29 @@ export class Heatmap {
       primitive: 'points',
     })
   }
+
+  // update heatmap
+  update(data, duration=0, delay=0) {
+
+  }
+
+  // REGL command for updating heatmap
+  update(newPixelValue) {
+    return this.regl({
+      frag: `
+      `,
+      vert: `
+      `,
+      attributes: {
+        startPixelValue: this.currentPixelValue,
+        endPixelValue: newPixelValue
+
+      },
+      uniforms: {},
+      count: this.resolution * this.resolution,
+      primitive: 'points'
+    });
+  }
+
 
 }
