@@ -1,32 +1,35 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { RandomData } from '../helpers/data';
+import { Scatterplot } from "../helpers/scatterplot";
 
 const Brushing = (props) => {
+    
 
-    const canvas = useRef(null);
-    let gl = canvas.current.getContext("webgl");
-    let regl = require('regl')(gl);
+    // data
+    let randomData = new RandomData(1000);
+    let data = randomData.emb;
 
-    console.log(regl);
+    // reference to the canvas
+    const splotRef = useRef(null);
 
-    let frameLoop = regl.frame(({time}) => {
-        regl.clear({
-            color: [0, 0, 0, 1],
-            depth: 1,
-        });
+    useEffect(() => {
+        const scatterplot = new Scatterplot(data, splotRef.current)
+    
+    }, [splotRef])
 
-        if (frameLoop) {
-            frameLoop.cancel();
-        }
-    });
+
     
 
     return (
         <div>
             <canvas 
-                ref={canvas}
+                ref={splotRef}
                 width={props.size}
                 height={props.size}
-                
+                style={{
+                    border: "1px black solid",
+                    margin: "10px"
+                }}
             />
         </div>
     );
