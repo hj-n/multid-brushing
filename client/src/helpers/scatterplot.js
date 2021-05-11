@@ -2,24 +2,41 @@
  * Scatterplot for Brushing MDP
  * Supported Functionalities:
  * * Update Position 
- * * Update Color / Opacity
+ * * Update Styles: Color / Opacity / Radius 
+ */
+
+/**
+ * INITIALIZATION
+ * const scatterplot = new Scatterplot (data, dom)
+ * "data" parameter should hold the initial information of the scatterplot
+ * "dom" paramter should hold the dom element where the scatterplot will be rendered
+ *
+ * UPDATE
+ * scatterplot.update(data, duration, delay)
+ * * note that "duration" and "delay" should be given as millisecond
+ *
+ * data: {
+ *  position: ~~ each element is vec2 (should be normalized to -1 ~ 1)
+ *  opacity:  ~~ each element is float value
+ *  color:    ~~ each element is vec3 (each value denotes to r,g,b, respectively)
+ *  radius:   ~~ each elemtn is float value
+ * }
  */
 
 
-// TODO add update support
-
 export class Scatterplot {
-  constructor (points, opacity, color, radiusArr, dom) {
-    this.points = points;
-    this.opacity = opacity;
-    this.color = color;
+  constructor (data, dom) {
+    this.points = data.position;
+    this.opacity = data.opacity;
+    this.color = data.color;
+    this.radius = data.radius;
     this.dom = dom;
-    this.radius = radiusArr;
 
-    this.currentPositions = points;  // current position of the points
-    this.currentOpacity = opacity;   // current opacity values of the points
-    this.currentColor = color;       // current color
-    this.currentRadius = radiusArr;  // current radius
+
+    this.currentPositions = this.points;  // current position of the points
+    this.currentOpacity = this.opacity;   // current opacity values of the points
+    this.currentColor = this.color;       // current color
+    this.currentRadius = this.radius;     // current radius
 
     this.isUpdating = false;
 
@@ -92,7 +109,12 @@ export class Scatterplot {
   }
 
   // update scatterplot
-  update(newPositions, newOpacity, newColor, newRadius, delay, duration) {
+  update(data, duration=0, delay=0) {
+
+    let newPositions = data.position;
+    let newOpacity = data.opacity;
+    let newColor = data.color;
+    let newRadius = data.radius;
 
     if (this.isUpdating) return;
     else this.isUpdating = true;
@@ -125,12 +147,9 @@ export class Scatterplot {
         this.currentColor = newColor;
         this.currentRadius = newRadius;
         this.isUpdating = false;
-
       }
-
-
-
     })
+
   }
 
 
@@ -186,7 +205,7 @@ export class Scatterplot {
 
 
           float t;
-          if (duration == 0.0)       t = 1.0;
+          if (duration == 0.0 && delay == 0.0)       t = 1.0;
           else if (elapsed < delay)  t = 0.0;
           else                       t = easeCubicInOut((elapsed - delay) / duration);
 

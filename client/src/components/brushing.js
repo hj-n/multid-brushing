@@ -15,16 +15,19 @@ const Brushing = (props) => {
     let radiusArr = Array(size).fill(radius);
     
 
-
-
-
     // reference to the canvas
     const splotRef = useRef(null);
 
     let scatterplot;
 
     useEffect(() => {
-        scatterplot = new Scatterplot(data, opacity, color, radiusArr, splotRef.current);
+
+        scatterplot = new Scatterplot({
+            position: data,
+            opacity: opacity,
+            color: color,
+            radius: radiusArr
+        }, splotRef.current);
     }, [splotRef])
 
 
@@ -36,7 +39,12 @@ const Brushing = (props) => {
         let newColor = newRandomData.color;
         let newRadius = Array(size).fill(radius * Math.random() * 3);
 
-        scatterplot.update(newData, newOpacity, newColor, newRadius, 500, 1000);
+        scatterplot.update({
+            position: newData,
+            opacity: newOpacity,
+            color: color,
+            radius: radiusArr
+        }, 1000, 0);
     }
 
 
