@@ -6,19 +6,23 @@ const Brushing = (props) => {
     
 
     // data
-    let randomData = new RandomData(1000);
+    let randomData = new RandomData(10000);
     let data = randomData.emb;
+    let opacity = randomData.opacity;
+
+
+
+    const radius = 2;
 
     // reference to the canvas
     const splotRef = useRef(null);
 
     useEffect(() => {
-        const scatterplot = new Scatterplot(data, splotRef.current)
+        const scatterplot = new Scatterplot(data, opacity, radius, splotRef.current)
     
     }, [splotRef])
 
 
-    
 
     return (
         <div>
@@ -28,7 +32,9 @@ const Brushing = (props) => {
                 height={props.size}
                 style={{
                     border: "1px black solid",
-                    margin: "10px"
+                    margin: "10px",
+                    width: props.size,
+                    height: props.size
                 }}
             />
         </div>
