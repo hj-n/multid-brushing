@@ -18,7 +18,13 @@ const Brushing = (props) => {
     const splotRef = useRef(null);
 
     useEffect(() => {
-        const scatterplot = new Scatterplot(data, opacity, radius, splotRef.current)
+        const scatterplot = new Scatterplot(data, opacity, radius, splotRef.current);
+
+        let newRandomData = new RandomData(10000);
+        let newData = newRandomData.emb;
+        let newOpacity = newRandomData.opacity;
+
+        scatterplot.update(newData, newOpacity, 500, 1000);
     
     }, [splotRef])
 
