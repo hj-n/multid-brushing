@@ -5,7 +5,7 @@ import { heatmapData } from "../helpers/heatmapData";
 import { Heatmap } from '../helpers/heatmap';
 
 const Brushing = (props) => {
-    /*
+    
 
 
     // FOR SCATTERPLOT 
@@ -25,6 +25,8 @@ const Brushing = (props) => {
 
     let scatterplot;
 
+    
+
     useEffect(() => {
         scatterplot = new Scatterplot({
             position: data,
@@ -35,6 +37,7 @@ const Brushing = (props) => {
     }, [splotRef]);
 
 
+    
 
     function updateScatterPlot() {
         let newRandomData = new RandomData(size);
@@ -52,7 +55,6 @@ const Brushing = (props) => {
     }
 
 
-    */
 
     // FOR HEATMAP
     const resolution = 100;  // resol * resol
@@ -81,30 +83,36 @@ const Brushing = (props) => {
 
     return (
         <div>
-            {/* <canvas 
-                ref={splotRef}
-                width={props.size}
-                height={props.size}
-                style={{
-                    border: "1px black solid",
-                    margin: "10px",
-                    width: props.size,
-                    height: props.size
-                }}
-            />
-            <button onClick={updateScatterPlot}>Click to update Scatterplot</button> */}
-            <canvas
-                ref={hmapRef}
-                width={props.size}
-                height={props.size}
-                style={{
-                    border: "1px black solid",
-                    margin: "10px",
-                    width: props.size,
-                    height: props.size
-                }}
-            />
-            <button onClick={updateHeatmap}>Click to update Heatmap</button>
+            <div>
+                <canvas
+                    ref={hmapRef}
+                    width={props.size}
+                    height={props.size}
+                    style={{
+                        border: "1px black solid",
+                        margin: "10px",
+                        width: props.size,
+                        height: props.size,
+                        position: "absolute"
+                    }}
+                />
+                <canvas 
+                    ref={splotRef}
+                    width={props.size}
+                    height={props.size}
+                    style={{
+                        border: "1px black solid",
+                        margin: "10px",
+                        width: props.size,
+                        height: props.size,
+                        position: "absolute"
+                    }}
+                />
+            </div>
+            <div style={{position: "absolute", top: 540}}>
+                <button onClick={updateScatterPlot}>Click to update Scatterplot</button>
+                <button onClick={updateHeatmap}>Click to update Heatmap</button>
+            </div>
         </div>
     );
 }
