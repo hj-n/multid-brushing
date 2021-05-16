@@ -102,22 +102,102 @@ export class Heatmap {
 
   // update heatmap
   update(data, duration=0, delay=0) {
+    let newPixelValue = [].concat(...data.pixelValue);
+
+    if (this.isUpdating) return;
+    else this.isUpdating = true;
+
+    let startTime = null;
+
+    const updateHmap = this.updateCommand(newPixelValue);
+
+    let frameLoop = this.regl.frame(({time}) => {
+      if (startTime === null) {
+        startTime = time;
+      }
+
+      this.regl.clear({
+        color: [255, 255, 255, 0],
+        depth: 1,
+      });
+
+      updateHmap({
+        pixelSize: this.pixelSize,
+        resolution: this.resolution,
+        startTime: startTime,
+        delay, duration
+      });
+
+      if (time - startTime > (duration + delay) / 1000) {
+        frameLoop.cancel();
+        this.currentPixelValue = newPixelValue;
+        this.isUpdating = false;
+      }
+    });
 
   }
 
   // REGL command for updating heatmap
-  update(newPixelValue) {
+  updateCommand(newPixelValue) {
     return this.regl({
       frag: `
+        precision highp float;
+
+        varying float fragColor;
+
+        void main() {
+          gl_FragColor = vec4(1.0 - fragColor, 1, 1, 1);
+        }
       `,
       vert: `
+        attribute float startPixelValue;
+        attribute float endPixelValue;
+        attribute float x,y;
+
+        varying float fragColor;
+
+        uniform float pixelSize;
+        uniform float delay;
+        uniform float duration;
+        uniform float elapsed;
+        uniform float resolution;
+
+        float easeCubicInOut(float t) {
+          t *= 2.0;
+          t = (t <= 1.0 ? t * t * t : (t -= 2.0) * t * t + 2.0) / 2.0;
+
+          if (t > 1.0) {
+            t = 1.0;
+          }
+          return t;
+        }
+
+        void main() {
+          float t;
+          if (duration == 0.0 && delay == 0.0) t = 1.0;
+          else if (elapsed < delay) t = 0.0;
+          else                      t = easeCubicInOut((elapsed - delay) / duration);
+
+          gl_PointSize = pixelSize;
+          gl_Position = vec4(2.0 * ( (x + 0.5) / resolution) - 1.0, 2.0 * ( (y + 0.5) / resolution) - 1.0, 0, 1);
+
+          fragColor = mix(startPixelValue, endPixelValue, t);
+
+        }
       `,
       attributes: {
         startPixelValue: this.currentPixelValue,
-        endPixelValue: newPixelValue
-
+        endPixelValue: newPixelValue,
+        x: this.xIndex,
+        y: this.yIndex
       },
-      uniforms: {},
+      uniforms: {
+        pixelSize: this.regl.prop('pixelSize'),
+        resolution: this.regl.prop('resolution'),
+        delay: this.regl.prop('delay'),
+        duration: this.regl.prop('duration'),
+        elapsed: (context, props) => (context.time - props.startTime) * 1000
+      },
       count: this.resolution * this.resolution,
       primitive: 'points'
     });

@@ -32,7 +32,6 @@ export class Scatterplot {
     this.radius = data.radius;
     this.dom = dom;
 
-
     this.currentPositions = this.points;  // current position of the points
     this.currentOpacity = this.opacity;   // current opacity values of the points
     this.currentColor = this.color;       // current color
@@ -201,8 +200,6 @@ export class Scatterplot {
         }
 
         void main() {
-
-
           float t;
           if (duration == 0.0 && delay == 0.0)       t = 1.0;
           else if (elapsed < delay)  t = 0.0;
@@ -215,7 +212,6 @@ export class Scatterplot {
           fragColor = mix(startColor, endColor, t) / 255.0;
 
           gl_Position = vec4(position, 0.0, 1.0);
-
         }
       `,
       attributes: {
@@ -231,7 +227,7 @@ export class Scatterplot {
       uniforms: {
         delay: this.regl.prop('delay'),
         duration: this.regl.prop('duration'),
-        startTime: this.regl.prop('duration'),
+        startTime: this.regl.prop('startTime'),
         elapsed: (context, props) => (context.time - props.startTime) * 1000
       },
       count: this.points.length,

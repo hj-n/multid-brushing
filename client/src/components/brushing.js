@@ -55,7 +55,7 @@ const Brushing = (props) => {
     */
 
     // FOR HEATMAP
-    const resolution = 50;  // resol * resol
+    const resolution = 100;  // resol * resol
 
     const hmapRef = useRef(null);
 
@@ -72,7 +72,10 @@ const Brushing = (props) => {
     
 
     function updateHeatmap() {
-        
+        let newPixelValue = heatmapData(resolution);
+        heatmap.update({
+            pixelValue: newPixelValue
+        }, 1000, 0);
     }
 
 
