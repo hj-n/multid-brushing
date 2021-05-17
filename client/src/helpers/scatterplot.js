@@ -37,25 +37,66 @@ export class Scatterplot {
     this.currentColor = this.color;       // current color
     this.currentRadius = this.radius;     // current radius
 
+    this.mouseX = -2.0;
+    this.mouseY = -2.0;
+
+    // Initial Scatterplot Rendering
+
+    this.initializeSplot = null;
     this.isUpdating = false;
 
     let gl = this.dom.getContext("webgl");
     this.regl = require('regl')(gl);
 
-
-    let frameLoop = this.regl.frame(() => {
-      this.regl.clear({
-        color: [255, 255, 255, 0],
-        depth: 1,
-      });
-
-      const initializeSplot = this.initializeCommand();
-      initializeSplot({})
-
-      if (frameLoop) {
-        frameLoop.cancel();
-      }
+    this.regl.clear({
+      color: [255, 255, 255, 0],
+      depth: 1,
     });
+
+    this.initializeSplot = this.initializeCommand();
+    this.initializeSplot({
+      mousex: this.mouseX,
+      mousey: this.mouseY,
+      width  : dom.offsetWidth,
+      height : dom.offsetHeight
+    });
+
+    // mouse event handler
+
+    this.interactionFrameLoop = null;
+
+    const setInteractionFrameLoop = () => {
+      this.interactionFrameLoop = this.regl.frame(() => {
+        this.regl.clear({
+          color: [255, 255, 255, 0],
+          depth: 1,
+        });
+        this.initializeSplot({
+          mousex: this.mouseX,
+          mousey: this.mouseY,
+          width  : dom.offsetWidth,
+          height : dom.offsetHeight
+        });
+      });
+    }
+    
+    dom.addEventListener('mouseout', e => {
+      this.mouseX = -2.0;
+      this.mouseY = -2.0;
+      this.interactionFrameLoop.cancel();
+      this.interactionFrameLoop = null;
+    });
+
+    dom.addEventListener('mousemove', e => {
+      this.mouseX = (e.offsetX / dom.offsetWidth) * 2 - 1;
+      this.mouseY = - ((e.offsetY / dom.offsetHeight) * 2 - 1);
+      if (this.interactionFrameLoop === null) setInteractionFrameLoop();
+    });
+
+    dom.addEventListener('mouseover', e => {
+      setInteractionFrameLoop();
+    });
+
   }
 
   // regl command for the inialization of the scatterplot
@@ -87,19 +128,38 @@ export class Scatterplot {
         varying float fragOpacity;
         varying vec3 fragColor;
 
+        uniform float mousex, mousey;
+        uniform float width, height;
+
         void main() {
-          gl_PointSize = radius;
-          gl_Position = vec4(position, 0, 1);     
+          float mouseDist = distance(vec2(position[0] * width, position[1] * height) / 2.0, 
+                                     vec2(mousex * width, mousey * height) / 2.0) * 2.0;
+
+
+          if (mouseDist < radius) {
+            gl_PointSize = radius * 2.0;
+            gl_Position = vec4(position, - 0.1, 1);
+          }
+          else {
+            gl_PointSize = radius;
+            gl_Position = vec4(position, 0, 1);
+          }
           
           fragOpacity = opacity;
           fragColor = color / 255.0;
         }
       `,
       attributes: {
-        position: this.points,
-        opacity: this.opacity,
-        color: this.color,
-        radius: this.radius
+        position: this.currentPositions,
+        opacity: this.currentOpacity,
+        color: this.currentColor,
+        radius: this.currentRadius,
+      },
+      uniforms: {
+        mousex: this.regl.prop("mousex"),
+        mousey: this.regl.prop("mousey"),
+        width:  this.regl.prop("width"),
+        height: this.regl.prop("height"),
       },
       count: this.points.length,
       primitive:  'points',
@@ -109,13 +169,21 @@ export class Scatterplot {
   // update scatterplot
   update(data, duration=0, delay=0) {
 
+    // exception handling
+    if (this.isUpdating) return;
+    else this.isUpdating = true;
+
+    if (this.interactionFrameLoop !== null) {
+      this.interactionFrameLoop.cancel();
+      this.interactionFrameLoop = null;
+    }
+
+    // update
     let newPositions = data.position;
     let newOpacity = data.opacity;
     let newColor = data.color;
     let newRadius = data.radius;
 
-    if (this.isUpdating) return;
-    else this.isUpdating = true;
 
     let startTime = null;
 
@@ -144,6 +212,7 @@ export class Scatterplot {
         this.currentOpacity = newOpacity;
         this.currentColor = newColor;
         this.currentRadius = newRadius;
+        this.initializeSplot = this.initializeCommand();
         this.isUpdating = false;
       }
     })

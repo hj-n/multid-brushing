@@ -5,8 +5,6 @@ import { heatmapData } from "../helpers/heatmapData";
 import { Heatmap } from '../helpers/heatmap';
 
 const Brushing = (props) => {
-    
-
 
     // FOR SCATTERPLOT 
     const size = 100000;
@@ -34,6 +32,7 @@ const Brushing = (props) => {
             color: color,
             radius: radiusArr
         }, splotRef.current);
+
     }, [splotRef]);
 
 
