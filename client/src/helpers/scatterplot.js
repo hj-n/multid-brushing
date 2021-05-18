@@ -83,6 +83,7 @@ export class Scatterplot {
     dom.addEventListener('mouseout', e => {
       this.mouseX = -2.0;
       this.mouseY = -2.0;
+      if (this.isUpdating) return;
       this.interactionFrameLoop.cancel();
       this.interactionFrameLoop = null;
     });
@@ -90,10 +91,12 @@ export class Scatterplot {
     dom.addEventListener('mousemove', e => {
       this.mouseX = (e.offsetX / dom.offsetWidth) * 2 - 1;
       this.mouseY = - ((e.offsetY / dom.offsetHeight) * 2 - 1);
+      if (this.isUpdating) return;
       if (this.interactionFrameLoop === null) setInteractionFrameLoop();
     });
 
     dom.addEventListener('mouseover', e => {
+      if (this.isUpdating) return;
       setInteractionFrameLoop();
     });
 

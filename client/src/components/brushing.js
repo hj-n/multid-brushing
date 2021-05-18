@@ -4,10 +4,12 @@ import { Scatterplot } from "../helpers/scatterplot";
 import { heatmapData } from "../helpers/heatmapData";
 import { Heatmap } from '../helpers/heatmap';
 
+import * as d3 from "d3";
+
 const Brushing = (props) => {
 
     // FOR SCATTERPLOT 
-    const size = 100000;
+    const size = 10000;
     const radius = 5;
 
     // data
@@ -20,10 +22,7 @@ const Brushing = (props) => {
 
     // reference to the canvas
     const splotRef = useRef(null);
-
     let scatterplot;
-
-    
 
     useEffect(() => {
         scatterplot = new Scatterplot({
@@ -34,9 +33,6 @@ const Brushing = (props) => {
         }, splotRef.current);
 
     }, [splotRef]);
-
-
-    
 
     function updateScatterPlot() {
         let newRandomData = new RandomData(size);
@@ -57,11 +53,10 @@ const Brushing = (props) => {
 
     // FOR HEATMAP
     const resolution = 100;  // resol * resol
-
-    const hmapRef = useRef(null);
-
     let hmapData = heatmapData(resolution);
 
+
+    const hmapRef = useRef(null);
     let heatmap;
 
     useEffect(() => {
@@ -78,6 +73,26 @@ const Brushing = (props) => {
             pixelValue: newPixelValue
         }, 1000, 0);
     }
+
+    // FOR BRUSHER
+    let bX = -2;    // x coordinates of the brusher  (range: -1 ~ 1)
+    let bY = -2;    // y coordinates of the brusher  (range: -1 ~ 1)
+    let bR =  0;    // radius of the brusher  
+
+    useEffect(() => {
+        let brusherSvg = d3.select("#brusherSvg");
+        let brusher = brusherSvg.append("circle")
+                                .attr("fill", "green")
+                                .attr("r", 40)
+                                .attr("transform", "translate(" + 300 + "," + 300 + ")")
+                                .style("opacity", 0.4);
+
+        // interactuib for the circle
+        splotRef.current.addEventListener("mouseover", function() {
+            console.log("on")
+        })
+        
+    }, [])
 
 
     return (
@@ -107,6 +122,20 @@ const Brushing = (props) => {
                         position: "absolute"
                     }}
                 />
+                <svg
+                    id={"brusherSvg"}
+                    width={props.size}
+                    height={props.size}
+                    style={{
+                        border: "1px black solid",
+                        margin: "10px",
+                        width: props.size,
+                        height: props.size,
+                        position: "absolute",
+                        pointerEvents: "none"
+                    }}
+                />
+               
             </div>
             <div style={{position: "absolute", top: 540}}>
                 <button onClick={updateScatterPlot}>Click to update Scatterplot</button>
