@@ -5,6 +5,7 @@ import { heatmapData } from "../helpers/heatmapData";
 import { Heatmap } from '../helpers/heatmap';
 
 import * as d3 from "d3";
+import { transition } from 'd3';
 
 const Brushing = (props) => {
 
@@ -77,19 +78,47 @@ const Brushing = (props) => {
     // FOR BRUSHER
     let bX = -2;    // x coordinates of the brusher  (range: -1 ~ 1)
     let bY = -2;    // y coordinates of the brusher  (range: -1 ~ 1)
-    let bR =  0;    // radius of the brusher  
+    let bR =  20;    // radius of the brusher  
+    let minbR = 5;
+    let maxbR = 60;
+
+
+    let wheelSensitivity = 1;
+
+    function updateWheelSensitivity (e) {
+        wheelSensitivity = e.target.value / 25;
+    }
 
     useEffect(() => {
         let brusherSvg = d3.select("#brusherSvg");
         let brusher = brusherSvg.append("circle")
                                 .attr("fill", "green")
-                                .attr("r", 40)
+                                .attr("r", bR)
                                 .attr("transform", "translate(" + 300 + "," + 300 + ")")
-                                .style("opacity", 0.4);
+                                .style("opacity", 0);
 
         // interactuib for the circle
         splotRef.current.addEventListener("mouseover", function() {
-            console.log("on")
+            brusher.transition()
+                    .duration(300)
+                    .style("opacity", 0.4);
+        });
+        splotRef.current.addEventListener("mousemove", function(e) {
+            bX = e.offsetX;
+            bY = e.offsetY;
+            brusher.attr("transform", "translate(" + bX + "," + bY + ")")
+        });
+        splotRef.current.addEventListener("mouseout", function() {
+            brusher.transition()
+                   .duration(300)
+                   .style("opacity", 0);
+        });
+        splotRef.current.addEventListener("wheel", e => {
+            bR = bR * ((100 - e.deltaY * wheelSensitivity) / 100);
+            bR = bR < minbR ? minbR : bR;
+            bR = bR > maxbR ? maxbR : bR;
+            brusher.attr("r", bR);
+
         })
         
     }, [])
@@ -137,7 +166,18 @@ const Brushing = (props) => {
                 />
                
             </div>
-            <div style={{position: "absolute", top: 540}}>
+            {/* For Hyperparameter change */}
+            <div style={{position: "absolute", top: 530, left: 10}}>
+                Wheel sensitivity
+                <input 
+                    type="range"
+                    min={1} 
+                    max={50}
+                    defaultValue={25} 
+                    onChange={updateWheelSensitivity}/>
+            </div>
+            {/* For Fake Data generation */}
+            <div style={{position: "absolute", top: 630}}>
                 <button onClick={updateScatterPlot}>Click to update Scatterplot</button>
                 <button onClick={updateHeatmap}>Click to update Heatmap</button>
             </div>
