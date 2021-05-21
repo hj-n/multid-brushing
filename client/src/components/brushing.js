@@ -20,7 +20,8 @@ const Brushing = (props) => {
     let emb,             // positions
         density,         // initial snn density of points
         pointLen,        // number of points
-        groups,           // grouping info (currently [0, 0, ....])
+        groups,          // grouping info (currently [0, 0, ....])
+        originGroups,    // original Groups info (for undo operation with Alt)
         groupNum         // current No. of brushed group
     let loaded = false;
 
@@ -44,6 +45,7 @@ const Brushing = (props) => {
             density  = response.data.density;
             pointLen = density.length;
             groups   = new Array(pointLen).fill(0);
+            originGroups = new Array(pointLen).fill(0);
             groupNum = 1;
         })
 
@@ -68,6 +70,8 @@ const Brushing = (props) => {
     let maxbR = 60;
 
     let isClicking = false;
+    let isAltPressed = false;
+
     let defaultOpacity = 0.2;
     let clickedOpacity = 0.5;
 
@@ -86,7 +90,7 @@ const Brushing = (props) => {
                                 .style("opacity", 0);
 
         // interactuib for the circle
-        splotRef.current.addEventListener("mouseover", function() {
+        splotRef.current.addEventListener("mouseover", function(e) {
             brusher.transition()
                     .duration(300)
                     .style("opacity", defaultOpacity);
@@ -116,6 +120,18 @@ const Brushing = (props) => {
             isClicking = false; 
             brusher.style("opacity", defaultOpacity);
         })
+        document.addEventListener("keydown", e => {
+            if (e.code === "AltLeft") {
+                brusher.attr("fill", "red");
+                isAltPressed = true;
+            };
+        })
+        document.addEventListener("keyup", e => {
+            if (e.code === "AltLeft") {
+                brusher.attr("fill", "green");
+                isAltPressed = false;
+            };
+        })
     });
 
 
@@ -134,7 +150,8 @@ const Brushing = (props) => {
         let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
 
         if(isClicking) {
-            mouseoverPoints.forEach(idx => { groups[idx] = groupNum; });
+            if (!isAltPressed) mouseoverPoints.forEach(idx => { groups[idx] = groupNum; });
+            else               mouseoverPoints.forEach(idx => { groups[idx] = originGroups[idx]; });
         }
 
         let groupPoints = groups.reduce((acc, cur, idx) => {
@@ -188,6 +205,7 @@ const Brushing = (props) => {
 
         splotRef.current.addEventListener("mouseout", function() {
             clearInterval(updateExecutor);
+            update(0, bX, bY, props.size, emb, isClicking)
             updateExecutor = null;
         })
     }, [props, splotRef])
@@ -200,48 +218,6 @@ const Brushing = (props) => {
 
 
     /*
-
-    // FOR SCATTERPLOT 
-    const size = 10000;
-    const radius = 5;
-
-    // data
-    let randomData = new RandomData(size);
-    let data = randomData.emb;
-    let opacity = randomData.opacity;
-    let color = randomData.color;
-    let radiusArr = Array(size).fill(radius);
-    
-
-    // reference to the canvas
-    const splotRef = useRef(null);
-    let scatterplot;
-
-    useEffect(() => {
-        scatterplot = new Scatterplot({
-            position: data,
-            opacity: opacity,
-            color: color,
-            radius: radiusArr
-        }, splotRef.current);
-
-    }, [splotRef]);
-
-    function updateScatterPlot() {
-        let newRandomData = new RandomData(size);
-        let newData = newRandomData.emb;
-        let newOpacity = newRandomData.opacity;
-        let newColor = newRandomData.color;
-        let newRadius = Array(size).fill(radius * Math.random() * 3);
-
-        scatterplot.update({
-            position: newData,
-            opacity: newOpacity,
-            color: newColor,
-            radius: newRadius
-        }, 1000, 0);
-    }
-
 
     // FOR HEATMAP
     const resolution = 100;  // resol * resol
@@ -268,7 +244,7 @@ const Brushing = (props) => {
 
 
 
-        */
+    */
         
     
 
@@ -327,7 +303,6 @@ const Brushing = (props) => {
             </div>
             {/* For Fake Data generation */}
             <div style={{position: "absolute", top: 630}}>
-                {/* <button onClick={updateScatterPlot}>Click to update Scatterplot</button> */}
                 {/* <button onClick={updateHeatmap}>Click to update Heatmap</button> */}
             </div>
         </div>
