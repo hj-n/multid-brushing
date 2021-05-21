@@ -17,7 +17,11 @@ const Brushing = (props) => {
     const url = props.url;
 
     // CONSTANT DATA 
-    let emb, density, pointLen;
+    let emb,             // positions
+        density,         // initial snn density of points
+        pointLen,        // number of points
+        group,           // grouping info (currently [0, 0, ....])
+        groupNum         // number of groups
     let loaded = false;
 
 
@@ -36,9 +40,11 @@ const Brushing = (props) => {
                 sample : sample_rate
             }
         }).then(response => {
-            emb     = response.data.emb;
-            density = response.data.density;
+            emb      = response.data.emb;
+            density  = response.data.density;
             pointLen = density.length;
+            group    = new Array(pointLen).fill(0);
+            groupNum = 0;
         })
 
         // rendering
@@ -61,6 +67,10 @@ const Brushing = (props) => {
     let minbR = 5;
     let maxbR = 60;
 
+    let isClicking = false;
+    let defaultOpacity = 0.4;
+    let clickedOpacity = 0.7;
+
     let wheelSensitivity = 1;
 
     function updateWheelSensitivity (e) {
@@ -79,7 +89,7 @@ const Brushing = (props) => {
         splotRef.current.addEventListener("mouseover", function() {
             brusher.transition()
                     .duration(300)
-                    .style("opacity", 0.5);
+                    .style("opacity", defaultOpacity);
         });
         splotRef.current.addEventListener("mousemove", function(e) {
             bX = e.offsetX;
@@ -98,27 +108,33 @@ const Brushing = (props) => {
             brusher.attr("r", bR);
 
         })
+        splotRef.current.addEventListener("mousedown", e => { 
+            isClicking = true;  
+            brusher.style("opacity", clickedOpacity);
+        })
+        splotRef.current.addEventListener("mouseup"  , e => { 
+            isClicking = false; 
+            brusher.style("opacity", defaultOpacity);
+        })
     });
 
 
-    let updateExecutor = null;
+
     // NOTE EventListener for Scatterplot
+    let updateExecutor = null;
 
     let updateInterval = 100
     let duration = updateInterval * 0.8;
+
+    // 
+
 
     async function update(bR, bX, bY, size, emb) {
         bR = (bR / size) * 2;
         bX = (bX / size) * 2 - 1;
         bY = - (bY / size) * 2 + 1;
-        // console.log(bR, bX, bY)
-
-
-
 
         const mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
-
-
 
         if (mouseoverPoints.length > 0) {
             await axios.get(url + "similarity", {
@@ -148,12 +164,9 @@ const Brushing = (props) => {
             }
             scatterplot.update(data, duration, 0);
         }
-
-
     }
 
     useEffect(async () => {
-
         splotRef.current.addEventListener("mouseover", function() {
             if (!loaded) return;
             updateExecutor = setInterval(() => {
