@@ -1,12 +1,14 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
 
-import { RandomData } from '../subcomponents/data';
+import ManageGroups from "./manageGroups";
+
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
-import { getMouseoverPoints} from "../helpers/update";
+import { getMouseoverPoints, generateColors } from "../helpers/utils";
+
 
 const Brushing = (props) => {
 
@@ -21,8 +23,13 @@ const Brushing = (props) => {
         density,         // initial snn density of points
         pointLen,        // number of points
         groups,          // grouping info (currently [0, 0, ....])
-        originGroups,    // original Groups info (for undo operation with Alt)
-        groupNum         // current No. of brushed group
+        originGroups;    // original Groups info (for undo operation with Alt)
+
+    let groupNum = 1; // current No. of brushed group
+    const [groupInfo, setGroupinfo] = useState([0]);
+
+    let colors = generateColors();
+
     let loaded = false;
 
 
@@ -44,9 +51,9 @@ const Brushing = (props) => {
             emb      = response.data.emb;
             density  = response.data.density;
             pointLen = density.length;
-            groups   = new Array(pointLen).fill(0);
+            groups   = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
             originGroups = new Array(pointLen).fill(0);
-            groupNum = 1;
+            
         })
 
         // rendering
@@ -264,7 +271,7 @@ const Brushing = (props) => {
                     max={50}
                     defaultValue={25} 
                     onChange={updateWheelSensitivity}
-                    class="slider"
+                    className="slider"
                 />
             </div>
             <div style={{position: "absolute", top: 30}}>
@@ -305,10 +312,17 @@ const Brushing = (props) => {
                         pointerEvents: "none"
                     }}
                 />
-               
+            </div>
+            <div style={{position: "absolute", top: 540, margin: 10}}>
+                <ManageGroups
+                    groupInfo={groupInfo}
+                    colors={colors}
+                    size={props.size}
+
+                />
             </div>
             {/* For Fake Data generation */}
-            <div style={{position: "absolute", top: 630}}>
+            <div >
                 {/* <button onClick={updateHeatmap}>Click to update Heatmap</button> */}
             </div>
         </div>
