@@ -6,7 +6,7 @@ import { RandomData } from '../subcomponents/data';
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
-import { getMouseoverPoints } from "../helpers/update";
+import { getMouseoverPoints} from "../helpers/update";
 
 const Brushing = (props) => {
 
@@ -20,8 +20,8 @@ const Brushing = (props) => {
     let emb,             // positions
         density,         // initial snn density of points
         pointLen,        // number of points
-        group,           // grouping info (currently [0, 0, ....])
-        groupNum         // number of groups
+        groups,           // grouping info (currently [0, 0, ....])
+        groupNum         // current No. of brushed group
     let loaded = false;
 
 
@@ -43,8 +43,8 @@ const Brushing = (props) => {
             emb      = response.data.emb;
             density  = response.data.density;
             pointLen = density.length;
-            group    = new Array(pointLen).fill(0);
-            groupNum = 0;
+            groups   = new Array(pointLen).fill(0);
+            groupNum = 1;
         })
 
         // rendering
@@ -68,8 +68,8 @@ const Brushing = (props) => {
     let maxbR = 60;
 
     let isClicking = false;
-    let defaultOpacity = 0.4;
-    let clickedOpacity = 0.7;
+    let defaultOpacity = 0.2;
+    let clickedOpacity = 0.5;
 
     let wheelSensitivity = 1;
 
@@ -126,34 +126,45 @@ const Brushing = (props) => {
     let updateInterval = 100
     let duration = updateInterval * 0.8;
 
-    // 
-
-
-    async function update(bR, bX, bY, size, emb) {
+    async function update(bR, bX, bY, size, emb, isClicking) {
         bR = (bR / size) * 2;
         bX = (bX / size) * 2 - 1;
         bY = - (bY / size) * 2 + 1;
 
-        const mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
+        let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
 
-        if (mouseoverPoints.length > 0) {
+        if(isClicking) {
+            mouseoverPoints.forEach(idx => { groups[idx] = groupNum; });
+        }
+
+        let groupPoints = groups.reduce((acc, cur, idx) => {
+            if (cur === groupNum) acc.push(cur);
+            return acc;
+        }, []);
+
+        let consideringPoints = [...new Set(groupPoints.concat(mouseoverPoints))]
+
+        if (consideringPoints.length > 0) {
             await axios.get(url + "similarity", {
-                params: { index: { data: mouseoverPoints } }
+                params: { index: { data: consideringPoints } }
             }).then(response => {
-                const sim = response.data
-                
-                const color = sim.map((s) => { return s > 0 ? [255, 0, 0] : [0, 0, 0] });
-                const opacitylist = sim.map((s, i) => { return s > 0 ? s : density[i]})
+                const sim = response.data;
+                const color = sim.map((s, i) => { 
+                    return groups[i] === groupNum ? [255, 0, 0] : (s > 0 ? [255, 0, 0] : [0, 0, 0] )
+                });
+                const opacitylist = sim.map((s, i) => { 
+                    return groups[i] === groupNum ? 1 : (s > 0 ? s : density[i])
+                });
                 let radlist = new Array(pointLen).fill(radius);
-                mouseoverPoints.forEach(e => radlist[e] = radlist[e] * 1.5);
+                consideringPoints.forEach(e => radlist[e] = radlist[e] * 1.3);
                 const data = {
                     position: emb,
                     opacity : opacitylist,
                     color   : color,
                     radius  : radlist
-                }
+                };
                 scatterplot.update(data, duration, 0);
-            })
+            });
         }
         else {
             const data = {
@@ -164,13 +175,14 @@ const Brushing = (props) => {
             }
             scatterplot.update(data, duration, 0);
         }
+       
     }
 
     useEffect(async () => {
         splotRef.current.addEventListener("mouseover", function() {
             if (!loaded) return;
             updateExecutor = setInterval(() => {
-                update(bR, bX, bY, props.size, emb)
+                update(bR, bX, bY, props.size, emb, isClicking)
             }, updateInterval);
         })
 
