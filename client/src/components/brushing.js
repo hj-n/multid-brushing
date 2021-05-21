@@ -143,6 +143,8 @@ const Brushing = (props) => {
     let duration = updateInterval * 0.8;
 
     async function update(bR, bX, bY, size, emb, isClicking) {
+        if(!loaded) return;
+
         bR = (bR / size) * 2;
         bX = (bX / size) * 2 - 1;
         bY = - (bY / size) * 2 + 1;
@@ -208,7 +210,7 @@ const Brushing = (props) => {
             update(0, bX, bY, props.size, emb, isClicking)
             updateExecutor = null;
         })
-    }, [props, splotRef])
+    }, [props, splotRef]);
 
 
 
@@ -251,7 +253,21 @@ const Brushing = (props) => {
 
     return (
         <div>
-            <div>
+            {/* For Hyperparameter change */}
+            <div style={{position: "absolute", top: 10, left: 10, display: "flex"}}>
+                <div style={{width: 205}}>
+                    Wheel sensitivity
+                </div>
+                <input 
+                    type="range"
+                    min={1} 
+                    max={50}
+                    defaultValue={25} 
+                    onChange={updateWheelSensitivity}
+                    class="slider"
+                />
+            </div>
+            <div style={{position: "absolute", top: 30}}>
                 {/* <canvas
                     ref={hmapRef}
                     width={props.size}
@@ -290,16 +306,6 @@ const Brushing = (props) => {
                     }}
                 />
                
-            </div>
-            {/* For Hyperparameter change */}
-            <div style={{position: "absolute", top: 530, left: 10}}>
-                Wheel sensitivity
-                <input 
-                    type="range"
-                    min={1} 
-                    max={50}
-                    defaultValue={25} 
-                    onChange={updateWheelSensitivity}/>
             </div>
             {/* For Fake Data generation */}
             <div style={{position: "absolute", top: 630}}>
