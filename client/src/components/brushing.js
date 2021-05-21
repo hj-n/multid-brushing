@@ -2,30 +2,31 @@ import React, { useRef, useEffect } from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
 
-import { RandomData } from '../helpers/data';
-import { Scatterplot } from "../helpers/scatterplot";
-import { heatmapData } from "../helpers/heatmapData";
-import { Heatmap } from '../helpers/heatmap';
+import { RandomData } from '../subcomponents/data';
+import { Scatterplot } from "../subcomponents/scatterplot";
+import { heatmapData } from "../subcomponents/heatmapData";
+import { Heatmap } from '../subcomponents/heatmap';
+import { getMouseoverPoints } from "../helpers/update";
 
 const Brushing = (props) => {
 
-    // METADATA    
+    // CONSTANT METADATA    
     const dataset     = props.dataset;
     const method      = props.method;
     const sample_rate = props.sample;
     const url = props.url;
 
-    // DATA 
-    let emb, density, length;
+    // CONSTANT DATA 
+    let emb, density, pointLen;
+    let loaded = false;
 
 
-    // SCATTERPLOT_DATA
+    // CONSTANT SCATTERPLOT_DATA
     const splotRef = useRef(null);
     let scatterplot;
+    let radius = 15;
 
-    let radius = 6;
-
-
+    // NOTE INITAL SCATTERPLOT RENDERING
     useEffect(async () => {
         // initial data extraction
         await axios.get(url + "init", {
@@ -37,23 +38,140 @@ const Brushing = (props) => {
         }).then(response => {
             emb     = response.data.emb;
             density = response.data.density;
-            length = density.length;
+            pointLen = density.length;
         })
 
         // rendering
         const data = {
             position: emb,
             opacity: density,
-            color : new Array(length).fill([0, 0, 0]),
-            radius : new Array(length).fill(radius)
+            color : new Array(pointLen).fill([0, 0, 0]),
+            radius : new Array(pointLen).fill(radius)
         };
-
-        console.log(data)
         scatterplot = new Scatterplot(data, splotRef.current);
-
-        
+        loaded = true;
 
     }, [props, splotRef])
+
+
+    // NOTE BRUSHER Setting
+    let bX = -2;    // x coordinates of the brusher  (range: -1 ~ 1)
+    let bY = -2;    // y coordinates of the brusher  (range: -1 ~ 1)
+    let bR =  20;    // radius of the brusher  
+    let minbR = 5;
+    let maxbR = 60;
+
+    let wheelSensitivity = 1;
+
+    function updateWheelSensitivity (e) {
+        wheelSensitivity = e.target.value / 25;
+    }
+
+    useEffect(() => {
+        let brusherSvg = d3.select("#brusherSvg");
+        let brusher = brusherSvg.append("circle")
+                                .attr("fill", "green")
+                                .attr("r", bR)
+                                .attr("transform", "translate(" + 300 + "," + 300 + ")")
+                                .style("opacity", 0);
+
+        // interactuib for the circle
+        splotRef.current.addEventListener("mouseover", function() {
+            brusher.transition()
+                    .duration(300)
+                    .style("opacity", 0.5);
+        });
+        splotRef.current.addEventListener("mousemove", function(e) {
+            bX = e.offsetX;
+            bY = e.offsetY;
+            brusher.attr("transform", "translate(" + bX + "," + bY + ")")
+        });
+        splotRef.current.addEventListener("mouseout", function() {
+            brusher.transition()
+                   .duration(300)
+                   .style("opacity", 0);
+        });
+        splotRef.current.addEventListener("wheel", e => {
+            bR = bR * ((100 - e.deltaY * wheelSensitivity) / 100);
+            bR = bR < minbR ? minbR : bR;
+            bR = bR > maxbR ? maxbR : bR;
+            brusher.attr("r", bR);
+
+        })
+    });
+
+
+    let updateExecutor = null;
+    // NOTE EventListener for Scatterplot
+
+    let updateInterval = 100
+    let duration = updateInterval * 0.8;
+
+    async function update(bR, bX, bY, size, emb) {
+        bR = (bR / size) * 2;
+        bX = (bX / size) * 2 - 1;
+        bY = - (bY / size) * 2 + 1;
+        // console.log(bR, bX, bY)
+
+
+
+
+        const mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
+
+
+
+        if (mouseoverPoints.length > 0) {
+            await axios.get(url + "similarity", {
+                params: { index: { data: mouseoverPoints } }
+            }).then(response => {
+                const sim = response.data
+                
+                const color = sim.map((s) => { return s > 0 ? [255, 0, 0] : [0, 0, 0] });
+                const opacitylist = sim.map((s, i) => { return s > 0 ? s : density[i]})
+                let radlist = new Array(pointLen).fill(radius);
+                mouseoverPoints.forEach(e => radlist[e] = radlist[e] * 1.5);
+                const data = {
+                    position: emb,
+                    opacity : opacitylist,
+                    color   : color,
+                    radius  : radlist
+                }
+                scatterplot.update(data, duration, 0);
+            })
+        }
+        else {
+            const data = {
+                position: emb,
+                opacity : density,
+                color : new Array(pointLen).fill([0, 0, 0]),
+                radius : new Array(pointLen).fill(radius)
+            }
+            scatterplot.update(data, duration, 0);
+        }
+
+
+    }
+
+    useEffect(async () => {
+
+        splotRef.current.addEventListener("mouseover", function() {
+            if (!loaded) return;
+            updateExecutor = setInterval(() => {
+                update(bR, bX, bY, props.size, emb)
+            }, updateInterval);
+        })
+
+        splotRef.current.addEventListener("mouseout", function() {
+            clearInterval(updateExecutor);
+            updateExecutor = null;
+        })
+    }, [props, splotRef])
+
+
+
+
+
+
 
 
     /*
@@ -99,7 +217,6 @@ const Brushing = (props) => {
         }, 1000, 0);
     }
 
-    */
 
     // FOR HEATMAP
     const resolution = 100;  // resol * resol
@@ -124,59 +241,17 @@ const Brushing = (props) => {
         }, 1000, 0);
     }
 
-    // FOR BRUSHER
-    let bX = -2;    // x coordinates of the brusher  (range: -1 ~ 1)
-    let bY = -2;    // y coordinates of the brusher  (range: -1 ~ 1)
-    let bR =  20;    // radius of the brusher  
-    let minbR = 5;
-    let maxbR = 60;
 
 
-    let wheelSensitivity = 1;
-
-    function updateWheelSensitivity (e) {
-        wheelSensitivity = e.target.value / 25;
-    }
-
-    useEffect(() => {
-        let brusherSvg = d3.select("#brusherSvg");
-        let brusher = brusherSvg.append("circle")
-                                .attr("fill", "green")
-                                .attr("r", bR)
-                                .attr("transform", "translate(" + 300 + "," + 300 + ")")
-                                .style("opacity", 0);
-
-        // interactuib for the circle
-        splotRef.current.addEventListener("mouseover", function() {
-            brusher.transition()
-                    .duration(300)
-                    .style("opacity", 0.4);
-        });
-        splotRef.current.addEventListener("mousemove", function(e) {
-            bX = e.offsetX;
-            bY = e.offsetY;
-            brusher.attr("transform", "translate(" + bX + "," + bY + ")")
-        });
-        splotRef.current.addEventListener("mouseout", function() {
-            brusher.transition()
-                   .duration(300)
-                   .style("opacity", 0);
-        });
-        splotRef.current.addEventListener("wheel", e => {
-            bR = bR * ((100 - e.deltaY * wheelSensitivity) / 100);
-            bR = bR < minbR ? minbR : bR;
-            bR = bR > maxbR ? maxbR : bR;
-            brusher.attr("r", bR);
-
-        })
+        */
         
-    }, [])
+    
 
 
     return (
         <div>
             <div>
-                <canvas
+                {/* <canvas
                     ref={hmapRef}
                     width={props.size}
                     height={props.size}
@@ -187,11 +262,11 @@ const Brushing = (props) => {
                         height: props.size,
                         position: "absolute"
                     }}
-                />
+                /> */}
                 <canvas 
                     ref={splotRef}
-                    width={props.size}
-                    height={props.size}
+                    width={props.size * 2}
+                    height={props.size * 2}
                     style={{
                         border: "1px black solid",
                         margin: "10px",
@@ -228,7 +303,7 @@ const Brushing = (props) => {
             {/* For Fake Data generation */}
             <div style={{position: "absolute", top: 630}}>
                 {/* <button onClick={updateScatterPlot}>Click to update Scatterplot</button> */}
-                <button onClick={updateHeatmap}>Click to update Heatmap</button>
+                {/* <button onClick={updateHeatmap}>Click to update Heatmap</button> */}
             </div>
         </div>
     );

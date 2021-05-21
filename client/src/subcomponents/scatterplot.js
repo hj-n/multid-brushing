@@ -84,6 +84,7 @@ export class Scatterplot {
       this.mouseX = -2.0;
       this.mouseY = -2.0;
       if (this.isUpdating) return;
+      if (this.interactionFrameLoop === null) return;
       this.interactionFrameLoop.cancel();
       this.interactionFrameLoop = null;
     });
@@ -140,13 +141,12 @@ export class Scatterplot {
 
 
           if (mouseDist < radius) {
-            gl_PointSize = radius * 2.0;
             gl_Position = vec4(position, - 0.1, 1);
           }
           else {
-            gl_PointSize = radius;
             gl_Position = vec4(position, 0, 1);
           }
+          gl_PointSize = radius;
           
           fragOpacity = opacity;
           fragColor = color / 255.0;
