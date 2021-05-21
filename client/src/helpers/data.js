@@ -52,8 +52,8 @@ export class RandomData extends Data {
             dist = dist > 1 ? 1 : dist;
             // this.opacity.push(dist);
 
-            if (isOut == 2) this.opacity.push(dist ** 0.5);
-            else if (isOut == 1) this.opacity.push(1 - dist ** 0.5 );
+            if (isOut === 2) this.opacity.push(dist ** 0.5);
+            else if (isOut === 1) this.opacity.push(1 - dist ** 0.5 );
             else this.opacity.push(1);
         }
 

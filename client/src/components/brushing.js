@@ -1,13 +1,62 @@
 import React, { useRef, useEffect } from 'react';
+import * as d3 from "d3";
+import axios from 'axios';
+
 import { RandomData } from '../helpers/data';
 import { Scatterplot } from "../helpers/scatterplot";
 import { heatmapData } from "../helpers/heatmapData";
 import { Heatmap } from '../helpers/heatmap';
 
-import * as d3 from "d3";
-import { transition } from 'd3';
-
 const Brushing = (props) => {
+
+    // METADATA    
+    const dataset     = props.dataset;
+    const method      = props.method;
+    const sample_rate = props.sample;
+    const url = props.url;
+
+    // DATA 
+    let emb, density, length;
+
+
+    // SCATTERPLOT_DATA
+    const splotRef = useRef(null);
+    let scatterplot;
+
+    let radius = 6;
+
+
+    useEffect(async () => {
+        // initial data extraction
+        await axios.get(url + "init", {
+            params: {
+                dataset: dataset,
+                method : method,
+                sample : sample_rate
+            }
+        }).then(response => {
+            emb     = response.data.emb;
+            density = response.data.density;
+            length = density.length;
+        })
+
+        // rendering
+        const data = {
+            position: emb,
+            opacity: density,
+            color : new Array(length).fill([0, 0, 0]),
+            radius : new Array(length).fill(radius)
+        };
+
+        console.log(data)
+        scatterplot = new Scatterplot(data, splotRef.current);
+
+        
+
+    }, [props, splotRef])
+
+
+    /*
 
     // FOR SCATTERPLOT 
     const size = 10000;
@@ -50,7 +99,7 @@ const Brushing = (props) => {
         }, 1000, 0);
     }
 
-
+    */
 
     // FOR HEATMAP
     const resolution = 100;  // resol * resol
@@ -178,7 +227,7 @@ const Brushing = (props) => {
             </div>
             {/* For Fake Data generation */}
             <div style={{position: "absolute", top: 630}}>
-                <button onClick={updateScatterPlot}>Click to update Scatterplot</button>
+                {/* <button onClick={updateScatterPlot}>Click to update Scatterplot</button> */}
                 <button onClick={updateHeatmap}>Click to update Heatmap</button>
             </div>
         </div>
