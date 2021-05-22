@@ -1,8 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, isValidElement } from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
-
-import ManageGroups from "./manageGroups";
 
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
@@ -18,6 +16,8 @@ const Brushing = (props) => {
     const sample_rate = props.sample;
     const url = props.url;
 
+    let loaded = false;
+
     // CONSTANT DATA 
     let emb,             // positions
         density,         // initial snn density of points
@@ -25,12 +25,41 @@ const Brushing = (props) => {
         groups,          // grouping info (currently [0, 0, ....])
         originGroups;    // original Groups info (for undo operation with Alt)
 
-    let groupNum = 1; // current No. of brushed group
-    const [groupInfo, setGroupinfo] = useState([0]);
-
     let colors = generateColors();
+    const colorNum = 10;
 
-    let loaded = false;
+    // NOTE Group Management
+    let groupInfo = [0];
+    let groupNum = 1; // current No. of brushed group
+    let groupButtonsSvg;
+
+
+    function updateGroupButtons() {
+        groupButtonsSvg.selectAll("rect").remove();
+        groupButtonsSvg.selectAll("rect")
+                    .data(groupInfo)
+                    .enter()
+                    .append("rect")
+                    .attr("fill", (d, idx) => d3.rgb(colors[idx + 1][0], colors[idx + 1][1], colors[idx + 1][2]))
+                    .attr("width", 40)
+                    .attr("height", 40)
+                    .attr("transform", (d, i) => "translate(" + i * 50 + "," + 10 + ")")
+    }
+
+    useEffect(() => {
+        groupButtonsSvg = d3.select("#groupButtons")   
+                            .attr("width", props.size)
+                            .attr("height", props.size * 0.10);
+        updateGroupButtons();
+    }, [])
+
+    function addGroup(e) {
+        if(groupNum == colorNum) alert("Cannot add more groups");
+        groupNum += 1;
+        groupInfo.push(0);
+        updateGroupButtons();
+    }
+
 
 
     // CONSTANT SCATTERPLOT_DATA
@@ -53,7 +82,6 @@ const Brushing = (props) => {
             pointLen = density.length;
             groups   = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
             originGroups = new Array(pointLen).fill(0);
-            
         })
 
         // rendering
@@ -78,6 +106,7 @@ const Brushing = (props) => {
 
     let isClicking = false;
     let isAltPressed = false;
+    let isShiftPressed = false;
 
     let defaultOpacity = 0.2;
     let clickedOpacity = 0.5;
@@ -85,6 +114,7 @@ const Brushing = (props) => {
     let wheelSensitivity = 1;
 
     function updateWheelSensitivity (e) {
+        test += 1;
         wheelSensitivity = e.target.value / 25;
     }
 
@@ -128,15 +158,25 @@ const Brushing = (props) => {
             brusher.style("opacity", defaultOpacity);
         })
         document.addEventListener("keydown", e => {
-            if (e.code === "AltLeft") {
+            if (e.key === "Alt") {
+                if (isShiftPressed) return;
                 brusher.attr("fill", "red");
                 isAltPressed = true;
             };
+            if (e.key === "Shift") {
+                if (isAltPressed) return;
+                brusher.attr("fill", "blue")
+                isShiftPressed = true;
+            }
         })
         document.addEventListener("keyup", e => {
-            if (e.code === "AltLeft") {
+            if (e.key === "Alt") {
                 brusher.attr("fill", "green");
                 isAltPressed = false;
+            };
+            if (e.key === "Shift") {
+                brusher.attr("fill", "green");
+                isShiftPressed = false;
             };
         })
     });
@@ -158,6 +198,8 @@ const Brushing = (props) => {
 
         let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
 
+        if (!isShiftPressed && !isAltPressed) mouseoverPoints = mouseoverPoints.filter(idx => groups[idx] === 0)
+        
         if(isClicking) {
             if (!isAltPressed) mouseoverPoints.forEach(idx => { groups[idx] = groupNum; });
             else               mouseoverPoints.forEach(idx => { groups[idx] = originGroups[idx]; });
@@ -168,25 +210,47 @@ const Brushing = (props) => {
             return acc;
         }, []);
 
-        let consideringPoints = [...new Set(groupPoints.concat(mouseoverPoints))]
+        let consideringPointsSet = new Set(groupPoints.concat(mouseoverPoints))
+        let consideringPoints = [...consideringPointsSet]
 
         if (consideringPoints.length > 0) {
             await axios.get(url + "similarity", {
                 params: { index: { data: consideringPoints } }
             }).then(response => {
+
                 const sim = response.data;
-                const color = sim.map((s, i) => { 
-                    return groups[i] === groupNum ? [255, 0, 0] : (s > 0 ? [255, 0, 0] : [0, 0, 0] )
+                const colorlist = sim.map((s, i) => { 
+                    let c = [0, 0, 0];
+                    if (groups[i] > 0) c = colors[groups[i]];
+                    else {
+                        if (consideringPointsSet.has(i)) c = colors[groupNum];
+                        else if (s > 0) c = colors[groupNum];
+                    }
+                    return c;
                 });
                 const opacitylist = sim.map((s, i) => { 
-                    return groups[i] === groupNum ? 1 : (s > 0 ? s : density[i])
+                    // opacity = 0.1;
+                    let opacity;
+                    if (groups[i] > 0 && groups[i] !== groupNum) {
+                        if (isShiftPressed) opacity = density[i];
+                        else opacity = 1;
+                    }
+                    else if (groups[i] === groupNum) opacity = 1;
+                    else opacity = s > 0 ? s : density[i];
+
+                    
+
+                    if (opacity < 0.25) opacity = 0.25;
+                    return opacity;
+                    // return groups[i] === groupNum ? 1 : (s > 0 ? s : density[i])
                 });
                 let radlist = new Array(pointLen).fill(radius);
                 consideringPoints.forEach(e => radlist[e] = radlist[e] * 1.3);
+
                 const data = {
                     position: emb,
                     opacity : opacitylist,
-                    color   : color,
+                    color   : colorlist,
                     radius  : radlist
                 };
                 scatterplot.update(data, duration, 0);
@@ -206,8 +270,10 @@ const Brushing = (props) => {
 
     useEffect(async () => {
         splotRef.current.addEventListener("mouseover", function() {
+            console.log(groupNum)
             if (!loaded) return;
             updateExecutor = setInterval(() => {
+
                 update(bR, bX, bY, props.size, emb, isClicking)
             }, updateInterval);
         })
@@ -222,7 +288,7 @@ const Brushing = (props) => {
 
 
 
-
+    
 
 
 
@@ -314,12 +380,8 @@ const Brushing = (props) => {
                 />
             </div>
             <div style={{position: "absolute", top: 540, margin: 10}}>
-                <ManageGroups
-                    groupInfo={groupInfo}
-                    colors={colors}
-                    size={props.size}
-
-                />
+                <svg id="groupButtons"></svg>
+                <button onClick={addGroup}>Click to Add Groups</button>
             </div>
             {/* For Fake Data generation */}
             <div >
