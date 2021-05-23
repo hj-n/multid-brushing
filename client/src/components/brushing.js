@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, isValidElement } from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
+import { reshape } from "mathjs";
 
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
@@ -14,6 +15,7 @@ const Brushing = (props) => {
     const dataset     = props.dataset;
     const method      = props.method;
     const sample_rate = props.sample;
+    const resolution  = props.resolution;
     const url = props.url;
 
     let loaded = false;
@@ -208,12 +210,31 @@ const Brushing = (props) => {
 
     // NOTE EventListener for Scatterplot
     let updateExecutor = null;
+    let positionUpdateExecutor = null;
 
     let updateInterval = 50
     let duration = updateInterval * 0.8;
 
+    let positionUpdateWaitingTime = 500;
 
-    async function update(bR, bX, bY, size, emb, isClicking) {
+    function positionUpdate(consideringPoints) {
+
+        let start = Date.now();
+        
+        axios.get(url + "positionupdate", {
+            params: {
+                index: { data : consideringPoints }, 
+                resolution: 25
+            }
+        }).then(response => {
+            let end = Date.now();
+            console.log(response.data)
+            console.log(end - start)
+        })
+    }
+
+
+    function update(bR, bX, bY, size, emb, isClicking) {
         if(!loaded) return;
 
         bR = (bR / size) * 2;
@@ -256,7 +277,15 @@ const Brushing = (props) => {
         let consideringPoints = [...consideringPointsSet]
 
         if (consideringPoints.length > 0) {
-            await axios.get(url + "similarity", {
+            // Start waiting for position update
+            if (positionUpdateExecutor === null) {
+                positionUpdateExecutor = setTimeout(() => {
+                    positionUpdate(consideringPoints);
+                }, positionUpdateWaitingTime);
+            }
+
+            // update similarity
+            axios.get(url + "similarity", {
                 params: { index: { data: consideringPoints } }
             }).then(response => {
 
@@ -310,20 +339,24 @@ const Brushing = (props) => {
             }
             scatterplot.update(data, duration, 0);
         }
-       
     }
 
     useEffect(async () => {
         splotRef.current.addEventListener("mouseover", function() {
             if (!loaded) return;
             updateExecutor = setInterval(() => {
-                update(bR, bX, bY, props.size, emb, isClicking)
+                update(bR, bX, bY, props.size, emb, isClicking);
             }, updateInterval);
+        })
+
+        splotRef.current.addEventListener("mousemove", function() {
+            clearTimeout(positionUpdateExecutor);
+            positionUpdateExecutor = null;
         })
 
         splotRef.current.addEventListener("mouseout", function() {
             clearInterval(updateExecutor);
-            update(0, bX, bY, props.size, emb, isClicking)
+            update(0, bX, bY, props.size, emb, isClicking);
             updateExecutor = null;
         })
     }, [props, splotRef]);

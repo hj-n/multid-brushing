@@ -3,7 +3,7 @@ import Brushing from "./components/brushing";
 
 
 function App({match}) {
-  const PATH = "http://localhost:5000/";
+  const PATH = "http://127.0.0.1:5000/";
 
   const defaultParams = {
     dataset: "mnist",
@@ -25,6 +25,7 @@ function App({match}) {
         dataset={dataset}
         method={method}
         sample={sample_rate}
+        resolution={25}
       />
     </div>
   );
