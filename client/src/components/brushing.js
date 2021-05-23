@@ -43,21 +43,42 @@ const Brushing = (props) => {
                     .attr("fill", (d, idx) => d3.rgb(colors[idx + 1][0], colors[idx + 1][1], colors[idx + 1][2]))
                     .attr("width", 40)
                     .attr("height", 40)
-                    .attr("transform", (d, i) => "translate(" + i * 50 + "," + 10 + ")")
+                    .attr("transform", (d, i) => "translate(" + (i * 50 + 5) + "," + 10 + ")")
+                    .attr("stroke-width", (d, i) => {
+                        if (i === groupNum - 1) return 4;
+                        else                return 0;
+                    })
+                    .attr("stroke", "black")
+    }
+
+    function updateGroupText() {
+        groupButtonsSvg.selectAll("text").remove();
+        groupButtonsSvg.selectAll("text")
+                       .data(groupInfo)
+                       .enter()
+                       .append("text")
+                       .attr("transform", (d, i) => "translate(" + (i * 50 + 25) + "," + 35 + ")")
+                       .text(d => d)
+                       .attr("fill", "white")
+                       .style("font-weight", "bold")
+                       .attr("text-anchor", "middle")
     }
 
     useEffect(() => {
         groupButtonsSvg = d3.select("#groupButtons")   
                             .attr("width", props.size)
-                            .attr("height", props.size * 0.10);
+                            .attr("height", props.size * 0.15);
         updateGroupButtons();
+        updateGroupText();
     }, [])
 
     function addGroup(e) {
-        if(groupNum == colorNum) alert("Cannot add more groups");
+        if(groupNum == colorNum) { alert("Cannot add more groups"); return; }
         groupNum += 1;
         groupInfo.push(0);
         updateGroupButtons();
+        updateGroupText();
+        update(0, 2, 2, props.size, emb, false)
     }
 
 
@@ -66,6 +87,7 @@ const Brushing = (props) => {
     const splotRef = useRef(null);
     let scatterplot;
     let radius = 15;
+    let border = 3;
 
     // NOTE INITAL SCATTERPLOT RENDERING
     useEffect(async () => {
@@ -89,7 +111,8 @@ const Brushing = (props) => {
             position: emb,
             opacity: density,
             color : new Array(pointLen).fill([0, 0, 0]),
-            radius : new Array(pointLen).fill(radius)
+            radius : new Array(pointLen).fill(radius),
+            border : new Array(pointLen).fill(border)
         };
         scatterplot = new Scatterplot(data, splotRef.current);
         loaded = true;
@@ -186,7 +209,7 @@ const Brushing = (props) => {
     // NOTE EventListener for Scatterplot
     let updateExecutor = null;
 
-    let updateInterval = 30
+    let updateInterval = 50
     let duration = updateInterval * 0.8;
 
 
@@ -202,16 +225,23 @@ const Brushing = (props) => {
         if (!isShiftPressed && !isAltPressed) mouseoverPoints = mouseoverPoints.filter(idx => groups[idx] === 0)
         
         if(isClicking) {
-            if (!isAltPressed) mouseoverPoints.forEach(idx => { groups[idx] = groupNum; });
-            else               mouseoverPoints.forEach(idx => { groups[idx] = originGroups[idx]; });
+            if (!isAltPressed) mouseoverPoints.forEach(idx => { 
+                if (groups[idx] > 0) groupInfo[groups[idx] - 1] -= 1;
+                groups[idx] = groupNum; 
+                groupInfo[groupNum - 1] += 1;
+            });
+            else               mouseoverPoints.forEach(idx => { 
+                if (originGroups[idx] > 0) groupInfo[originGroups[idx] - 1] += 1;
+                groups[idx] = originGroups[idx]; 
+                groupInfo[groupNum - 1] -= 1;
+            });
+            updateGroupText();
         }
 
         let groupPoints = groups.reduce((acc, cur, idx) => {
             if (cur === groupNum) acc.push(idx);
             return acc;
         }, []);
-
-        console.log(groupPoints)
 
         let consideringPointsSet = new Set(groupPoints.concat(mouseoverPoints))
         let consideringPoints = [...consideringPointsSet]
@@ -240,31 +270,34 @@ const Brushing = (props) => {
                     }
                     else if (groups[i] === groupNum) opacity = 1;
                     else opacity = s > 0 ? s : density[i];
-
-                    
-
-                    if (opacity < 0.25) opacity = 0.25;
                     return opacity;
-                    // return groups[i] === groupNum ? 1 : (s > 0 ? s : density[i])
                 });
                 let radlist = new Array(pointLen).fill(radius);
-                consideringPoints.forEach(e => radlist[e] = radlist[e] * 1.3);
+                let borderlist = new Array(pointLen).fill(border);
+                consideringPoints.forEach(e => {
+                    borderlist[e] = borderlist[e] * 2;
+                    radlist[e]    = radlist[e] * 1.4;
+                });
 
                 const data = {
                     position: emb,
                     opacity : opacitylist,
                     color   : colorlist,
-                    radius  : radlist
+                    radius  : radlist,
+                    border  : borderlist
                 };
                 scatterplot.update(data, duration, 0);
             });
         }
         else {
+            const colorlist = groups.map(gNum => colors[gNum]);
+            const opacitylist = groups.map((gNum, i) => gNum > 0 ? 1 : density[i]);
             const data = {
                 position: emb,
-                opacity : density,
-                color : new Array(pointLen).fill([0, 0, 0]),
-                radius : new Array(pointLen).fill(radius)
+                opacity : opacitylist,
+                color : colorlist,
+                radius : new Array(pointLen).fill(radius),
+                border : new Array(pointLen).fill(border)
             }
             scatterplot.update(data, duration, 0);
         }

@@ -12,9 +12,9 @@ export function getMouseoverPoints(radius, bx, by, emb) {
 
 export function generateColors () {
   let colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-  let colors = [0]
+  let colors = [[0, 0, 0]];
   for (let i = 0; i < 10; i++) {
-    let color = d3.rgb(colorScale(i));
+    let color = d3.rgb(colorScale(i))
     colors.push([color.r, color.g, color.b])
   }
 

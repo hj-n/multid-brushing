@@ -30,12 +30,14 @@ export class Scatterplot {
     this.opacity = data.opacity;
     this.color = data.color;
     this.radius = data.radius;
+    this.border = data.border;
     this.dom = dom;
 
     this.currentPositions = this.points;  // current position of the points
     this.currentOpacity = this.opacity;   // current opacity values of the points
     this.currentColor = this.color;       // current color
     this.currentRadius = this.radius;     // current radius
+    this.currentBorder = this.border;     // current border
 
     this.mouseX = -2.0;
     this.mouseY = -2.0;
@@ -67,10 +69,10 @@ export class Scatterplot {
 
     const setInteractionFrameLoop = () => {
       this.interactionFrameLoop = this.regl.frame(() => {
-        this.regl.clear({
-          color: [255, 255, 255, 0],
-          depth: 1,
-        });
+        // this.regl.clear({
+        //   color: [255, 255, 255, 0],
+        //   depth: 1,
+        // });
         this.initializeSplot({
           mousex: this.mouseX,
           mousey: this.mouseY,
@@ -111,6 +113,7 @@ export class Scatterplot {
 
         varying float fragOpacity;
         varying vec3 fragColor;
+        varying float fragBorderRadius;
 
         void main() {
           float r = 0.0;
@@ -120,7 +123,12 @@ export class Scatterplot {
           if (r > 1.0) {
             discard;
           }
-          gl_FragColor = vec4(fragColor, fragOpacity);
+          else if (r > fragBorderRadius) {
+            gl_FragColor = vec4(fragColor, 1);
+          }
+          else {
+            gl_FragColor = vec4(fragColor, fragOpacity);
+          }
         }
       `,
       vert: `
@@ -128,9 +136,11 @@ export class Scatterplot {
         attribute float opacity;
         attribute vec3 color;
         attribute float radius;
+        attribute float border;
 
         varying float fragOpacity;
         varying vec3 fragColor;
+        varying float fragBorderRadius; 
 
         uniform float mousex, mousey;
         uniform float width, height;
@@ -138,7 +148,6 @@ export class Scatterplot {
         void main() {
           float mouseDist = distance(vec2(position[0] * width, position[1] * height) / 2.0, 
                                      vec2(mousex * width, mousey * height) / 2.0) * 2.0;
-
 
           if (mouseDist < radius) {
             gl_Position = vec4(position, - 0.1, 1);
@@ -149,7 +158,10 @@ export class Scatterplot {
           gl_PointSize = radius;
           
           fragOpacity = opacity;
-          fragColor = color / 255.0;
+          fragColor   = color / 255.0;
+
+          // fragBorderRadius  = 1.0 -(border / radius) * (border / radius);
+          fragBorderRadius = (1.0 - border / radius) * (1.0 - border / radius);
         }
       `,
       attributes: {
@@ -157,6 +169,7 @@ export class Scatterplot {
         opacity: this.currentOpacity,
         color: this.currentColor,
         radius: this.currentRadius,
+        border: this.currentBorder,
       },
       uniforms: {
         mousex: this.regl.prop("mousex"),
@@ -186,21 +199,17 @@ export class Scatterplot {
     let newOpacity = data.opacity;
     let newColor = data.color;
     let newRadius = data.radius;
+    let newBorder = data.border;
 
 
     let startTime = null;
 
-    const updateSplot = this.updateCommand(newPositions, newOpacity, newColor, newRadius);
+    const updateSplot = this.updateCommand(newPositions, newOpacity, newColor, newRadius, newBorder);
 
     const frameLoop = this.regl.frame(({time}) => {
       if (startTime === null) {
         startTime = time;
       }
-
-      this.regl.clear({
-        color: [255, 255, 255, 0],
-        depth: 1,
-      });
 
 
       updateSplot({
@@ -215,6 +224,7 @@ export class Scatterplot {
         this.currentOpacity = newOpacity;
         this.currentColor = newColor;
         this.currentRadius = newRadius;
+        this.currentBorder = newBorder;
         this.initializeSplot = this.initializeCommand();
         this.isUpdating = false;
       }
@@ -224,13 +234,14 @@ export class Scatterplot {
 
 
   // REGL command for updating scatterplot
-  updateCommand(newPositions, newOpacity, newColor, newRadius) {
+  updateCommand(newPositions, newOpacity, newColor, newRadius, newBorder) {
     return this.regl({
       frag: `
         precision highp float;
 
         varying float fragOpacity;
         varying vec3 fragColor;
+        varying float fragBorderRadius;
 
         void main() {
           float r = 0.0;
@@ -240,7 +251,12 @@ export class Scatterplot {
           if (r > 1.0) {
             discard;
           }
-          gl_FragColor = vec4(fragColor, fragOpacity);
+          else if (r > fragBorderRadius) {
+            gl_FragColor = vec4(fragColor, 1);
+          }
+          else {
+            gl_FragColor = vec4(fragColor, fragOpacity);
+          }
         }
       `,
       vert: `
@@ -253,8 +269,11 @@ export class Scatterplot {
         attribute float startRadius;
         attribute float endRadius;
 
+        attribute float border;
+
         varying float fragOpacity;
         varying vec3 fragColor;
+        varying float fragBorderRadius;
 
         uniform float radius;
         uniform float delay;        
@@ -277,13 +296,17 @@ export class Scatterplot {
           else if (elapsed < delay)  t = 0.0;
           else                       t = easeCubicInOut((elapsed - delay) / duration);
 
-          gl_PointSize = mix(startRadius, endRadius, t);
+
+          float currentRadius = mix(startRadius, endRadius, t);
+          gl_PointSize = currentRadius;
 
           vec2 position = mix(startPosition, endPosition, t);
+          gl_Position = vec4(position, 0.0, 1.0);
+
           fragOpacity = mix(startOpacity, endOpacity, t);
           fragColor = mix(startColor, endColor, t) / 255.0;
+          fragBorderRadius = (1.0 - border / currentRadius) * (1.0 - border / currentRadius);
 
-          gl_Position = vec4(position, 0.0, 1.0);
         }
       `,
       attributes: {
@@ -294,7 +317,8 @@ export class Scatterplot {
         endPosition: newPositions,
         endOpacity: newOpacity,
         endColor: newColor,
-        endRadius: newRadius
+        endRadius: newRadius,
+        border: newBorder
       },
       uniforms: {
         delay: this.regl.prop('delay'),
