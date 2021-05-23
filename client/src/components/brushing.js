@@ -186,8 +186,9 @@ const Brushing = (props) => {
     // NOTE EventListener for Scatterplot
     let updateExecutor = null;
 
-    let updateInterval = 100
+    let updateInterval = 30
     let duration = updateInterval * 0.8;
+
 
     async function update(bR, bX, bY, size, emb, isClicking) {
         if(!loaded) return;
@@ -206,9 +207,11 @@ const Brushing = (props) => {
         }
 
         let groupPoints = groups.reduce((acc, cur, idx) => {
-            if (cur === groupNum) acc.push(cur);
+            if (cur === groupNum) acc.push(idx);
             return acc;
         }, []);
+
+        console.log(groupPoints)
 
         let consideringPointsSet = new Set(groupPoints.concat(mouseoverPoints))
         let consideringPoints = [...consideringPointsSet]
@@ -270,10 +273,8 @@ const Brushing = (props) => {
 
     useEffect(async () => {
         splotRef.current.addEventListener("mouseover", function() {
-            console.log(groupNum)
             if (!loaded) return;
             updateExecutor = setInterval(() => {
-
                 update(bR, bX, bY, props.size, emb, isClicking)
             }, updateInterval);
         })
