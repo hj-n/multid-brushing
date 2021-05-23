@@ -76,6 +76,7 @@ const Brushing = (props) => {
         if(groupNum == colorNum) { alert("Cannot add more groups"); return; }
         groupNum += 1;
         groupInfo.push(0);
+        originGroups = groups.map(d => d);
         updateGroupButtons();
         updateGroupText();
         update(0, 2, 2, props.size, emb, false)
@@ -170,7 +171,6 @@ const Brushing = (props) => {
             bR = bR < minbR ? minbR : bR;
             bR = bR > maxbR ? maxbR : bR;
             brusher.attr("r", bR);
-
         })
         splotRef.current.addEventListener("mousedown", e => { 
             isClicking = true;  
@@ -231,9 +231,18 @@ const Brushing = (props) => {
                 groupInfo[groupNum - 1] += 1;
             });
             else               mouseoverPoints.forEach(idx => { 
-                if (originGroups[idx] > 0) groupInfo[originGroups[idx] - 1] += 1;
+                if (groups[idx] === groupNum) {
+                    if (originGroups[idx] > 0) {
+                        groupInfo[originGroups[idx] - 1] += 1;
+                        groups[idx] = originGroups[idx];
+                    }
+                    else {
+                        groups[idx] = 0;
+                    }
+                    groupInfo[groupNum - 1] -= 1;
+                }
                 groups[idx] = originGroups[idx]; 
-                groupInfo[groupNum - 1] -= 1;
+
             });
             updateGroupText();
         }

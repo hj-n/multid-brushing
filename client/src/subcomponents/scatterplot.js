@@ -207,11 +207,8 @@ export class Scatterplot {
     const updateSplot = this.updateCommand(newPositions, newOpacity, newColor, newRadius, newBorder);
 
     const frameLoop = this.regl.frame(({time}) => {
-      if (startTime === null) {
-        startTime = time;
-      }
-
-
+      if (startTime === null) startTime = time;
+      
       updateSplot({
         delay,
         duration,
