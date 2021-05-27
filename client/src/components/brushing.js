@@ -6,6 +6,8 @@ import { reshape } from "mathjs";
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
+// import { Contour } from '../subcomponents/contours';
+
 import { getMouseoverPoints, generateColors } from "../helpers/utils";
 
 
@@ -123,6 +125,9 @@ const Brushing = (props) => {
     }, [props, splotRef])
 
 
+
+
+
     // NOTE BRUSHER Setting
     let bX = -2;    // x coordinates of the brusher  (range: -1 ~ 1)
     let bY = -2;    // y coordinates of the brusher  (range: -1 ~ 1)
@@ -140,9 +145,10 @@ const Brushing = (props) => {
     let wheelSensitivity = 1;
 
     function updateWheelSensitivity (e) {
-        test += 1;
         wheelSensitivity = e.target.value / 25;
     }
+
+    
 
     useEffect(() => {
         let brusherSvg = d3.select("#brusherSvg");
@@ -208,28 +214,65 @@ const Brushing = (props) => {
 
 
 
-    // NOTE EventListener for Scatterplot
+    // NOTE Contour setting
+
+    let contourSvg , contourOffsetSvg;
+    let contourPath, contourOffsetPath;
+    const line = d3.line()
+                   .curve(d3.curveCardinal)
+                   .x(d => props.size * 0.5 * (d[0] + 1))
+                   .y(d => - props.size * 0.5 * (d[1] - 1));
+
+    useEffect(() => {
+        contourSvg       = d3.select("#contourSvg").append("g");
+        contourOffsetSvg = d3.select("#contourSvg").append("g");
+
+    
+        contourPath = contourSvg.append("path")
+                                .attr("stroke", "red")
+                                .attr("stroke-width", 3)
+                                .attr("fill", "none");
+
+        contourOffsetPath = contourOffsetSvg.append("path")
+                                            .attr("stroke", "blue")
+                                            .attr("stroke-width", 3)
+                                            .attr("fill", "none");
+
+    },[])
+
+ 
+
+    // NOTE EventListener for Scatterplot / Contour
+
     let updateExecutor = null;
     let positionUpdateExecutor = null;
 
-    let updateInterval = 50
+    let updateInterval = 200
     let duration = updateInterval * 0.8;
 
     let positionUpdateWaitingTime = 500;
 
     function positionUpdate(consideringPoints) {
-
-        let start = Date.now();
         
         axios.get(url + "positionupdate", {
             params: {
                 index: { data : consideringPoints }, 
-                resolution: 25
+                resolution: 50,
+                scale4offset: 100,
+                offset : 3.5,   // ratio compared to resolution
+                threshold : 0.3,
             }
         }).then(response => {
-            let end = Date.now();
-            console.log(response.data)
-            console.log(end - start)
+
+
+            let contourPoints = response.data.contour;
+            contourPoints.push(contourPoints[0]);
+
+            let contourOffsetPoints = response.data.contour_offsetted;
+            contourOffsetPoints.push(contourOffsetPoints[0]);
+            contourPath.attr("d", line(contourPoints))
+            contourOffsetPath.attr("d", line(contourOffsetPoints))
+            
         })
     }
 
@@ -443,6 +486,19 @@ const Brushing = (props) => {
                 />
                 <svg
                     id={"brusherSvg"}
+                    width={props.size}
+                    height={props.size}
+                    style={{
+                        border: "1px black solid",
+                        margin: "10px",
+                        width: props.size,
+                        height: props.size,
+                        position: "absolute",
+                        pointerEvents: "none"
+                    }}
+                />
+                <svg
+                    id={"contourSvg"}
                     width={props.size}
                     height={props.size}
                     style={{
