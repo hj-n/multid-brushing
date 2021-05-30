@@ -263,11 +263,11 @@ const Brushing = (props) => {
     let updateExecutor = null;
     let positionUpdateExecutor = null;
 
-    let updateInterval = 50
+    let updateInterval = 100
     let duration = updateInterval * 0.8;
 
     let positionUpdateWaitingTime = 600;
-    let positionDuration = 600;
+    let positionDuration = 400;
 
     let positionUpdating = false;
 
@@ -513,7 +513,7 @@ const Brushing = (props) => {
                     border  : borderlist,
                     borderColor : borderColorList
                 };
-                scatterplot.update(data, duration, 0);
+                scatterplot.update(data, isBrushing? positionDuration : duration, 0);
             });
         }
         else {
