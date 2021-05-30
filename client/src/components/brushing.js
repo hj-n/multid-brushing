@@ -257,6 +257,14 @@ const Brushing = (props) => {
 
     let positionUpdating = false;
 
+    let simThreshold = 0.9;
+
+    function updateSimThreshold(e) {
+        simThreshold = e.target.value / 100;
+    }
+
+
+
     function positionUpdate(consideringPoints) {
 
         positionUpdating = true;
@@ -270,6 +278,7 @@ const Brushing = (props) => {
                 scale4offset: 100,
                 offset : 3.5,   // ratio compared to resolution
                 threshold : 0.35,
+                simthreshold : simThreshold
             }
         }).then(response => {
 
@@ -484,7 +493,7 @@ const Brushing = (props) => {
         <div>
             {/* For Hyperparameter change */}
             <div style={{position: "absolute", top: 10, left: 10, display: "flex"}}>
-                <div style={{width: 205}}>
+                <div style={{width: 235}}>
                     Wheel sensitivity
                 </div>
                 <input 
@@ -496,7 +505,20 @@ const Brushing = (props) => {
                     className="slider"
                 />
             </div>
-            <div style={{position: "absolute", top: 30}}>
+            <div style={{position: "absolute", top: 30, left: 10, display: "flex"}}>
+                <div style={{width: 235}}>
+                    Similarity Threshold
+                </div>
+                <input 
+                    type="range"
+                    min={1} 
+                    max={100}
+                    defaultValue={90} 
+                    onChange={updateSimThreshold}
+                    className="slider"
+                />
+            </div>
+            <div style={{position: "absolute", top: 50}}>
                 {/* <canvas
                     ref={hmapRef}
                     width={props.size}
@@ -548,7 +570,7 @@ const Brushing = (props) => {
                     }}
                 />
             </div>
-            <div style={{position: "absolute", top: 540, margin: 10}}>
+            <div style={{position: "absolute", top: 560, margin: 10}}>
                 <svg id="groupButtons"></svg>
                 <button onClick={addGroup}>Click to Add Groups</button>
             </div>
