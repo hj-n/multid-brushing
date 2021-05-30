@@ -281,7 +281,6 @@ const Brushing = (props) => {
 
     function positionUpdate(consideringPoints, groupPoints) {
 
-        // console.log("UPDATE")
         
         if (consideringPoints.length === 0) return;
 
@@ -336,6 +335,7 @@ const Brushing = (props) => {
     let posX, posY;
 
     let groupPoints, consideringPoints;
+    let overlay = false;
 
     let isBrushing;
 
@@ -351,8 +351,9 @@ const Brushing = (props) => {
         bY = - (bY / size) * 2 + 1;
 
        
-
+        
         let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
+        let mouseoverTempPoints = Array.from(mouseoverPoints);
 
         if (!isShiftPressed && !isAltPressed) mouseoverPoints = mouseoverPoints.filter(idx => groups[idx] === 0)
         
@@ -386,6 +387,14 @@ const Brushing = (props) => {
 
         let consideringPointsSet = new Set(groupPoints.concat(mouseoverPoints))
         consideringPoints = [...consideringPointsSet]
+
+
+        // console.log(consideringPointsSet.size)
+        // console.log(groupPoints.length, mouseoverTempPoints.length)
+        if(consideringPointsSet.size < groupPoints.length + mouseoverTempPoints.length || groupPoints.length === 0) overlay = true;
+        else overlay = false;
+
+        // console.log(overlay)
         
         if (groupPoints.length === 0) isBrushing = false;
     
@@ -404,7 +413,7 @@ const Brushing = (props) => {
             if (!positionUpdating && !isClicking) { // default) 
                 if (positionUpdateExecutor === null) {
                     positionUpdateExecutor = setTimeout(() => {
-                        positionUpdate(consideringPoints, groupPoints);
+                        if (overlay) positionUpdate(consideringPoints, groupPoints);
                         // positionUpdateExecutor = null;
                     }, positionUpdateWaitingTime);
                 }
@@ -425,7 +434,7 @@ const Brushing = (props) => {
                 
                 if (positionUpdateExecutor === null) {
                     positionUpdateExecutor = setInterval(() => {
-                        positionUpdate(consideringPoints, groupPoints);
+                        if (overlay) positionUpdate(consideringPoints, groupPoints);
                     }, positionUpdateWaitingTime);
                     isBrushing = true;
                 }
