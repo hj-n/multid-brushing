@@ -219,7 +219,7 @@ const Brushing = (props) => {
     let contourSvg , contourOffsetSvg;
     let contourPath, contourOffsetPath;
     const line = d3.line()
-                //    .curve(d3.curveCardinal)
+                   .curve(d3.curveCardinal)
                    .x(d => props.size * 0.5 * (d[0] + 1))
                    .y(d => - props.size * 0.5 * (d[1] - 1));
 
