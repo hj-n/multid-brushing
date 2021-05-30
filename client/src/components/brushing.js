@@ -24,6 +24,8 @@ const Brushing = (props) => {
 
     // CONSTANT DATA 
     let emb,             // positions
+        initialEmb,
+        originEmb,       // original positions
         density,         // initial snn density of points
         pointLen,        // number of points
         groups,          // grouping info (currently [0, 0, ....])
@@ -104,10 +106,12 @@ const Brushing = (props) => {
                 sample : sample_rate
             }
         }).then(response => {
-            emb      = response.data.emb;
-            density  = response.data.density;
-            pointLen = density.length;
-            groups   = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
+            emb        = response.data.emb;
+            initialEmb = JSON.parse(JSON.stringify(emb))
+            originEmb  = JSON.parse(JSON.stringify(emb))
+            density    = response.data.density;
+            pointLen   = density.length;
+            groups     = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
             originGroups = new Array(pointLen).fill(0);
         })
 
@@ -252,8 +256,8 @@ const Brushing = (props) => {
     let updateInterval = 50
     let duration = updateInterval * 0.8;
 
-    let positionUpdateWaitingTime = 500;
-    let positionDuration = 1000;
+    let positionUpdateWaitingTime = 300;
+    let positionDuration = 500;
 
     let positionUpdating = false;
 
@@ -285,8 +289,6 @@ const Brushing = (props) => {
             let end = Date.now();
             // console.log(end - start)
 
-
-
             let contourPoints = response.data.contour;
             contourPoints.push(contourPoints[0]);
 
@@ -317,15 +319,22 @@ const Brushing = (props) => {
         })
     }
 
+    let posX, posY;
+
 
     function update(bR, bX, bY, size, emb, isClicking) {
         if(!loaded) return;
         if(positionUpdating) return;
 
+        posX = bX
+        posY = bY
+
 
         bR = (bR / size) * 2;
         bX = (bX / size) * 2 - 1;
         bY = - (bY / size) * 2 + 1;
+
+       
 
         let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
 
@@ -433,21 +442,33 @@ const Brushing = (props) => {
             updateExecutor = setInterval(() => {
                 update(bR, bX, bY, props.size, emb, isClicking);
             }, updateInterval);
-        })
+        });
 
-        splotRef.current.addEventListener("mousemove", function() {
+        splotRef.current.addEventListener("mousemove", function(e) {
             clearTimeout(positionUpdateExecutor);
             positionUpdateExecutor = null;
-            positionUpdating = false;
-            contourPath.transition().duration(100).style("opacity", 0);
-            contourOffsetPath.transition().duration(100).style("opacity", 0);
-        })
+
+            if (positionUpdating) {
+
+                if (Math.abs(posX - e.offsetX) + Math.abs(posY - e.offsetY) < 30) return;
+                const t = positionDuration * 0.6
+                contourPath.transition().duration(t).style("opacity", 0);
+                contourOffsetPath.transition().duration(t).style("opacity", 0);
+                const data = {
+                    position: emb
+                };
+                scatterplot.update(data, t, 0)
+                setTimeout(() => {
+                    positionUpdating = false;
+                }, positionDuration * 0.5);
+            }
+        });
 
         splotRef.current.addEventListener("mouseout", function() {
             clearInterval(updateExecutor);
             update(0, bX, bY, props.size, emb, isClicking);
             updateExecutor = null;
-        })
+        });
     }, [props, splotRef]);
 
 
