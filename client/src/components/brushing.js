@@ -86,6 +86,12 @@ const Brushing = (props) => {
         updateGroupButtons();
         updateGroupText();
         update(0, 2, 2, props.size, emb, false)
+
+        positionUpdating = false;
+        isBrushing = false;
+        originEmb = emb;
+        contourPath.style("opacity", 0);
+        contourOffsetPath.style("opacity", 0);
     }
 
 
@@ -187,6 +193,7 @@ const Brushing = (props) => {
         })
         splotRef.current.addEventListener("mousedown", e => { 
             isClicking = true;  
+            positionUpdateExecutor = null;
             brusher.style("opacity", clickedOpacity);
         })
         splotRef.current.addEventListener("mouseup"  , e => { 
@@ -234,14 +241,16 @@ const Brushing = (props) => {
 
     
         contourPath = contourSvg.append("path")
-                                .attr("stroke", "red")
+                                .attr("stroke", d3.rgb(100, 10, 10))
                                 .attr("stroke-width", 3)
+                                .style("stroke-dasharray", ("3, 3"))
                                 .attr("fill", "none")
                                 .style("opacity", 0);
 
         contourOffsetPath = contourOffsetSvg.append("path")
-                                            .attr("stroke", "blue")
+                                            .attr("stroke", d3.rgb(200, 50, 50))
                                             .attr("stroke-width", 3)
+                                            .style("stroke-dasharray", ("3, 3"))
                                             .attr("fill", "none")
                                             .style("opacity", 0);
 
@@ -257,8 +266,8 @@ const Brushing = (props) => {
     let updateInterval = 50
     let duration = updateInterval * 0.8;
 
-    let positionUpdateWaitingTime = 500;
-    let positionDuration = 500;
+    let positionUpdateWaitingTime = 600;
+    let positionDuration = 600;
 
     let positionUpdating = false;
 
@@ -270,15 +279,19 @@ const Brushing = (props) => {
 
 
 
-    function positionUpdate(consideringPoints) {
+    function positionUpdate(consideringPoints, groupPoints) {
+
+        // console.log("UPDATE")
+        
+        if (consideringPoints.length === 0) return;
 
         positionUpdating = true;
         let start = Date.now();
         
-        
         axios.get(url + "positionupdate", {
             params: {
                 index: { data : consideringPoints }, 
+                group: { data : groupPoints },
                 resolution: 50,
                 scale4offset: 100,
                 offset : 3.5,   // ratio compared to resolution
@@ -315,17 +328,19 @@ const Brushing = (props) => {
             const newPositionData = {
                 position: newEmb
             };
-            scatterplot.update(newPositionData, positionDuration , 0);
-            
+            scatterplot.update(newPositionData, positionDuration, 0);
+            emb = newEmb;
         })
     }
 
     let posX, posY;
 
+    let groupPoints, consideringPoints;
+
+    let isBrushing;
 
     function update(bR, bX, bY, size, emb, isClicking) {
         if(!loaded) return;
-        if(positionUpdating) return;
 
         posX = bX
         posY = bY
@@ -364,21 +379,77 @@ const Brushing = (props) => {
             updateGroupText();
         }
 
-        let groupPoints = groups.reduce((acc, cur, idx) => {
+        groupPoints = groups.reduce((acc, cur, idx) => {
             if (cur === groupNum) acc.push(idx);
             return acc;
         }, []);
 
         let consideringPointsSet = new Set(groupPoints.concat(mouseoverPoints))
-        let consideringPoints = [...consideringPointsSet]
+        consideringPoints = [...consideringPointsSet]
+        
+        if (groupPoints.length === 0) isBrushing = false;
+    
 
         if (consideringPoints.length > 0) {
             // Start waiting for position update
-            if (positionUpdateExecutor === null) {
-                positionUpdateExecutor = setTimeout(() => {
-                    positionUpdate(consideringPoints);
-                }, positionUpdateWaitingTime);
+
+            // if (positionUpdateExecutor === null) {
+            //     positionUpdateExecutor = setTimeout(() => {
+            //         positionUpdate(consideringPoints, groupPoints);
+            //     }, positionUpdateWaitingTime);
+            // }
+
+            // console.log(positionUpdating, isClicking, positionUpdateExecutor)
+
+            if (!positionUpdating && !isClicking) { // default) 
+                if (positionUpdateExecutor === null) {
+                    positionUpdateExecutor = setTimeout(() => {
+                        positionUpdate(consideringPoints, groupPoints);
+                        // positionUpdateExecutor = null;
+                    }, positionUpdateWaitingTime);
+                }
             }
+            if (positionUpdating && !isClicking) {
+                // if (positionUpdateExecutor === null) {
+                //     positionUpdateExecutor = setTimeout(() => {
+                //         positionUpdate(consideringPoints, groupPoints);
+                //         positionUpdateExecutor = null;
+                //     }, positionUpdateWaitingTime); 
+                // }
+
+            }
+            if (!positionUpdating && isClicking) {
+
+            }
+            if (positionUpdating && isClicking) {
+                
+                if (positionUpdateExecutor === null) {
+                    positionUpdateExecutor = setInterval(() => {
+                        positionUpdate(consideringPoints, groupPoints);
+                    }, positionUpdateWaitingTime);
+                    isBrushing = true;
+                }
+
+                
+            }
+            // else if (positionUpdating && )  {
+
+            // }
+            // if(positionUpdating) {
+            //     if (!isClicking) return;
+            //     else {
+            //         
+            //     }
+            // }
+            // else {
+                
+            //     else {
+            //         // clearInterval(positionUpdateExecutor);
+            //         // positionUpdateExecutor = null;
+            //     }
+
+
+            // }
 
             // update similarity
             axios.get(url + "similarity", {
@@ -445,6 +516,7 @@ const Brushing = (props) => {
                 color : colorlist,
                 radius : new Array(pointLen).fill(radius),
                 border : new Array(pointLen).fill(border),
+                borderColor: new Array(pointLen).fill([0, 0, 0])
             }
             scatterplot.update(data, duration, 0);
         }
@@ -459,22 +531,39 @@ const Brushing = (props) => {
         });
 
         splotRef.current.addEventListener("mousemove", function(e) {
-            clearTimeout(positionUpdateExecutor);
-            positionUpdateExecutor = null;
+            if(!isClicking) {
+                clearTimeout(positionUpdateExecutor);
+                positionUpdateExecutor = null;
+            }
+
+
+            if (updateExecutor == null) {
+                updateExecutor = setInterval(() => {
+                    update(bR, bX, bY, props.size, emb, isClicking);
+                }, updateInterval);
+            }
 
             if (positionUpdating) {
-                if (Math.abs(posX - e.offsetX) + Math.abs(posY - e.offsetY) < 30) return;
-                const t = positionDuration * 0.6
-                contourPath.transition().duration(t).style("opacity", 0);
-                contourOffsetPath.transition().duration(t).style("opacity", 0);
-                const data = {
-                    position: emb
-                };
-                scatterplot.update(data, t, 0)
-                setTimeout(() => {
-                    positionUpdating = false;
-                }, positionDuration * 0.5);
+                if (!isClicking) {
+                    if (Math.abs(posX - e.offsetX) + Math.abs(posY - e.offsetY) < 30) return;
+                    const t = positionDuration * 0.6
+                    contourPath.transition().duration(t).style("opacity", 0);
+                    contourOffsetPath.transition().duration(t).style("opacity", 0);
+                    if (!isBrushing) {
+                        emb = originEmb;
+                    }
+                    const data = {
+                        position: emb
+                    };
+                    scatterplot.update(data, t, 0)
+                    setTimeout(() => {
+                        positionUpdating = false;
+                    }, positionDuration * 0.5);
+                }
             }
+
+
+
         });
 
         splotRef.current.addEventListener("mouseout", function() {
