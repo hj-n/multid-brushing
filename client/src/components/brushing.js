@@ -121,7 +121,8 @@ const Brushing = (props) => {
             opacity: density,
             color : new Array(pointLen).fill([0, 0, 0]),
             radius : new Array(pointLen).fill(radius),
-            border : new Array(pointLen).fill(border)
+            border : new Array(pointLen).fill(border),
+            borderColor : new Array(pointLen).fill([0, 0, 0])
         };
         scatterplot = new Scatterplot(data, splotRef.current);
         loaded = true;
@@ -256,7 +257,7 @@ const Brushing = (props) => {
     let updateInterval = 50
     let duration = updateInterval * 0.8;
 
-    let positionUpdateWaitingTime = 300;
+    let positionUpdateWaitingTime = 500;
     let positionDuration = 500;
 
     let positionUpdating = false;
@@ -309,7 +310,7 @@ const Brushing = (props) => {
             newPositions.forEach(d => {
                 newEmb[d[0]][0] = d[1];
                 newEmb[d[0]][1] = d[2];
-            })
+            });
 
             const newPositionData = {
                 position: newEmb
@@ -411,13 +412,26 @@ const Brushing = (props) => {
                     borderlist[e] = borderlist[e] * 2;
                     radlist[e]    = radlist[e] * 1.4;
                 });
+                let borderColorList = sim.map((s, i) => {
+                    let c = [0, 0, 0];
+                    if (groups[i] > 0) {
+                        if (groups[i] === groupNum) c = [0, 0, 0];
+                        else c = colors[groups[i]];
+                    }
+                    else {
+                        if (consideringPointsSet.has(i)) c = colors[groupNum];
+                        if (s > 0) c = colors[groupNum];
+                    }
+                    return c;
+                });
 
                 const data = {
                     position: emb,
                     opacity : opacitylist,
                     color   : colorlist,
                     radius  : radlist,
-                    border  : borderlist
+                    border  : borderlist,
+                    borderColor : borderColorList
                 };
                 scatterplot.update(data, duration, 0);
             });
@@ -430,7 +444,7 @@ const Brushing = (props) => {
                 opacity : opacitylist,
                 color : colorlist,
                 radius : new Array(pointLen).fill(radius),
-                border : new Array(pointLen).fill(border)
+                border : new Array(pointLen).fill(border),
             }
             scatterplot.update(data, duration, 0);
         }
@@ -449,7 +463,6 @@ const Brushing = (props) => {
             positionUpdateExecutor = null;
 
             if (positionUpdating) {
-
                 if (Math.abs(posX - e.offsetX) + Math.abs(posY - e.offsetY) < 30) return;
                 const t = positionDuration * 0.6
                 contourPath.transition().duration(t).style("opacity", 0);
