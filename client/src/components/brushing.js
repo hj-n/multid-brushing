@@ -219,7 +219,7 @@ const Brushing = (props) => {
     let contourSvg , contourOffsetSvg;
     let contourPath, contourOffsetPath;
     const line = d3.line()
-                   .curve(d3.curveCardinal)
+                //    .curve(d3.curveCardinal)
                    .x(d => props.size * 0.5 * (d[0] + 1))
                    .y(d => - props.size * 0.5 * (d[1] - 1));
 
@@ -231,12 +231,14 @@ const Brushing = (props) => {
         contourPath = contourSvg.append("path")
                                 .attr("stroke", "red")
                                 .attr("stroke-width", 3)
-                                .attr("fill", "none");
+                                .attr("fill", "none")
+                                .style("opacity", 0);
 
         contourOffsetPath = contourOffsetSvg.append("path")
                                             .attr("stroke", "blue")
                                             .attr("stroke-width", 3)
-                                            .attr("fill", "none");
+                                            .attr("fill", "none")
+                                            .style("opacity", 0);
 
     },[])
 
@@ -247,12 +249,19 @@ const Brushing = (props) => {
     let updateExecutor = null;
     let positionUpdateExecutor = null;
 
-    let updateInterval = 200
+    let updateInterval = 50
     let duration = updateInterval * 0.8;
 
     let positionUpdateWaitingTime = 500;
+    let positionDuration = 1000;
+
+    let positionUpdating = false;
 
     function positionUpdate(consideringPoints) {
+
+        positionUpdating = true;
+        let start = Date.now();
+        
         
         axios.get(url + "positionupdate", {
             params: {
@@ -260,9 +269,13 @@ const Brushing = (props) => {
                 resolution: 50,
                 scale4offset: 100,
                 offset : 3.5,   // ratio compared to resolution
-                threshold : 0.3,
+                threshold : 0.35,
             }
         }).then(response => {
+
+            let end = Date.now();
+            // console.log(end - start)
+
 
 
             let contourPoints = response.data.contour;
@@ -271,7 +284,26 @@ const Brushing = (props) => {
             let contourOffsetPoints = response.data.contour_offsetted;
             contourOffsetPoints.push(contourOffsetPoints[0]);
             contourPath.attr("d", line(contourPoints))
+                       .transition()
+                       .duration(positionDuration)
+                       .style("opacity", 1);
             contourOffsetPath.attr("d", line(contourOffsetPoints))
+                             .transition()
+                             .duration(positionDuration)
+                             .style("opacity", 1);
+            
+            let newPositions = response.data.new_positions;
+            let newEmb = [];
+            emb.forEach((d, i) => { newEmb.push([d[0], d[1]]); });
+            newPositions.forEach(d => {
+                newEmb[d[0]][0] = d[1];
+                newEmb[d[0]][1] = d[2];
+            })
+
+            const newPositionData = {
+                position: newEmb
+            };
+            scatterplot.update(newPositionData, positionDuration , 0);
             
         })
     }
@@ -279,6 +311,8 @@ const Brushing = (props) => {
 
     function update(bR, bX, bY, size, emb, isClicking) {
         if(!loaded) return;
+        if(positionUpdating) return;
+
 
         bR = (bR / size) * 2;
         bX = (bX / size) * 2 - 1;
@@ -395,6 +429,9 @@ const Brushing = (props) => {
         splotRef.current.addEventListener("mousemove", function() {
             clearTimeout(positionUpdateExecutor);
             positionUpdateExecutor = null;
+            positionUpdating = false;
+            contourPath.transition().duration(100).style("opacity", 0);
+            contourOffsetPath.transition().duration(100).style("opacity", 0);
         })
 
         splotRef.current.addEventListener("mouseout", function() {

@@ -195,11 +195,11 @@ export class Scatterplot {
     }
 
     // update
-    let newPositions = data.position;
-    let newOpacity = data.opacity;
-    let newColor = data.color;
-    let newRadius = data.radius;
-    let newBorder = data.border;
+    let newPositions = data.position !== undefined ? data.position : this.currentPositions;
+    let newOpacity = data.opacity !== undefined ? data.opacity : this.currentOpacity;
+    let newColor = data.color !== undefined ? data.color : this.currentColor;
+    let newRadius = data.radius !== undefined ? data.radius : this.currentRadius;
+    let newBorder = data.border !== undefined ? data.border : this.currentBorder;
 
 
     let startTime = null;
