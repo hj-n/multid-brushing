@@ -293,7 +293,7 @@ const Brushing = (props) => {
                 group: { data : groupPoints },
                 resolution: 50,
                 scale4offset: 100,
-                offset : 3.5,   // ratio compared to resolution
+                offset : 5,   // ratio compared to resolution
                 threshold : 0.35,
                 simthreshold : simThreshold
             }
@@ -391,7 +391,8 @@ const Brushing = (props) => {
 
         // console.log(consideringPointsSet.size)
         // console.log(groupPoints.length, mouseoverTempPoints.length)
-        if(consideringPointsSet.size < groupPoints.length + mouseoverTempPoints.length || groupPoints.length === 0) overlay = true;
+        if(consideringPointsSet.size < groupPoints.length + mouseoverTempPoints.length 
+           || groupPoints.length === 0 || groupPoints.length === consideringPointsSet.size) overlay = true;
         else overlay = false;
 
         // console.log(overlay)
