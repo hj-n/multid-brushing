@@ -118,8 +118,6 @@ const Brushing = (props) => {
 
  
 
-
-
     let groupPoints, consideringPoints;
     let overlay = false;
 
@@ -128,11 +126,13 @@ const Brushing = (props) => {
     function updateSim(b, size, emb, isClicking) {
         if(!flag.loaded) return;  // return if not loaded
 
+        // find the points which are "overed" by the mouse
         let mouseoverPoints = getMouseoverPoints(b, size, emb);
-        let mouseoverTempPoints = Array.from(mouseoverPoints);
+        let mouseoverUnfilteredPoints = Array.from(mouseoverPoints);
+        if (!status.shift && !status.alt) 
+            mouseoverPoints = mouseoverPoints.filter(idx => currSelections[idx] === 0);
 
-        if (!status.shift && !status.alt) mouseoverPoints = mouseoverPoints.filter(idx => currSelections[idx] === 0)
-        
+        // 
         if(isClicking) {
             if (!status.alt) mouseoverPoints.forEach(idx => { 
                 if (currSelections[idx] > 0) selectionInfo[currSelections[idx] - 1] -= 1;
@@ -166,8 +166,8 @@ const Brushing = (props) => {
 
 
         // console.log(consideringPointsSet.size)
-        // console.log(groupPoints.length, mouseoverTempPoints.length)
-        if(consideringPointsSet.size < groupPoints.length + mouseoverTempPoints.length 
+        // console.log(groupPoints.length, mouseoverUnfilteredPoints.length)
+        if(consideringPointsSet.size < groupPoints.length + mouseoverUnfilteredPoints.length 
            || groupPoints.length === 0 || groupPoints.length === consideringPointsSet.size) overlay = true;
         else overlay = false;
 
