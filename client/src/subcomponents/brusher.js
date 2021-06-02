@@ -28,6 +28,11 @@ export function addSplotEventListener(dom, brusher, b, status, updateExecutor) {
   dom.addEventListener("wheel"    , function(e) { splotWheel    (brusher, b, e); })
 }
 
+export function documentEventListener(brusher, status) {
+  document.addEventListener("keydown", function(e) { documentKeydown(brusher, status, e); });
+  document.addEventListener("keyup"  , function(e) { documentKeyup  (brusher, status, e); });
+}
+
 function splotMouseover(brusher) {
   brusher.transition()
          .duration(300)
@@ -62,4 +67,28 @@ function splotWheel(brusher, b, e) {
   b.bR = b.bR < minbR ? minbR : b.bR;
   b.bR = b.bR > maxbR ? maxbR : b.bR;
   brusher.attr("r", b.bR);
+}
+
+function documentKeydown(brusher, status, e) {
+  if (e.key === "Alt") {
+    if (status.shift) return;
+    brusher.attr("fill", "red");
+    status.alt = true;
+  };
+  if (e.key === "Shift") {
+      if (status.alt) return;
+      brusher.attr("fill", "blue")
+      status.shift = true;
+  }
+}
+
+function documentKeyup(brusher, status, e) {
+  if (e.key === "Alt") {
+    brusher.attr("fill", "green");
+    status.alt = false;
+  };
+  if (e.key === "Shift") {
+      brusher.attr("fill", "green");
+      status.shift = false;
+  };
 }

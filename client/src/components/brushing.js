@@ -11,7 +11,7 @@ import { updateSelectionButtons, updateSelectionText } from "../subcomponents/se
 import "../css/Brushing.css";
 
 import { getMouseoverPoints} from "../helpers/utils";
-import { initializeBrusher, addSplotEventListener } from '../subcomponents/brusher';
+import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
 
 
 const Brushing = (props) => {
@@ -115,37 +115,16 @@ const Brushing = (props) => {
     const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
     const status = { click: false, alt: false, shift: false };
     const updateExecutor = { pos: null, sim: null }  //  animation executor
+    let brusherSvg, brusher;
 
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
 
-    let brusherSvg, brusher;
+
 
     useEffect(() => {        
         [brusherSvg, brusher] = initializeBrusher(b);
         addSplotEventListener(splotRef.current, brusher, b, status, updateExecutor);
-
-        document.addEventListener("keydown", e => {
-            if (e.key === "Alt") {
-                if (status.shift) return;
-                brusher.attr("fill", "red");
-                status.alt = true;
-            };
-            if (e.key === "Shift") {
-                if (status.alt) return;
-                brusher.attr("fill", "blue")
-                status.shift = true;
-            }
-        })
-        document.addEventListener("keyup", e => {
-            if (e.key === "Alt") {
-                brusher.attr("fill", "green");
-                status.alt = false;
-            };
-            if (e.key === "Shift") {
-                brusher.attr("fill", "green");
-                status.shift = false;
-            };
-        })
+        documentEventListener(brusher, status);
     });
 
 
