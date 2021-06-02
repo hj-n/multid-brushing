@@ -1,12 +1,16 @@
-import React, { useRef, useEffect, useState, isValidElement } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
-import { reshape } from "mathjs";
+
+import SelectionStatus from "./SelectionStatus";
+
 
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
-// import { Contour } from '../subcomponents/contours';
+
+
+import "../css/Brushing.css";
 
 import { getMouseoverPoints, generateColors } from "../helpers/utils";
 
@@ -584,132 +588,78 @@ const Brushing = (props) => {
     }, [props, splotRef]);
 
 
+    // Stylesheet with Props
+    const brushingAreaStyle = {
+        border: "1px black solid",
+        width: props.size,
+        height: props.size,
+        position: "absolute"
+    };
 
+    const widthMarginStyle = {
+        width: props.size,
+        margin: props.margin
+    };
 
-    
-
-
-
-    /*
-
-    // FOR HEATMAP
-    const resolution = 100;  // resol * resol
-    let hmapData = heatmapData(resolution);
-
-
-    const hmapRef = useRef(null);
-    let heatmap;
-
-    useEffect(() => {
-        heatmap = new Heatmap({
-            resolution: resolution,
-            pixelValue: hmapData
-        }, hmapRef.current);
-    }, [hmapRef]);
-    
-
-    function updateHeatmap() {
-        let newPixelValue = heatmapData(resolution);
-        heatmap.update({
-            pixelValue: newPixelValue
-        }, 1000, 0);
-    }
-
-
-
-    */
-        
-    
-
+    const sizeMarginStyle = Object.assign({}, widthMarginStyle, { height: props.size });
 
     return (
         <div>
             {/* For Hyperparameter change */}
-            <div style={{position: "absolute", top: 10, left: 10, display: "flex"}}>
-                <div style={{width: 235}}>
-                    Wheel sensitivity
+            <div id="hparams" style={widthMarginStyle}>
+                <div class="hparam">
+                    <div class="hname">Wheel sensitivity</div>
+                    <input 
+                        type="range"
+                        min={1} 
+                        max={50}
+                        defaultValue={25} 
+                        onChange={updateWheelSensitivity}
+                        className="slider"
+                    />
                 </div>
-                <input 
-                    type="range"
-                    min={1} 
-                    max={50}
-                    defaultValue={25} 
-                    onChange={updateWheelSensitivity}
-                    className="slider"
-                />
-            </div>
-            <div style={{position: "absolute", top: 30, left: 10, display: "flex"}}>
-                <div style={{width: 235}}>
-                    Similarity Threshold
+                <div class="hparam">
+                    <div class="hname">Similarity Threshold</div>
+                    <input 
+                        type="range"
+                        min={1} 
+                        max={100}
+                        defaultValue={90} 
+                        onChange={updateSimThreshold}
+                        className="slider"
+                    />
                 </div>
-                <input 
-                    type="range"
-                    min={1} 
-                    max={100}
-                    defaultValue={90} 
-                    onChange={updateSimThreshold}
-                    className="slider"
-                />
             </div>
-            <div style={{position: "absolute", top: 50}}>
-                {/* <canvas
-                    ref={hmapRef}
-                    width={props.size}
-                    height={props.size}
-                    style={{
-                        border: "1px black solid",
-                        margin: "10px",
-                        width: props.size,
-                        height: props.size,
-                        position: "absolute"
-                    }}
-                /> */}
+            {/* Scatterplot and other contours */}
+            <div style={sizeMarginStyle}>
                 <canvas 
                     ref={splotRef}
                     width={props.size * 2}
                     height={props.size * 2}
-                    style={{
-                        border: "1px black solid",
-                        margin: "10px",
-                        width: props.size,
-                        height: props.size,
-                        position: "absolute"
-                    }}
+                    style={brushingAreaStyle}
                 />
                 <svg
                     id={"brusherSvg"}
                     width={props.size}
                     height={props.size}
-                    style={{
-                        border: "1px black solid",
-                        margin: "10px",
-                        width: props.size,
-                        height: props.size,
-                        position: "absolute",
-                        pointerEvents: "none"
-                    }}
+                    style={Object.assign({}, { pointerEvents: "none" }, brushingAreaStyle)}
                 />
                 <svg
                     id={"contourSvg"}
                     width={props.size}
                     height={props.size}
-                    style={{
-                        border: "1px black solid",
-                        margin: "10px",
-                        width: props.size,
-                        height: props.size,
-                        position: "absolute",
-                        pointerEvents: "none"
-                    }}
+                    style={Object.assign({}, { pointerEvents: "none" }, brushingAreaStyle)}
                 />
             </div>
-            <div style={{position: "absolute", top: 560, margin: 10}}>
-                <svg id="groupButtons"></svg>
-                <button onClick={addGroup}>Click to Add Groups</button>
+            {/* button to add new group */}
+            <div style={Object.assign({}, widthMarginStyle, { height: 30 })}>
+                <button class={"selection"} onClick={addGroup}>Click to Add New Selections</button>
             </div>
-            {/* For Fake Data generation */}
-            <div >
-                {/* <button onClick={updateHeatmap}>Click to update Heatmap</button> */}
+            {/* <SelectionStatus/> */}
+            <SelectionStatus/>
+            <div>
+                <svg id="groupButtons"></svg>
+                
             </div>
         </div>
     );

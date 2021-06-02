@@ -1,4 +1,4 @@
-import Brushing from "./components/brushing";
+import Brushing from "./components/Brushing";
 
 
 
@@ -22,6 +22,7 @@ function App({match}) {
       <Brushing 
         url={PATH}
         size={500}
+        margin={10}
         dataset={dataset}
         method={method}
         sample={sample_rate}
