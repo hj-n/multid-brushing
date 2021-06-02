@@ -110,26 +110,22 @@ const Brushing = (props) => {
 
 
 
+    // NOTE Interaction Setting (Especially for the brushing)
 
-    // NOTE Interaction Setting
     const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
     const status = { click: false, alt: false, shift: false };
-    const updateExecutor = { pos: null, sim: null }  //  animation executor
-    let brusherSvg, brusher;
+    const updateExecutor = { pos: null, sim: null };            //  animation executor
 
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
 
-
-
     useEffect(() => {        
-        [brusherSvg, brusher] = initializeBrusher(b);
-        addSplotEventListener(splotRef.current, brusher, b, status, updateExecutor);
-        documentEventListener(brusher, status);
+        initializeBrusher(b);
+        addSplotEventListener(splotRef.current, b, status, updateExecutor);
+        documentEventListener(status);
     });
 
 
-
-    // NOTE Contour setting
+    // NOTE Contour Interaction setting
 
     let contourSvg , contourOffsetSvg;
     let contourPath, contourOffsetPath;

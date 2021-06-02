@@ -3,23 +3,22 @@
 import * as d3 from "d3";
 
 
-// CONSTANTs
-
 const defaultOpacity = 0.2;
 const clickedOpacity = 0.5;
 const minbR = 5, maxbR = 60;           // default brusher information
 
+let brusher, brusherSvg;  // brusher component reference
+
 export function initializeBrusher(b) {
-  let brusherSvg = d3.select("#brusherSvg");
-  let brusher = brusherSvg.append("circle")
+  brusherSvg = d3.select("#brusherSvg");
+  brusher = brusherSvg.append("circle")
                           .attr("fill", "green")
                           .attr("r", b.bR)
                           .attr("transform", "translate(" + 300 + "," + 300 + ")")
                           .style("opacity", 0);
-  return [brusherSvg, brusher];
 }
 
-export function addSplotEventListener(dom, brusher, b, status, updateExecutor) {
+export function addSplotEventListener(dom, b, status, updateExecutor) {
   dom.addEventListener("mouseover", function( ) { splotMouseover(brusher);        });
   dom.addEventListener("mousemove", function(e) { splotMousemove(brusher, b, e);  });
   dom.addEventListener("mouseout" , function( ) { splotMouseout (brusher);        });
@@ -28,7 +27,7 @@ export function addSplotEventListener(dom, brusher, b, status, updateExecutor) {
   dom.addEventListener("wheel"    , function(e) { splotWheel    (brusher, b, e); })
 }
 
-export function documentEventListener(brusher, status) {
+export function documentEventListener(status) {
   document.addEventListener("keydown", function(e) { documentKeydown(brusher, status, e); });
   document.addEventListener("keyup"  , function(e) { documentKeyup  (brusher, status, e); });
 }
