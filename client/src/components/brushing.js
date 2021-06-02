@@ -11,9 +11,10 @@ import { initializeBrusher, addSplotEventListener, documentEventListener } from 
 
 import { getMouseoverPoints } from "../helpers/utils";
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
-
+import { initialSplotAxiosParam, initialSplotRenderingData } from '../helpers/axiosHandler';
 
 import "../css/Brushing.css";
+
 
 const Brushing = (props) => {
 
@@ -51,9 +52,14 @@ const Brushing = (props) => {
 
     let selectionStatusDiv;
 
-    // CONSTANT Scatterplot Management
+    // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
     let scatterplot;
+
+    const updateInterval = 100
+    const duration = updateInterval * 0.8;
+    const positionUpdateWaitingTime = 600;
+    const positionDuration = 400;
 
     // CONSTANT Functions for adjusting constant parameters
 
@@ -86,16 +92,9 @@ const Brushing = (props) => {
     }
 
 
-    // NOTE SCATTERPLOT Setting
-    //// Initialization
+    /* NOTE SCATTERPLOT Initialization */
     useEffect(async () => {
-        await axios.get(url + "init", {
-            params: {
-                dataset: dataset,
-                method : method,
-                sample : sample_rate
-            }
-        }).then(response => {
+        await axios.get(url + "init", initialSplotAxiosParam(dataset, method, sample_rate)).then(response => {
             emb        = response.data.emb;
             initialEmb = JSON.parse(JSON.stringify(emb))
             originEmb  = JSON.parse(JSON.stringify(emb))
@@ -104,27 +103,13 @@ const Brushing = (props) => {
             currSelections = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
             prevSelections = new Array(pointLen).fill(0);
         })
-
         // rendering
-        const data = {
-            position: emb,
-            opacity: density,
-            color : new Array(pointLen).fill([0, 0, 0]),
-            radius : new Array(pointLen).fill(radius),
-            border : new Array(pointLen).fill(border),
-            borderColor : new Array(pointLen).fill([0, 0, 0])
-        };
+        const data = initialSplotRenderingData(emb, density, pointLen, radius, border);
         scatterplot = new Scatterplot(data, splotRef.current);
         flag.floaded = true;
-
     }, [props, splotRef])
 
-
-
-    // NOTE Brusher / Brushed Area Interaction Setting (Especially for the brushing)
-
-
-
+    /* NOTE Brusher / Brushed Area Interaction Setting */
     useEffect(() => {        
         initializeBrusher(b);
         addSplotEventListener(splotRef.current, b, status, updateExecutor);
@@ -134,21 +119,7 @@ const Brushing = (props) => {
 
  
 
-    // NOTE EventListener for Scatterplot / Contour
-
-    // let updateExecutor = null;
-    // let positionUpdateExecutor = null;
-
-    let updateInterval = 100
-    let duration = updateInterval * 0.8;
-
-    let positionUpdateWaitingTime = 600;
-    let positionDuration = 400;
-
-    // let positionUpdating = false;
-
-
-
+    /* NOTE EventListener for Scatterplot / Contour */
     function positionUpdate(consideringPoints, groupPoints) {
 
         
@@ -401,7 +372,6 @@ const Brushing = (props) => {
                 clearTimeout(updateExecutor.pos);
                 updateExecutor.pos = null;
             }
-
 
             if (updateExecutor.sim == null) {
                 updateExecutor.sim = setInterval(() => {
