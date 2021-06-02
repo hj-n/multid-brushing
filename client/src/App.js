@@ -25,7 +25,7 @@ function App({match}) {
   // CONSTANT Layout / Design constants
   const size = 500;
   const margin = 10;
-  const resolution = 25;
+  const resolution = 55;
   const maxSelection = 10;
   const colors = generateColors();
 

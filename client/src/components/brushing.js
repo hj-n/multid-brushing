@@ -6,6 +6,7 @@ import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
 import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
+import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 
 
 import "../css/Brushing.css";
@@ -28,25 +29,41 @@ const Brushing = (props) => {
     const maxSelection = props.maxSelection;
     const colors = props.colors;
 
-    let loaded = false;
+    // CONSTANT MAINTAINERS (Brusher info, interaction status, update executor, and Flags, etc.)
+
+    const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
+    const status = { click: false, alt: false, shift: false };
+    const updateExecutor = { pos: null, sim: null };            //  animation executor
+    const flag = { loaded: false, updatePos: false, brushing: false};
+    
+    let simThreshold = 0.9;
+
 
     // CONSTANT DATA 
-    let emb,             // positions
-        initialEmb,
-        originEmb,       // original positions
-        density,         // initial snn density of points
-        pointLen,        // number of points
-        groups,          // grouping info (currently [0, 0, ....])
-        originGroups;    // original Groups info (for undo operation with Alt)
-
-
-    // NOTE Selection Management 
+    let emb;             // positions
+    let initialEmb;
+    let originEmb;       // original positions
+    let density;         // initial snn density of points
+    let pointLen;        // number of points
+    let groups;          // grouping info (currently [0, 0, ....])
+    let originGroups;    // original Groups info (for undo operation with Alt)
 
     let selectionInfo = [0];
     let selectionStatusDiv;
     let currentSelectionNum = 1; // current No. of brushed group
 
-    /// Initializing Selection Management
+    // CONSTANT Scatterplot Management
+    const splotRef = useRef(null);
+    let scatterplot;
+
+    // CONSTANT Functions for adjusting constant parameters
+
+    function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
+
+    function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
+
+    // NOTE Selection Management 
+    //// Initialization
     useEffect(() => {
         selectionStatusDiv = d3.select("#selectionStatus");
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
@@ -58,25 +75,21 @@ const Brushing = (props) => {
         currentSelectionNum += 1;
         selectionInfo.push(0);
         originGroups = groups.map(d => d);
-        update(0, 2, 2, props.size, emb, false)
 
+        update(0, 2, 2, props.size, emb, false)
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
+        eraseBrushedArea(500);
 
-        positionUpdating = false;
-        isBrushing = false;
+        flag.updatePos = false;
+        flag.brushing = false;
         originEmb = emb;
-        contourPath.style("opacity", 0);
-        contourOffsetPath.style("opacity", 0);
+
     }
 
 
-
     // NOTE SCATTERPLOT Setting
-    const splotRef = useRef(null);
-    let scatterplot;
-
-    // INITAL DATA Extraction and SCATTERPLOT RENDERING
+    //// Initialization
     useEffect(async () => {
         await axios.get(url + "init", {
             params: {
@@ -104,56 +117,22 @@ const Brushing = (props) => {
             borderColor : new Array(pointLen).fill([0, 0, 0])
         };
         scatterplot = new Scatterplot(data, splotRef.current);
-        loaded = true;
+        flag.floaded = true;
 
     }, [props, splotRef])
 
 
 
-    // NOTE Interaction Setting (Especially for the brushing)
+    // NOTE Brusher / Brushed Area Interaction Setting (Especially for the brushing)
 
-    const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
-    const status = { click: false, alt: false, shift: false };
-    const updateExecutor = { pos: null, sim: null };            //  animation executor
 
-    function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
 
     useEffect(() => {        
         initializeBrusher(b);
         addSplotEventListener(splotRef.current, b, status, updateExecutor);
         documentEventListener(status);
-    });
-
-
-    // NOTE Contour Interaction setting
-
-    let contourSvg , contourOffsetSvg;
-    let contourPath, contourOffsetPath;
-    const line = d3.line()
-                   .curve(d3.curveCardinal)
-                   .x(d => props.size * 0.5 * (d[0] + 1))
-                   .y(d => - props.size * 0.5 * (d[1] - 1));
-
-    useEffect(() => {
-        contourSvg       = d3.select("#contourSvg").append("g");
-        contourOffsetSvg = d3.select("#contourSvg").append("g");
-
-    
-        contourPath = contourSvg.append("path")
-                                .attr("stroke", d3.rgb(100, 10, 10))
-                                .attr("stroke-width", 3)
-                                .style("stroke-dasharray", ("3, 3"))
-                                .attr("fill", "none")
-                                .style("opacity", 0);
-
-        contourOffsetPath = contourOffsetSvg.append("path")
-                                            .attr("stroke", d3.rgb(200, 50, 50))
-                                            .attr("stroke-width", 3)
-                                            .style("stroke-dasharray", ("3, 3"))
-                                            .attr("fill", "none")
-                                            .style("opacity", 0);
-
-    },[])
+        initializeBrushedArea(props.size);
+    }, []);
 
  
 
@@ -168,10 +147,7 @@ const Brushing = (props) => {
     let positionUpdateWaitingTime = 600;
     let positionDuration = 400;
 
-    let positionUpdating = false;
-
-    let simThreshold = 0.9;
-    function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
+    // let positionUpdating = false;
 
 
 
@@ -180,14 +156,14 @@ const Brushing = (props) => {
         
         if (consideringPoints.length === 0) return;
 
-        positionUpdating = true;
+        flag.updatePos = true;
         let start = Date.now();
         
         axios.get(url + "positionupdate", {
             params: {
                 index: { data : consideringPoints }, 
                 group: { data : groupPoints },
-                resolution: 50,
+                resolution: props.resolution,
                 scale4offset: 100,
                 offset : 5,   // ratio compared to resolution
                 threshold : 0.35,
@@ -198,19 +174,7 @@ const Brushing = (props) => {
             let end = Date.now();
             // console.log(end - start)
 
-            let contourPoints = response.data.contour;
-            contourPoints.push(contourPoints[0]);
-
-            let contourOffsetPoints = response.data.contour_offsetted;
-            contourOffsetPoints.push(contourOffsetPoints[0]);
-            contourPath.attr("d", line(contourPoints))
-                       .transition()
-                       .duration(positionDuration)
-                       .style("opacity", 1);
-            contourOffsetPath.attr("d", line(contourOffsetPoints))
-                             .transition()
-                             .duration(positionDuration)
-                             .style("opacity", 1);
+            updateBrushedArea(response.data.contour, response.data.contour_offsetted, positionDuration);
             
             let newPositions = response.data.new_positions;
             let newEmb = [];
@@ -233,10 +197,8 @@ const Brushing = (props) => {
     let groupPoints, consideringPoints;
     let overlay = false;
 
-    let isBrushing;
-
     function update(bR, bX, bY, size, emb, isClicking) {
-        if(!loaded) return;
+        if(!flag.floaded) return;
 
         posX = bX
         posY = bY
@@ -293,7 +255,7 @@ const Brushing = (props) => {
 
         // console.log(overlay)
         
-        if (groupPoints.length === 0) isBrushing = false;
+        if (groupPoints.length === 0) flag.brushing = false;
     
 
         if (consideringPoints.length > 0) {
@@ -305,9 +267,9 @@ const Brushing = (props) => {
             //     }, positionUpdateWaitingTime);
             // }
 
-            // console.log(positionUpdating, status.click, updateExecutor.pos)
+            // console.log(flag.updatePos, status.click, updateExecutor.pos)
 
-            if (!positionUpdating && !status.click) { // default) 
+            if (!flag.updatePos && !status.click) { // default) 
                 if (updateExecutor.pos === null) {
                     updateExecutor.pos = setTimeout(() => {
                         if (overlay) positionUpdate(consideringPoints, groupPoints);
@@ -315,7 +277,7 @@ const Brushing = (props) => {
                     }, positionUpdateWaitingTime);
                 }
             }
-            if (positionUpdating && !status.click) {
+            if (flag.updatePos && !status.click) {
                 // if (updateExecutor.pos === null) {
                 //     updateExecutor.pos = setTimeout(() => {
                 //         positionUpdate(consideringPoints, groupPoints);
@@ -324,24 +286,24 @@ const Brushing = (props) => {
                 // }
 
             }
-            if (!positionUpdating && status.click) {
+            if (!flag.updatePos && status.click) {
 
             }
-            if (positionUpdating && status.click) {
+            if (flag.updatePos && status.click) {
                 
                 if (updateExecutor.pos === null) {
                     updateExecutor.pos = setInterval(() => {
                         if (overlay) positionUpdate(consideringPoints, groupPoints);
                     }, positionUpdateWaitingTime);
-                    isBrushing = true;
+                    flag.brushing = true;
                 }
 
                 
             }
-            // else if (positionUpdating && )  {
+            // else if (flag.updatePos && )  {
 
             // }
-            // if(positionUpdating) {
+            // if(flag.updatePos) {
             //     if (!status.click) return;
             //     else {
             //         
@@ -410,7 +372,7 @@ const Brushing = (props) => {
                     border  : borderlist,
                     borderColor : borderColorList
                 };
-                scatterplot.update(data, isBrushing? positionDuration : duration, 0);
+                scatterplot.update(data, flag.brushing? positionDuration : duration, 0);
             });
         }
         else {
@@ -430,7 +392,7 @@ const Brushing = (props) => {
 
     useEffect(async () => {
         splotRef.current.addEventListener("mouseover", function() {
-            if (!loaded) return;
+            if (!flag.floaded) return;
             updateExecutor.sim = setInterval(() => {
                 update(b.bR, b.bX, b.bY, props.size, emb, status.click);
             }, updateInterval);
@@ -449,13 +411,14 @@ const Brushing = (props) => {
                 }, updateInterval);
             }
 
-            if (positionUpdating) {
+            if (flag.updatePos) {
                 if (!status.click) {
                     if (Math.abs(posX - e.offsetX) + Math.abs(posY - e.offsetY) < 30) return;
                     const t = positionDuration * 0.6
-                    contourPath.transition().duration(t).style("opacity", 0);
-                    contourOffsetPath.transition().duration(t).style("opacity", 0);
-                    if (!isBrushing) {
+                    // contourPath.transition().duration(t).style("opacity", 0);
+                    // contourOffsetPath.transition().duration(t).style("opacity", 0);
+                    eraseBrushedArea(t);
+                    if (!flag.brushing) {
                         emb = originEmb;
                     }
                     const data = {
@@ -463,7 +426,7 @@ const Brushing = (props) => {
                     };
                     scatterplot.update(data, t, 0)
                     setTimeout(() => {
-                        positionUpdating = false;
+                        flag.updatePos = false;
                     }, positionDuration * 0.5);
                 }
             }
@@ -478,16 +441,16 @@ const Brushing = (props) => {
 
 
 
-    // Stylesheet with Props
+    // Stylesheets with Props
     const brushingAreaStyle = {
         border: "1px black solid",
         width: props.size,
         height: props.size,
         position: "absolute"
     };
-
     const widthMarginStyle = { width: props.size, margin: props.margin };
     const sizeMarginStyle = Object.assign({}, widthMarginStyle, { height: props.size });
+
     return (
         <div>
             {/* For Hyperparameter change */}
