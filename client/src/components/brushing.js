@@ -2,9 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
 
-import SelectionStatus from "./SelectionStatus";
-
-
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
@@ -14,6 +11,7 @@ import { updateSelectionButtons, updateSelectionText } from "../subcomponents/se
 import "../css/Brushing.css";
 
 import { getMouseoverPoints} from "../helpers/utils";
+import { initializeBrusher, addSplotEventListener } from '../subcomponents/brusher';
 
 
 const Brushing = (props) => {
@@ -42,30 +40,18 @@ const Brushing = (props) => {
         originGroups;    // original Groups info (for undo operation with Alt)
 
 
-
-
     // NOTE Selection Management 
 
     let selectionInfo = [0];
     let selectionStatusDiv;
+    let currentSelectionNum = 1; // current No. of brushed group
 
-    /// Initialization
+    /// Initializing Selection Management
     useEffect(() => {
         selectionStatusDiv = d3.select("#selectionStatus");
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
     }, []);
-
-
-
-
-
-    // NOTE Managed as States
-
-
-    let currentSelectionNum = 1; // current No. of brushed group
-
-
 
     function addGroup(e) {
         if(currentSelectionNum == maxSelection) { alert("Cannot add more groups"); return; }
@@ -77,7 +63,6 @@ const Brushing = (props) => {
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
 
-
         positionUpdating = false;
         isBrushing = false;
         originEmb = emb;
@@ -87,14 +72,12 @@ const Brushing = (props) => {
 
 
 
-    // CONSTANT SCATTERPLOT_DATA
+    // NOTE SCATTERPLOT Setting
     const splotRef = useRef(null);
     let scatterplot;
 
-
-    // NOTE INITAL SCATTERPLOT RENDERING
+    // INITAL DATA Extraction and SCATTERPLOT RENDERING
     useEffect(async () => {
-        // initial data extraction
         await axios.get(url + "init", {
             params: {
                 dataset: dataset,
@@ -128,88 +111,39 @@ const Brushing = (props) => {
 
 
 
+    // NOTE Interaction Setting
+    const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
+    const status = { click: false, alt: false, shift: false };
+    const updateExecutor = { pos: null, sim: null }  //  animation executor
 
-    // NOTE BRUSHER Setting
-    let bX = -2;    // x coordinates of the brusher  (range: -1 ~ 1)
-    let bY = -2;    // y coordinates of the brusher  (range: -1 ~ 1)
-    let bR =  20;    // radius of the brusher  
-    let minbR = 5;
-    let maxbR = 60;
+    function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
 
-    let isClicking = false;
-    let isAltPressed = false;
-    let isShiftPressed = false;
+    let brusherSvg, brusher;
 
-    let defaultOpacity = 0.2;
-    let clickedOpacity = 0.5;
+    useEffect(() => {        
+        [brusherSvg, brusher] = initializeBrusher(b);
+        addSplotEventListener(splotRef.current, brusher, b, status, updateExecutor);
 
-    let wheelSensitivity = 1;
-
-    function updateWheelSensitivity (e) {
-        wheelSensitivity = e.target.value / 25;
-    }
-
-    
-
-    useEffect(() => {
-        let brusherSvg = d3.select("#brusherSvg");
-        let brusher = brusherSvg.append("circle")
-                                .attr("fill", "green")
-                                .attr("r", bR)
-                                .attr("transform", "translate(" + 300 + "," + 300 + ")")
-                                .style("opacity", 0);
-
-        // interactuib for the circle
-        splotRef.current.addEventListener("mouseover", function(e) {
-            brusher.transition()
-                    .duration(300)
-                    .style("opacity", defaultOpacity);
-        });
-        splotRef.current.addEventListener("mousemove", function(e) {
-            bX = e.offsetX;
-            bY = e.offsetY;
-            brusher.attr("transform", "translate(" + bX + "," + bY + ")")
-        });
-        splotRef.current.addEventListener("mouseout", function() {
-            brusher.transition()
-                   .duration(300)
-                   .style("opacity", 0);
-        });
-        splotRef.current.addEventListener("wheel", e => {
-            bR = bR * ((100 - e.deltaY * wheelSensitivity) / 100);
-            bR = bR < minbR ? minbR : bR;
-            bR = bR > maxbR ? maxbR : bR;
-            brusher.attr("r", bR);
-        })
-        splotRef.current.addEventListener("mousedown", e => { 
-            isClicking = true;  
-            positionUpdateExecutor = null;
-            brusher.style("opacity", clickedOpacity);
-        })
-        splotRef.current.addEventListener("mouseup"  , e => { 
-            isClicking = false; 
-            brusher.style("opacity", defaultOpacity);
-        })
         document.addEventListener("keydown", e => {
             if (e.key === "Alt") {
-                if (isShiftPressed) return;
+                if (status.shift) return;
                 brusher.attr("fill", "red");
-                isAltPressed = true;
+                status.alt = true;
             };
             if (e.key === "Shift") {
-                if (isAltPressed) return;
+                if (status.alt) return;
                 brusher.attr("fill", "blue")
-                isShiftPressed = true;
+                status.shift = true;
             }
         })
         document.addEventListener("keyup", e => {
             if (e.key === "Alt") {
                 brusher.attr("fill", "green");
-                isAltPressed = false;
+                status.alt = false;
             };
             if (e.key === "Shift") {
                 brusher.attr("fill", "green");
-                isShiftPressed = false;
+                status.shift = false;
             };
         })
     });
@@ -250,8 +184,8 @@ const Brushing = (props) => {
 
     // NOTE EventListener for Scatterplot / Contour
 
-    let updateExecutor = null;
-    let positionUpdateExecutor = null;
+    // let updateExecutor = null;
+    // let positionUpdateExecutor = null;
 
     let updateInterval = 100
     let duration = updateInterval * 0.8;
@@ -262,10 +196,7 @@ const Brushing = (props) => {
     let positionUpdating = false;
 
     let simThreshold = 0.9;
-
-    function updateSimThreshold(e) {
-        simThreshold = e.target.value / 100;
-    }
+    function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
 
 
 
@@ -345,10 +276,10 @@ const Brushing = (props) => {
         let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
         let mouseoverTempPoints = Array.from(mouseoverPoints);
 
-        if (!isShiftPressed && !isAltPressed) mouseoverPoints = mouseoverPoints.filter(idx => groups[idx] === 0)
+        if (!status.shift && !status.alt) mouseoverPoints = mouseoverPoints.filter(idx => groups[idx] === 0)
         
         if(isClicking) {
-            if (!isAltPressed) mouseoverPoints.forEach(idx => { 
+            if (!status.alt) mouseoverPoints.forEach(idx => { 
                 if (groups[idx] > 0) selectionInfo[groups[idx] - 1] -= 1;
                 groups[idx] = currentSelectionNum; 
                 selectionInfo[currentSelectionNum - 1] += 1;
@@ -393,38 +324,38 @@ const Brushing = (props) => {
         if (consideringPoints.length > 0) {
             // Start waiting for position update
 
-            // if (positionUpdateExecutor === null) {
-            //     positionUpdateExecutor = setTimeout(() => {
+            // if (updateExecutor.pos === null) {
+            //     updateExecutor.pos = setTimeout(() => {
             //         positionUpdate(consideringPoints, groupPoints);
             //     }, positionUpdateWaitingTime);
             // }
 
-            // console.log(positionUpdating, isClicking, positionUpdateExecutor)
+            // console.log(positionUpdating, status.click, updateExecutor.pos)
 
-            if (!positionUpdating && !isClicking) { // default) 
-                if (positionUpdateExecutor === null) {
-                    positionUpdateExecutor = setTimeout(() => {
+            if (!positionUpdating && !status.click) { // default) 
+                if (updateExecutor.pos === null) {
+                    updateExecutor.pos = setTimeout(() => {
                         if (overlay) positionUpdate(consideringPoints, groupPoints);
-                        // positionUpdateExecutor = null;
+                        // updateExecutor.pos = null;
                     }, positionUpdateWaitingTime);
                 }
             }
-            if (positionUpdating && !isClicking) {
-                // if (positionUpdateExecutor === null) {
-                //     positionUpdateExecutor = setTimeout(() => {
+            if (positionUpdating && !status.click) {
+                // if (updateExecutor.pos === null) {
+                //     updateExecutor.pos = setTimeout(() => {
                 //         positionUpdate(consideringPoints, groupPoints);
-                //         positionUpdateExecutor = null;
+                //         updateExecutor.pos = null;
                 //     }, positionUpdateWaitingTime); 
                 // }
 
             }
-            if (!positionUpdating && isClicking) {
+            if (!positionUpdating && status.click) {
 
             }
-            if (positionUpdating && isClicking) {
+            if (positionUpdating && status.click) {
                 
-                if (positionUpdateExecutor === null) {
-                    positionUpdateExecutor = setInterval(() => {
+                if (updateExecutor.pos === null) {
+                    updateExecutor.pos = setInterval(() => {
                         if (overlay) positionUpdate(consideringPoints, groupPoints);
                     }, positionUpdateWaitingTime);
                     isBrushing = true;
@@ -436,7 +367,7 @@ const Brushing = (props) => {
 
             // }
             // if(positionUpdating) {
-            //     if (!isClicking) return;
+            //     if (!status.click) return;
             //     else {
             //         
             //     }
@@ -444,8 +375,8 @@ const Brushing = (props) => {
             // else {
                 
             //     else {
-            //         // clearInterval(positionUpdateExecutor);
-            //         // positionUpdateExecutor = null;
+            //         // clearInterval(updateExecutor.pos);
+            //         // updateExecutor.pos = null;
             //     }
 
 
@@ -470,7 +401,7 @@ const Brushing = (props) => {
                     // opacity = 0.1;
                     let opacity;
                     if (groups[i] > 0 && groups[i] !== currentSelectionNum) {
-                        if (isShiftPressed) opacity = density[i];
+                        if (status.shift) opacity = density[i];
                         else opacity = 1;
                     }
                     else if (groups[i] === currentSelectionNum) opacity = 1;
@@ -525,26 +456,26 @@ const Brushing = (props) => {
     useEffect(async () => {
         splotRef.current.addEventListener("mouseover", function() {
             if (!loaded) return;
-            updateExecutor = setInterval(() => {
-                update(bR, bX, bY, props.size, emb, isClicking);
+            updateExecutor.sim = setInterval(() => {
+                update(b.bR, b.bX, b.bY, props.size, emb, status.click);
             }, updateInterval);
         });
 
         splotRef.current.addEventListener("mousemove", function(e) {
-            if(!isClicking) {
-                clearTimeout(positionUpdateExecutor);
-                positionUpdateExecutor = null;
+            if(!status.click) {
+                clearTimeout(updateExecutor.pos);
+                updateExecutor.pos = null;
             }
 
 
-            if (updateExecutor == null) {
-                updateExecutor = setInterval(() => {
-                    update(bR, bX, bY, props.size, emb, isClicking);
+            if (updateExecutor.sim == null) {
+                updateExecutor.sim = setInterval(() => {
+                    update(b.bR, b.bX, b.bY, props.size, emb, status.click);
                 }, updateInterval);
             }
 
             if (positionUpdating) {
-                if (!isClicking) {
+                if (!status.click) {
                     if (Math.abs(posX - e.offsetX) + Math.abs(posY - e.offsetY) < 30) return;
                     const t = positionDuration * 0.6
                     contourPath.transition().duration(t).style("opacity", 0);
@@ -562,16 +493,14 @@ const Brushing = (props) => {
                 }
             }
 
-
-
         });
-
         splotRef.current.addEventListener("mouseout", function() {
-            clearInterval(updateExecutor);
-            update(0, bX, bY, props.size, emb, isClicking);
-            updateExecutor = null;
+            clearInterval(updateExecutor.sim);
+            update(0, b.bX, b.bY, props.size, emb, status.click);
+            updateExecutor.sim = null;
         });
     }, [props, splotRef]);
+
 
 
     // Stylesheet with Props
@@ -582,13 +511,8 @@ const Brushing = (props) => {
         position: "absolute"
     };
 
-    const widthMarginStyle = {
-        width: props.size,
-        margin: props.margin
-    };
-
+    const widthMarginStyle = { width: props.size, margin: props.margin };
     const sizeMarginStyle = Object.assign({}, widthMarginStyle, { height: props.size });
-
     return (
         <div>
             {/* For Hyperparameter change */}
