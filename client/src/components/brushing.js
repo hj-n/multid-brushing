@@ -8,11 +8,12 @@ import SelectionStatus from "./SelectionStatus";
 import { Scatterplot } from "../subcomponents/scatterplot";
 import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
+import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
 
 
 import "../css/Brushing.css";
 
-import { getMouseoverPoints, generateColors } from "../helpers/utils";
+import { getMouseoverPoints} from "../helpers/utils";
 
 
 const Brushing = (props) => {
@@ -23,6 +24,11 @@ const Brushing = (props) => {
     const sample_rate = props.sample;
     const resolution  = props.resolution;
     const url = props.url;
+
+    const radius = props.radius;
+    const border = props.border;
+    const maxSelection = props.maxSelection;
+    const colors = props.colors;
 
     let loaded = false;
 
@@ -35,61 +41,42 @@ const Brushing = (props) => {
         groups,          // grouping info (currently [0, 0, ....])
         originGroups;    // original Groups info (for undo operation with Alt)
 
-    let colors = generateColors();
-    const colorNum = 10;
-
-    // NOTE Group Management
-    let groupInfo = [0];
-    let groupNum = 1; // current No. of brushed group
-    let groupButtonsSvg;
 
 
-    function updateGroupButtons() {
-        groupButtonsSvg.selectAll("rect").remove();
-        groupButtonsSvg.selectAll("rect")
-                    .data(groupInfo)
-                    .enter()
-                    .append("rect")
-                    .attr("fill", (d, idx) => d3.rgb(colors[idx + 1][0], colors[idx + 1][1], colors[idx + 1][2]))
-                    .attr("width", 40)
-                    .attr("height", 40)
-                    .attr("transform", (d, i) => "translate(" + (i * 50 + 5) + "," + 10 + ")")
-                    .attr("stroke-width", (d, i) => {
-                        if (i === groupNum - 1) return 4;
-                        else                return 0;
-                    })
-                    .attr("stroke", "black")
-    }
 
-    function updateGroupText() {
-        groupButtonsSvg.selectAll("text").remove();
-        groupButtonsSvg.selectAll("text")
-                       .data(groupInfo)
-                       .enter()
-                       .append("text")
-                       .attr("transform", (d, i) => "translate(" + (i * 50 + 25) + "," + 35 + ")")
-                       .text(d => d)
-                       .attr("fill", "white")
-                       .style("font-weight", "bold")
-                       .attr("text-anchor", "middle")
-    }
+    // NOTE Selection Management 
 
+    let selectionInfo = [0];
+    let selectionStatusDiv;
+
+    /// Initialization
     useEffect(() => {
-        groupButtonsSvg = d3.select("#groupButtons")   
-                            .attr("width", props.size)
-                            .attr("height", props.size * 0.15);
-        updateGroupButtons();
-        updateGroupText();
-    }, [])
+        selectionStatusDiv = d3.select("#selectionStatus");
+        updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
+        updateSelectionText(selectionStatusDiv, selectionInfo);
+    }, []);
+
+
+
+
+
+    // NOTE Managed as States
+
+
+    let currentSelectionNum = 1; // current No. of brushed group
+
+
 
     function addGroup(e) {
-        if(groupNum == colorNum) { alert("Cannot add more groups"); return; }
-        groupNum += 1;
-        groupInfo.push(0);
+        if(currentSelectionNum == maxSelection) { alert("Cannot add more groups"); return; }
+        currentSelectionNum += 1;
+        selectionInfo.push(0);
         originGroups = groups.map(d => d);
-        updateGroupButtons();
-        updateGroupText();
         update(0, 2, 2, props.size, emb, false)
+
+        updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
+        updateSelectionText(selectionStatusDiv, selectionInfo);
+
 
         positionUpdating = false;
         isBrushing = false;
@@ -103,8 +90,7 @@ const Brushing = (props) => {
     // CONSTANT SCATTERPLOT_DATA
     const splotRef = useRef(null);
     let scatterplot;
-    let radius = 15;
-    let border = 3;
+
 
     // NOTE INITAL SCATTERPLOT RENDERING
     useEffect(async () => {
@@ -363,29 +349,29 @@ const Brushing = (props) => {
         
         if(isClicking) {
             if (!isAltPressed) mouseoverPoints.forEach(idx => { 
-                if (groups[idx] > 0) groupInfo[groups[idx] - 1] -= 1;
-                groups[idx] = groupNum; 
-                groupInfo[groupNum - 1] += 1;
+                if (groups[idx] > 0) selectionInfo[groups[idx] - 1] -= 1;
+                groups[idx] = currentSelectionNum; 
+                selectionInfo[currentSelectionNum - 1] += 1;
             });
             else               mouseoverPoints.forEach(idx => { 
-                if (groups[idx] === groupNum) {
+                if (groups[idx] === currentSelectionNum) {
                     if (originGroups[idx] > 0) {
-                        groupInfo[originGroups[idx] - 1] += 1;
+                        selectionInfo[originGroups[idx] - 1] += 1;
                         groups[idx] = originGroups[idx];
                     }
                     else {
                         groups[idx] = 0;
                     }
-                    groupInfo[groupNum - 1] -= 1;
+                    selectionInfo[currentSelectionNum - 1] -= 1;
                 }
                 groups[idx] = originGroups[idx]; 
 
             });
-            updateGroupText();
+            updateSelectionText(selectionStatusDiv, selectionInfo);
         }
 
         groupPoints = groups.reduce((acc, cur, idx) => {
-            if (cur === groupNum) acc.push(idx);
+            if (cur === currentSelectionNum) acc.push(idx);
             return acc;
         }, []);
 
@@ -475,19 +461,19 @@ const Brushing = (props) => {
                     let c = [0, 0, 0];
                     if (groups[i] > 0) c = colors[groups[i]];
                     else {
-                        if (consideringPointsSet.has(i)) c = colors[groupNum];
-                        else if (s > 0) c = colors[groupNum];
+                        if (consideringPointsSet.has(i)) c = colors[currentSelectionNum];
+                        else if (s > 0) c = colors[currentSelectionNum];
                     }
                     return c;
                 });
                 const opacitylist = sim.map((s, i) => { 
                     // opacity = 0.1;
                     let opacity;
-                    if (groups[i] > 0 && groups[i] !== groupNum) {
+                    if (groups[i] > 0 && groups[i] !== currentSelectionNum) {
                         if (isShiftPressed) opacity = density[i];
                         else opacity = 1;
                     }
-                    else if (groups[i] === groupNum) opacity = 1;
+                    else if (groups[i] === currentSelectionNum) opacity = 1;
                     else opacity = s > 0 ? s : density[i];
                     return opacity;
                 });
@@ -500,12 +486,12 @@ const Brushing = (props) => {
                 let borderColorList = sim.map((s, i) => {
                     let c = [0, 0, 0];
                     if (groups[i] > 0) {
-                        if (groups[i] === groupNum) c = [0, 0, 0];
+                        if (groups[i] === currentSelectionNum) c = [0, 0, 0];
                         else c = colors[groups[i]];
                     }
                     else {
-                        if (consideringPointsSet.has(i)) c = colors[groupNum];
-                        if (s > 0) c = colors[groupNum];
+                        if (consideringPointsSet.has(i)) c = colors[currentSelectionNum];
+                        if (s > 0) c = colors[currentSelectionNum];
                     }
                     return c;
                 });
@@ -607,8 +593,8 @@ const Brushing = (props) => {
         <div>
             {/* For Hyperparameter change */}
             <div id="hparams" style={widthMarginStyle}>
-                <div class="hparam">
-                    <div class="hname">Wheel sensitivity</div>
+                <div className="hparam">
+                    <div className="hname">Wheel sensitivity</div>
                     <input 
                         type="range"
                         min={1} 
@@ -618,8 +604,8 @@ const Brushing = (props) => {
                         className="slider"
                     />
                 </div>
-                <div class="hparam">
-                    <div class="hname">Similarity Threshold</div>
+                <div className="hparam">
+                    <div className="hname">Similarity Threshold</div>
                     <input 
                         type="range"
                         min={1} 
@@ -653,14 +639,9 @@ const Brushing = (props) => {
             </div>
             {/* button to add new group */}
             <div style={Object.assign({}, widthMarginStyle, { height: 30 })}>
-                <button class={"selection"} onClick={addGroup}>Click to Add New Selections</button>
+                <button className={"selection"} onClick={addGroup}>Click to Add New Selections</button>
             </div>
-            {/* <SelectionStatus/> */}
-            <SelectionStatus/>
-            <div>
-                <svg id="groupButtons"></svg>
-                
-            </div>
+            <div id="selectionStatus" style={{display: 'flex'}}></div>
         </div>
     );
 }
