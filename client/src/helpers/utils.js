@@ -1,6 +1,11 @@
 import * as d3 from "d3";
 
-export function getMouseoverPoints(radius, bx, by, emb) {
+export function getMouseoverPoints(b, size, emb) {
+  const [scaledR, scaledX, scaledY] = scaleDownBrushInfo(b, size);
+  return getScaledMouseoverPoints(scaledR, scaledX, scaledY, emb);
+}
+
+function getScaledMouseoverPoints(radius, bx, by, emb) {
   const rad_sq = radius * radius;
   return emb.reduce((acc, pos, i) => {
     const dx = bx - pos[0];
@@ -8,6 +13,15 @@ export function getMouseoverPoints(radius, bx, by, emb) {
     if (dx * dx + dy * dy < rad_sq) acc.push(i);
     return acc;
   }, [])
+}
+
+
+function scaleDownBrushInfo(b, size) {
+  return [
+    (b.bR / size) * 2,
+    (b.bX / size) * 2 - 1,
+    - (b.bY / size) * 2 + 1
+  ]
 }
 
 export function generateColors () {
@@ -21,3 +35,6 @@ export function generateColors () {
   return colors;
 
 }
+
+
+

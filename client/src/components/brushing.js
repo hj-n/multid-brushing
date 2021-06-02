@@ -119,7 +119,6 @@ const Brushing = (props) => {
  
 
 
-    let posX, posY;
 
     let groupPoints, consideringPoints;
     let overlay = false;
@@ -127,24 +126,9 @@ const Brushing = (props) => {
 
     /* NOTE  Updating Similarity */
     function updateSim(b, size, emb, isClicking) {
+        if(!flag.loaded) return;  // return if not loaded
 
-        let bR = b.bR;
-        let bX = b.bX;
-        let bY = b.bY;
-
-        if(!flag.loaded) return;
-
-        posX = bX
-        posY = bY
-
-
-        bR = (bR / size) * 2;
-        bX = (bX / size) * 2 - 1;
-        bY = - (bY / size) * 2 + 1;
-
-       
-        
-        let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
+        let mouseoverPoints = getMouseoverPoints(b, size, emb);
         let mouseoverTempPoints = Array.from(mouseoverPoints);
 
         if (!status.shift && !status.alt) mouseoverPoints = mouseoverPoints.filter(idx => currSelections[idx] === 0)
@@ -389,7 +373,7 @@ const Brushing = (props) => {
 
             if (flag.updatePos) {
                 if (!status.click) {
-                    if (Math.abs(posX - e.offsetX) + Math.abs(posY - e.offsetY) < 30) return;
+                    if (Math.abs(b.bX - e.offsetX) + Math.abs(b.bY - e.offsetY) < 30) return;
                     const t = positionDuration * 0.6
                     // contourPath.transition().duration(t).style("opacity", 0);
                     // contourOffsetPath.transition().duration(t).style("opacity", 0);
