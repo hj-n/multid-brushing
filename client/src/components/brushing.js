@@ -7,13 +7,13 @@ import { heatmapData } from "../subcomponents/heatmapData";
 import { Heatmap } from '../subcomponents/heatmap';
 import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
+import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
+
+import { getMouseoverPoints } from "../helpers/utils";
+import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 
 
 import "../css/Brushing.css";
-
-import { getMouseoverPoints} from "../helpers/utils";
-import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
-
 
 const Brushing = (props) => {
 
@@ -38,19 +38,18 @@ const Brushing = (props) => {
     
     let simThreshold = 0.9;
 
-
     // CONSTANT DATA 
     let emb;             // positions
     let initialEmb;
     let originEmb;       // original positions
     let density;         // initial snn density of points
     let pointLen;        // number of points
-    let groups;          // grouping info (currently [0, 0, ....])
-    let originGroups;    // original Groups info (for undo operation with Alt)
+    let currSelections;          // grouping status for all points(currently [0, 0, ....])
+    let prevSelections;    // previous grouping status for all points (for undo operation with Alt)
+    let selectionInfo = [0];  // selection info per group
+    let currentSelectionNum = 1; // current number (index) of brushing selection
 
-    let selectionInfo = [0];
     let selectionStatusDiv;
-    let currentSelectionNum = 1; // current No. of brushed group
 
     // CONSTANT Scatterplot Management
     const splotRef = useRef(null);
@@ -59,32 +58,31 @@ const Brushing = (props) => {
     // CONSTANT Functions for adjusting constant parameters
 
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
-
     function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
 
-    // NOTE Selection Management 
-    //// Initialization
+    /* NOTE Selection Management */
+    // Initialization 
     useEffect(() => {
         selectionStatusDiv = d3.select("#selectionStatus");
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
     }, []);
-
+ 
+    // Adding new group
     function addGroup(e) {
-        if(currentSelectionNum == maxSelection) { alert("Cannot add more groups"); return; }
+        if (currentSelectionNum == maxSelection) { alert("Cannot add more selections!!"); return; }
+
         currentSelectionNum += 1;
         selectionInfo.push(0);
-        originGroups = groups.map(d => d);
+        prevSelections = currSelections.map(d => d);
 
         update(0, 2, 2, props.size, emb, false)
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
         eraseBrushedArea(500);
 
-        flag.updatePos = false;
-        flag.brushing = false;
+        flag.updatePos = false; flag.brushing = false;
         originEmb = emb;
-
     }
 
 
@@ -103,8 +101,8 @@ const Brushing = (props) => {
             originEmb  = JSON.parse(JSON.stringify(emb))
             density    = response.data.density;
             pointLen   = density.length;
-            groups     = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
-            originGroups = new Array(pointLen).fill(0);
+            currSelections = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
+            prevSelections = new Array(pointLen).fill(0);
         })
 
         // rendering
@@ -213,32 +211,32 @@ const Brushing = (props) => {
         let mouseoverPoints = getMouseoverPoints(bR, bX, bY, emb);
         let mouseoverTempPoints = Array.from(mouseoverPoints);
 
-        if (!status.shift && !status.alt) mouseoverPoints = mouseoverPoints.filter(idx => groups[idx] === 0)
+        if (!status.shift && !status.alt) mouseoverPoints = mouseoverPoints.filter(idx => currSelections[idx] === 0)
         
         if(isClicking) {
             if (!status.alt) mouseoverPoints.forEach(idx => { 
-                if (groups[idx] > 0) selectionInfo[groups[idx] - 1] -= 1;
-                groups[idx] = currentSelectionNum; 
+                if (currSelections[idx] > 0) selectionInfo[currSelections[idx] - 1] -= 1;
+                currSelections[idx] = currentSelectionNum; 
                 selectionInfo[currentSelectionNum - 1] += 1;
             });
             else               mouseoverPoints.forEach(idx => { 
-                if (groups[idx] === currentSelectionNum) {
-                    if (originGroups[idx] > 0) {
-                        selectionInfo[originGroups[idx] - 1] += 1;
-                        groups[idx] = originGroups[idx];
+                if (currSelections[idx] === currentSelectionNum) {
+                    if (prevSelections[idx] > 0) {
+                        selectionInfo[prevSelections[idx] - 1] += 1;
+                        currSelections[idx] = prevSelections[idx];
                     }
                     else {
-                        groups[idx] = 0;
+                        currSelections[idx] = 0;
                     }
                     selectionInfo[currentSelectionNum - 1] -= 1;
                 }
-                groups[idx] = originGroups[idx]; 
+                currSelections[idx] = prevSelections[idx]; 
 
             });
             updateSelectionText(selectionStatusDiv, selectionInfo);
         }
 
-        groupPoints = groups.reduce((acc, cur, idx) => {
+        groupPoints = currSelections.reduce((acc, cur, idx) => {
             if (cur === currentSelectionNum) acc.push(idx);
             return acc;
         }, []);
@@ -327,7 +325,7 @@ const Brushing = (props) => {
                 const sim = response.data;
                 const colorlist = sim.map((s, i) => { 
                     let c = [0, 0, 0];
-                    if (groups[i] > 0) c = colors[groups[i]];
+                    if (currSelections[i] > 0) c = colors[currSelections[i]];
                     else {
                         if (consideringPointsSet.has(i)) c = colors[currentSelectionNum];
                         else if (s > 0) c = colors[currentSelectionNum];
@@ -337,11 +335,11 @@ const Brushing = (props) => {
                 const opacitylist = sim.map((s, i) => { 
                     // opacity = 0.1;
                     let opacity;
-                    if (groups[i] > 0 && groups[i] !== currentSelectionNum) {
+                    if (currSelections[i] > 0 && currSelections[i] !== currentSelectionNum) {
                         if (status.shift) opacity = density[i];
                         else opacity = 1;
                     }
-                    else if (groups[i] === currentSelectionNum) opacity = 1;
+                    else if (currSelections[i] === currentSelectionNum) opacity = 1;
                     else opacity = s > 0 ? s : density[i];
                     return opacity;
                 });
@@ -353,9 +351,9 @@ const Brushing = (props) => {
                 });
                 let borderColorList = sim.map((s, i) => {
                     let c = [0, 0, 0];
-                    if (groups[i] > 0) {
-                        if (groups[i] === currentSelectionNum) c = [0, 0, 0];
-                        else c = colors[groups[i]];
+                    if (currSelections[i] > 0) {
+                        if (currSelections[i] === currentSelectionNum) c = [0, 0, 0];
+                        else c = colors[currSelections[i]];
                     }
                     else {
                         if (consideringPointsSet.has(i)) c = colors[currentSelectionNum];
@@ -376,8 +374,8 @@ const Brushing = (props) => {
             });
         }
         else {
-            const colorlist = groups.map(gNum => colors[gNum]);
-            const opacitylist = groups.map((gNum, i) => gNum > 0 ? 1 : density[i]);
+            const colorlist = currSelections.map(gNum => colors[gNum]);
+            const opacitylist = currSelections.map((gNum, i) => gNum > 0 ? 1 : density[i]);
             const data = {
                 position: emb,
                 opacity : opacitylist,
@@ -441,20 +439,10 @@ const Brushing = (props) => {
 
 
 
-    // Stylesheets with Props
-    const brushingAreaStyle = {
-        border: "1px black solid",
-        width: props.size,
-        height: props.size,
-        position: "absolute"
-    };
-    const widthMarginStyle = { width: props.size, margin: props.margin };
-    const sizeMarginStyle = Object.assign({}, widthMarginStyle, { height: props.size });
-
     return (
         <div>
             {/* For Hyperparameter change */}
-            <div id="hparams" style={widthMarginStyle}>
+            <div id="hparams" style={widthMarginStyle(props.size, props.margin)}>
                 <div className="hparam">
                     <div className="hname">Wheel sensitivity</div>
                     <input 
@@ -479,28 +467,28 @@ const Brushing = (props) => {
                 </div>
             </div>
             {/* Scatterplot and other contours */}
-            <div style={sizeMarginStyle}>
+            <div style={sizeMarginStyle(props.size, props.margin)}>
                 <canvas 
                     ref={splotRef}
                     width={props.size * 2}
                     height={props.size * 2}
-                    style={brushingAreaStyle}
+                    style={scatterplotStyle(props.size)}
                 />
                 <svg
                     id={"brusherSvg"}
                     width={props.size}
                     height={props.size}
-                    style={Object.assign({}, { pointerEvents: "none" }, brushingAreaStyle)}
+                    style={Object.assign({}, { pointerEvents: "none" }, scatterplotStyle(props.size))}
                 />
                 <svg
                     id={"contourSvg"}
                     width={props.size}
                     height={props.size}
-                    style={Object.assign({}, { pointerEvents: "none" }, brushingAreaStyle)}
+                    style={Object.assign({}, { pointerEvents: "none" }, scatterplotStyle(props.size))}
                 />
             </div>
             {/* button to add new group */}
-            <div style={Object.assign({}, widthMarginStyle, { height: 30 })}>
+            <div style={Object.assign({}, widthMarginStyle(props.size, props.margin), { height: 30 })}>
                 <button className={"selection"} onClick={addGroup}>Click to Add New Selections</button>
             </div>
             <div id="selectionStatus" style={{display: 'flex'}}></div>
