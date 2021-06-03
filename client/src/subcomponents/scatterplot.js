@@ -23,10 +23,12 @@
  * }
  */
 
+import { deepcopyArr } from "../helpers/utils";
+
 
 export class Scatterplot {
   constructor (data, dom) {
-    this.points = data.position;
+    this.points = deepcopyArr(data.position);
     this.opacity = data.opacity;
     this.color = data.color;
     this.radius = data.radius;
@@ -162,8 +164,9 @@ export class Scatterplot {
       this.interactionFrameLoop = null;
     }
 
+
     // update
-    let newPositions = data.position !== undefined ? data.position : this.currentPositions;
+    let newPositions = data.position !== undefined ? deepcopyArr(data.position) : this.currentPositions;
     let newOpacity = data.opacity !== undefined ? data.opacity : this.currentOpacity;
     let newColor = data.color !== undefined ? data.color : this.currentColor;
     let newRadius = data.radius !== undefined ? data.radius : this.currentRadius;

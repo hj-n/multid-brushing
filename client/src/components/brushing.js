@@ -9,17 +9,18 @@ import { updateSelectionButtons, updateSelectionText } from "../subcomponents/se
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
 import { initialSplotRendering } from "../subcomponents/renderingScatterplot";
-import { getConsideringPoints, getSimilarity } from "../subcomponents/managingSimilarity";
+import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin } from "../subcomponents/serverDataManagement";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
-import { updateSim } from "../helpers/executor";
+import { updatePosition, updateSim } from "../helpers/executor";
 
 import { Mode, Step } from "../helpers/status";
 
 
 import "../css/Brushing.css";
-import { getMouseoverPoints } from '../helpers/utils';
+import { checkMoved, deepcopyArr, getMouseoverPoints } from '../helpers/utils';
+import { setPosUpdatingFlag } from '../helpers/flagManagement';
 
 
 const Brushing = (props) => {
@@ -39,15 +40,20 @@ const Brushing = (props) => {
     // CONSTANT MAINTAINERS (Brusher info, interaction status, update executor, and Flags, etc.)
 
     const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
+    const bStop = {bX: -2, bY: -2};
     const status = { 
         click: false, alt: false, shift: false, 
         mode: Mode.NORMAL, 
         step: Step.NOTBRUSHING 
     }; 
     const updateExecutor = { pos: null, sim: null };            //  animation executor
-    const flag = { loaded: false, updatePos: false, brushing: false};
+    const flag = { loaded: false, posUpdating: false, brushing: false};
     
-    let simThreshold = 0.9;
+    // CONSTANT Paremeters for position update query
+    const scale4offset = 100;
+    const offset       = 5;
+    const kdeThreshold = 0.35;
+    let   simThreshold = 0.9;
 
     // CONSTANT DATA 
     let emb;             // positions
@@ -65,9 +71,9 @@ const Brushing = (props) => {
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
 
-    const simUpdateInterval = 100
+    const simUpdateInterval = 40
     const simUpdateDuration = simUpdateInterval * 0.8;
-    const positionUpdateWaitingTime = 600;
+    const positionUpdateWaitingTime = 500;
     const positionDuration = 400;
 
     // CONSTANT Functions for adjusting constant parameters
@@ -95,7 +101,7 @@ const Brushing = (props) => {
         updateSelectionText(selectionStatusDiv, selectionInfo);
         eraseBrushedArea(500);
 
-        flag.updatePos = false; flag.brushing = false;
+        flag.posUpdating = false; flag.brushing = false;
         originEmb = emb;
     }
 
@@ -193,9 +199,9 @@ const Brushing = (props) => {
             //     }, positionUpdateWaitingTime);
             // }
 
-            // console.log(flag.updatePos, status.click, updateExecutor.pos)
+            // console.log(flag.posUpdating, status.click, updateExecutor.pos)
 
-            if (!flag.updatePos && !status.click) { // default) 
+            if (!flag.posUpdating && !status.click) { // default) 
                 if (updateExecutor.pos === null) {
                     updateExecutor.pos = setTimeout(() => {
                         if (overlay) positionUpdate(consideringPoints, groupPoints);
@@ -203,7 +209,7 @@ const Brushing = (props) => {
                     }, positionUpdateWaitingTime);
                 }
             }
-            if (flag.updatePos && !status.click) {
+            if (flag.posUpdating && !status.click) {
                 // if (updateExecutor.pos === null) {
                 //     updateExecutor.pos = setTimeout(() => {
                 //         positionUpdate(consideringPoints, groupPoints);
@@ -212,10 +218,10 @@ const Brushing = (props) => {
                 // }
 
             }
-            if (!flag.updatePos && status.click) {
+            if (!flag.posUpdating && status.click) {
 
             }
-            if (flag.updatePos && status.click) {
+            if (flag.posUpdating && status.click) {
                 
                 if (updateExecutor.pos === null) {
                     updateExecutor.pos = setInterval(() => {
@@ -226,10 +232,10 @@ const Brushing = (props) => {
 
                 
             }
-            // else if (flag.updatePos && )  {
+            // else if (flag.posUpdating && )  {
 
             // }
-            // if(flag.updatePos) {
+            // if(flag.posUpdating) {
             //     if (!status.click) return;
             //     else {
             //         
@@ -316,18 +322,18 @@ const Brushing = (props) => {
         }
     }
 
-    */
+    
 
 
-    /* NOTE EventListener for Scatterplot / Contour */
+    // NOTE EventListener for Scatterplot / Contour 
 
-    /*
+    
     function positionUpdate(consideringPoints, groupPoints) {
 
         
         if (consideringPoints.length === 0) return;
 
-        flag.updatePos = true;
+        flag.posUpdating = true;
         let start = Date.now();
         
         axios.get(url + "positionupdate", {
@@ -367,20 +373,19 @@ const Brushing = (props) => {
 
     function initiateSimExecutorInterval() {
         status.step = Step.SKIMMING;
-        updateExecutor.sim = setInterval(() => {
+        updateExecutor.sim = setInterval(async () => {
+            if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
-            const consideringPoints = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-            (async () => {
-                const sim = await getSimilarity(url, consideringPoints);
-                updateSim (
-                    flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
-                    currSelections, mouseoverPoints, currSelectionNum, sim
-                );
-            })();
+            const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            const sim = await getSimilarity(url, consideringPoints);
+            updateSim (
+                flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
+                currSelections, mouseoverPoints, currSelectionNum, sim
+            );
         }, simUpdateInterval);
     }
 
-    function clearSimExecutor() {
+    function clearSimExecutorInterval() {
         clearInterval(updateExecutor.sim);
         status.step = Step.NOTBRUSHING;
         updateSim(
@@ -390,6 +395,52 @@ const Brushing = (props) => {
         updateExecutor.sim = null;
     }
 
+    function initiatePosExecutorTimeout() {
+        updateExecutor.pos = setTimeout(async () => {
+            bStop.bX = b.bX;
+            bStop.bY = b.bY;
+            const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
+            const [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            if (
+                mouseoverPoints.length !== 0 && 
+               (pointSetIntersection.length !== 0 || 
+                mouseoverPoints.length === consideringPoints.length)
+            ) {
+                status.step = Step.INITIALIZING; // should be fixed after adding brushing functionality
+                const newEmb = await getUpdatedPosition (
+                    url, emb, consideringPoints, prevSelectedPoints, resolution,
+                    scale4offset, offset, kdeThreshold, simThreshold
+                );
+                updatePosition(status, newEmb, positionDuration);
+                setPosUpdatingFlag(flag, positionDuration);
+                emb = newEmb;
+            }
+        }, positionUpdateWaitingTime);
+    }
+    
+    function clearPosExecutorTimeout() {
+        clearTimeout(updateExecutor.pos);
+        updateExecutor.pos = null;
+    }
+
+    function cancelPosInitialization() {
+        status.step = Step.SKIMMING;
+        emb = deepcopyArr(originEmb);
+
+        updatePosition(status, emb, positionDuration);
+        restoreOrigin(url, flag);
+    }
+
+    function clearExecutors() {
+        clearSimExecutorInterval();
+        clearPosExecutorTimeout();
+        setTimeout(() => { cancelPosInitialization(); }, positionDuration);
+        setPosUpdatingFlag(flag, positionDuration * 2)
+        b.bX = -props.size; b.bY = -props.size; 
+        bStop.bX = -props.size; bStop.bY = -props.size;
+        status.step = Step.NOTBRUSHING;
+    }
+
     useEffect(() => {
 
         splotRef.current.addEventListener("mouseover", () => {
@@ -397,12 +448,18 @@ const Brushing = (props) => {
             initiateSimExecutorInterval();
         });
 
-        splotRef.current.addEventListener("mousemove", () => {
+        splotRef.current.addEventListener("mousemove", (e) => {
             if (!flag.loaded) return;
-            if (updateExecutor.sim === null) initiateSimExecutorInterval();
+            if (updateExecutor.sim === null)   initiateSimExecutorInterval();
+            if (updateExecutor.pos !== null)   clearPosExecutorTimeout();     
+            if (status.step === Step.SKIMMING) initiatePosExecutorTimeout();
+            if (status.step === Step.INITIALIZING && !flag.posUpdating && checkMoved(bStop, e))
+                cancelPosInitialization();
         });
 
-        splotRef.current.addEventListener("mouseout", () => { clearSimExecutor(); });
+        splotRef.current.addEventListener("mouseout", () => { 
+            clearExecutors();
+        });
 
         // splotRef.current.addEventListener("mousemove", function(e) {
         //     if (!flag.loaded) return;
@@ -417,7 +474,7 @@ const Brushing = (props) => {
         //         updateExecutor.pos = null;
         //     }
 
-        //     if (flag.updatePos) {
+        //     if (flag.posUpdating) {
         //         if (!status.click) {
         //             if (Math.abs(b.bX - e.offsetX) + Math.abs(b.bY - e.offsetY) < 30) return;
         //             const t = positionDuration * 0.6
@@ -432,7 +489,7 @@ const Brushing = (props) => {
         //             };
         //             scatterplot.update(data, t, 0)
         //             setTimeout(() => {
-        //                 flag.updatePos = false;
+        //                 flag.posUpdating = false;
         //             }, positionDuration * 0.5);
         //         }
         //     }

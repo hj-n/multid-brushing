@@ -19,3 +19,26 @@ export function similarityParam(consideringPoints) {
     }
   };
 }
+
+export function positionUpdateParam(
+  consideringPoints, 
+  prevSelectedPoints, 
+  resolution,
+  scale4offset,
+  offset,   // ratio compared to resolution
+  kdeThreshold, 
+  simThreshold
+) {
+
+  return {
+    params: {
+      index: { data : consideringPoints }, 
+      group: { data : prevSelectedPoints },
+      resolution: resolution,
+      scale4offset: scale4offset,
+      offset : offset,   
+      threshold : kdeThreshold,
+      simthreshold : simThreshold
+    }
+  }
+}

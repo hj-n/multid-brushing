@@ -88,6 +88,11 @@ export function notBrushingSplotRenderingData(
   }
 }
 
+export function initializingSplotRenderingData(newEmb) {
+  return {
+    position: newEmb
+  };
+}
 
 export function renderScatterplot(data, duration, delay) {
   scatterplot.update(data, duration, delay);

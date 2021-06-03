@@ -37,8 +37,12 @@ export function generateColors () {
 export function colorDarker (color, k) {
   const darker = Math.pow(0.7, k);
   return [color[0] * darker, color[1] * darker, color[2] * darker];
-  
 }
 
+export function checkMoved (b, e) {
+  return Math.abs(b.bX - e.offsetX) + Math.abs(b.bY - e.offsetY) > 30;
+}
 
-
+export function deepcopyArr(a) {
+  return JSON.parse(JSON.stringify(a));
+}
