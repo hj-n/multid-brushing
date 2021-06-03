@@ -31,9 +31,13 @@ export function generateColors () {
     let color = d3.rgb(colorScale(i))
     colors.push([color.r, color.g, color.b])
   }
-
   return colors;
+}
 
+export function colorDarker (color, k) {
+  const darker = Math.pow(0.7, k);
+  return [color[0] * darker, color[1] * darker, color[2] * darker];
+  
 }
 
 

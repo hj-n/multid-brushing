@@ -2,20 +2,32 @@
 
 
 import  { Step } from "./status";
-import { basicSplotRenderingData, renderScatterplot } from "../subcomponents/renderingScatterplot"
+import { 
+  notBrushingSplotRenderingData,
+  skimmingSplotRenderingData, 
+  renderScatterplot,
+} from "../subcomponents/renderingScatterplot"
 
 export function updateSim(
-  flag, status, colors, density, pointLen, radius, duration,
-  currSelections, mouseoverPoints
+  flag, status, colors, density, pointLen, radius, border, duration, 
+  currSelections, mouseoverPoints, currSelectionNum, sim
 ) {
   switch(status.step){
     case Step.NOTBRUSHING:
     case Step.SKIMMING:
-      const data = basicSplotRenderingData(
-        density, pointLen, colors, radius, 
-        currSelections, mouseoverPoints
-      );
-      renderScatterplot(data, duration, 0);
+      if (sim !== null) 
+        renderScatterplot(
+          skimmingSplotRenderingData(
+            status, density, pointLen, colors, radius, border, 
+            currSelections, mouseoverPoints, currSelectionNum, sim
+          ), duration, 0
+        );
+      else 
+        renderScatterplot(
+          notBrushingSplotRenderingData(
+            density, colors, currSelections, radius, border, pointLen
+          ), duration * 3, 0
+        );
       break;
     case Step.INITIALIZING:
       break;

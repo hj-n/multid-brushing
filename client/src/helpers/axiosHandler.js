@@ -10,3 +10,12 @@ export function initialSplotAxiosParam(dataset, method, sample_rate) {
   };
 }
 
+export function similarityParam(consideringPoints) {
+  return {
+    params: {
+      index: {
+        data: consideringPoints
+      }
+    }
+  };
+}

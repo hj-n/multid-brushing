@@ -9,7 +9,7 @@ import { updateSelectionButtons, updateSelectionText } from "../subcomponents/se
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
 import { initialSplotRendering } from "../subcomponents/renderingScatterplot";
-import { getConsideringPoints } from "../subcomponents/managingSimilarity";
+import { getConsideringPoints, getSimilarity } from "../subcomponents/managingSimilarity";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
@@ -365,32 +365,41 @@ const Brushing = (props) => {
 
     */
 
-    function initiateSimExecutor() {
+    function initiateSimExecutorInterval() {
         status.step = Step.SKIMMING;
         updateExecutor.sim = setInterval(() => {
-            const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
-            getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-            updateSim(flag, status, colors, density, pointLen, radius, simUpdateDuration, currSelections, mouseoverPoints);
+            const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
+            const consideringPoints = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            (async () => {
+                const sim = await getSimilarity(url, consideringPoints);
+                updateSim (
+                    flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
+                    currSelections, mouseoverPoints, currSelectionNum, sim
+                );
+            })();
         }, simUpdateInterval);
     }
 
     function clearSimExecutor() {
         clearInterval(updateExecutor.sim);
         status.step = Step.NOTBRUSHING;
-        updateSim(flag, status, colors, density, pointLen, radius, simUpdateDuration, currSelections, []);
+        updateSim(
+            flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
+            currSelections, [], currSelectionNum, null
+        );
         updateExecutor.sim = null;
     }
 
-    useEffect(async () => {
+    useEffect(() => {
 
         splotRef.current.addEventListener("mouseover", () => {
             if (!flag.loaded) return;
-            initiateSimExecutor();
+            initiateSimExecutorInterval();
         });
 
         splotRef.current.addEventListener("mousemove", () => {
             if (!flag.loaded) return;
-            if (updateExecutor.sim === null) initiateSimExecutor();
+            if (updateExecutor.sim === null) initiateSimExecutorInterval();
         });
 
         splotRef.current.addEventListener("mouseout", () => { clearSimExecutor(); });
