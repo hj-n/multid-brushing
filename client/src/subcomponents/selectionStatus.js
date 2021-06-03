@@ -3,7 +3,7 @@ import * as d3 from "d3";
 export function updateSelectionButtons(selectionStatusDiv, info, buttonSize, margin, colors) {
   selectionStatusDiv.selectAll(".buttonDiv").remove();
   selectionStatusDiv.selectAll(".buttonDiv")
-                    .data(info)
+                    .data(info.slice(1))
                     .enter()
                     .append("div")
                     .attr("class", "buttonDiv")
@@ -22,5 +22,5 @@ export function updateSelectionButtons(selectionStatusDiv, info, buttonSize, mar
 export function updateSelectionText(selectionStatusDiv, info) {
   selectionStatusDiv.selectAll(".buttonDiv")
                     .select("button")
-                    .text((_, i) => info[i]);
+                    .text((_, i) => info[i + 1]);
 }

@@ -165,6 +165,8 @@ export class Scatterplot {
     }
 
 
+
+
     // update
     let newPositions = data.position !== undefined ? deepcopyArr(data.position) : this.currentPositions;
     let newOpacity = data.opacity !== undefined ? data.opacity : this.currentOpacity;

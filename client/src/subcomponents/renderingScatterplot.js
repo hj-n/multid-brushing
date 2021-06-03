@@ -27,25 +27,19 @@ export function skimmingSplotRenderingData(
   currSelections, mouseoverPoints, currSelectionNum, sim
 ) {
   const colorList = currSelections.map((selectionNum, idx) => {
-    return selectionNum !== 0 ? colors[idx] : (
+    return selectionNum !== 0 ? colors[selectionNum] : (
       sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
     );
   });
 
   const opacityList = currSelections.map((selectionNum, idx) => {
     return selectionNum === currSelectionNum ? 1 : (   
-      selectionNum === 0 ? (
-        sim[idx] > 0 ? sim[idx] : density[idx]
-      ) : (
-        status.mode === Mode.OVERWRITE ? 1 : sim[idx]
+      selectionNum === 0 ? density[idx] : (
+        status.mode === Mode.NORMAL ? 1 : (
+          sim[idx] > 0 ? sim[idx] : 0
+        )
       )
     );
-  });
-
-  const borderColorList = currSelections.map((selectionNum, idx) => {
-    return selectionNum === 0 ? (
-      sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
-    ) : colorDarker(colors[idx], 2);
   });
 
   const radiusList = new Array(pointLen).fill(radius);
@@ -54,6 +48,18 @@ export function skimmingSplotRenderingData(
     radiusList[idx] = radius * 1.4;
     borderList[idx] = border * 2;
   });
+
+  const borderColorList = currSelections.map((selectionNum, idx) => {
+    if (selectionNum > 0) {
+      radiusList[idx] = radius * 1.4;
+      borderList[idx] = border * 5;
+    }
+    return selectionNum === 0 ? (
+      sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
+    ) : colorDarker(colors[selectionNum], 2);
+  });
+
+
 
   return {
     color : colorList,
@@ -69,14 +75,14 @@ export function notBrushingSplotRenderingData(
 ) {
 
   const colorList = currSelections.map((selectionNum, idx) => {
-    return selectionNum !== 0 ? colors[idx] : [0, 0, 0];
+    return selectionNum !== 0 ? colors[selectionNum] : [0, 0, 0];
   });
   const opacityList = currSelections.map((selectionNum, idx) => {
     return selectionNum !== 0 ? 1 : density[idx];
   });
 
   const borderColorList = currSelections.map((selectionNum, idx) => {
-    return selectionNum === 0 ? [0, 0, 0] : colorDarker(colors[idx], 2);
+    return selectionNum === 0 ? [0, 0, 0] : colorDarker(colors[selectionNum], 2);
   });
   
   return {

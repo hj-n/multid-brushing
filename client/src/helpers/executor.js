@@ -16,6 +16,7 @@ export function updateSim(
   switch(status.step){
     case Step.NOTBRUSHING:
     case Step.SKIMMING:
+    case Step.BRUSHING:
       if (sim !== null) 
         renderScatterplot(
           skimmingSplotRenderingData(
@@ -32,8 +33,8 @@ export function updateSim(
       break;
     case Step.INITIALIZING:
       break;
-    case Step.BRUSHING:
-      break;
+
+      // break;
   }
   
 }

@@ -23,7 +23,7 @@ export function addSplotEventListener(dom, b, status, updateExecutor) {
   dom.addEventListener("mouseover", function( ) { splotMouseover(brusher);        });
   dom.addEventListener("mousemove", function(e) { splotMousemove(brusher, b, e);  });
   dom.addEventListener("mouseout" , function( ) { splotMouseout (brusher);        });
-  dom.addEventListener("mousedown", function( ) { splotMousedown(brusher, status, updateExecutor); });
+  dom.addEventListener("mousedown", function( ) { splotMousedown(brusher, status); });
   dom.addEventListener("mouseup"  , function( ) { splotMouseup  (brusher, status) });
   dom.addEventListener("wheel"    , function(e) { splotWheel    (brusher, b, e); })
 }
@@ -51,9 +51,8 @@ function splotMouseout(brusher) {
          .style("opacity", 0);
 }
 
-function splotMousedown(brusher, status, updateExecutor) {
+function splotMousedown(brusher, status) {
   status.click = true;  
-  updateExecutor.pos = null;
   brusher.style("opacity", clickedOpacity);
 }
 

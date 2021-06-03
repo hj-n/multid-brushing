@@ -10,11 +10,11 @@ import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../s
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
 import { initialSplotRendering } from "../subcomponents/renderingScatterplot";
 import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin } from "../subcomponents/serverDataManagement";
+import { updateSelectionInfo } from "../subcomponents/selectionManagement";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
 import { updatePosition, updateSim } from "../helpers/executor";
-
 import { Mode, Step } from "../helpers/status";
 
 
@@ -63,7 +63,7 @@ const Brushing = (props) => {
     let pointLen;        // number of points
     let currSelections;          // grouping status for all points(currently [0, 0, ....])
     let prevSelections;    // previous grouping status for all points (for undo operation with Alt)
-    let selectionInfo = [0];  // selection info per group
+    let selectionInfo = [0, 0];  // selection info per group
     let currSelectionNum = 1; // current number (index) of brushing selection
 
     let selectionStatusDiv;
@@ -94,14 +94,14 @@ const Brushing = (props) => {
 
         currSelectionNum += 1;
         selectionInfo.push(0);
-        prevSelections = currSelections.map(d => d);
+        prevSelections = deepcopyArr(currSelections);
 
         updateSim({bR: 0, bX: 2, bY: 2}, flag, status, props.size, emb, false, density, pointLen, currSelections)
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
         eraseBrushedArea(500);
 
-        flag.posUpdating = false; flag.brushing = false;
+        flag.posUpdating = false; flag.isBrushing = false;
         originEmb = emb;
     }
 
@@ -372,10 +372,15 @@ const Brushing = (props) => {
     */
 
     function initiateSimExecutorInterval() {
-        status.step = Step.SKIMMING;
+
         updateExecutor.sim = setInterval(async () => {
             if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
+            if (status.step === Step.BRUSHING) {
+                console.log(status)
+                updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
+                updateSelectionText(selectionStatusDiv, selectionInfo);
+            }
             const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
             const sim = await getSimilarity(url, consideringPoints);
             updateSim (
@@ -387,7 +392,6 @@ const Brushing = (props) => {
 
     function clearSimExecutorInterval() {
         clearInterval(updateExecutor.sim);
-        status.step = Step.NOTBRUSHING;
         updateSim(
             flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
             currSelections, [], currSelectionNum, null
@@ -419,6 +423,7 @@ const Brushing = (props) => {
     }
     
     function clearPosExecutorTimeout() {
+        // console.log("CLEAR")
         clearTimeout(updateExecutor.pos);
         updateExecutor.pos = null;
     }
@@ -426,7 +431,6 @@ const Brushing = (props) => {
     function cancelPosInitialization() {
         status.step = Step.SKIMMING;
         emb = deepcopyArr(originEmb);
-
         updatePosition(status, emb, positionDuration);
         restoreOrigin(url, flag);
     }
@@ -434,27 +438,60 @@ const Brushing = (props) => {
     function clearExecutors() {
         clearSimExecutorInterval();
         clearPosExecutorTimeout();
+        if (status.step === Step.INITIALIZING) setPosUpdatingFlag(flag, positionDuration)
         setTimeout(() => { cancelPosInitialization(); }, positionDuration);
-        setPosUpdatingFlag(flag, positionDuration * 2)
         b.bX = -props.size; b.bY = -props.size; 
         bStop.bX = -props.size; bStop.bY = -props.size;
         status.step = Step.NOTBRUSHING;
+    }
+
+    function initiateBrushing() {
+        status.step = Step.BRUSHING;
+        // updateExecutor.sim = setInterval(async () => {
+        //     const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
+        //     updateSelectionInfo(status, mouseoverPoints, currSelections, currSelectionNum, selectionInfo);
+        //     const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            
+        // }, simUpdateDuration);
+        // updateExecutor.pos = setInterval(() => {
+
+        // });
+    }
+
+    function finishBrushing() {
+        if (status.step === Step.BRUSHING) {
+            status.step = Step.SKIMMING;
+        }
     }
 
     useEffect(() => {
 
         splotRef.current.addEventListener("mouseover", () => {
             if (!flag.loaded) return;
+            status.step = Step.SKIMMING;
             initiateSimExecutorInterval();
         });
 
         splotRef.current.addEventListener("mousemove", (e) => {
+
+            // console.log(status.step)
+
             if (!flag.loaded) return;
-            if (updateExecutor.sim === null)   initiateSimExecutorInterval();
-            if (updateExecutor.pos !== null)   clearPosExecutorTimeout();     
+            if (status.click) {
+                initiateBrushing();
+            }
+            else {
+                finishBrushing();
+            }
+            if (updateExecutor.sim === null)   { 
+                status.step = status.step === Step.NOTBRUSHING ? Step.SKIMMING : status.step;
+                initiateSimExecutorInterval(); 
+            }
+            if (updateExecutor.pos !== null)   {  clearPosExecutorTimeout();      }
             if (status.step === Step.SKIMMING) initiatePosExecutorTimeout();
             if (status.step === Step.INITIALIZING && !flag.posUpdating && checkMoved(bStop, e))
                 cancelPosInitialization();
+            // }
         });
 
         splotRef.current.addEventListener("mouseout", () => { 
@@ -494,9 +531,6 @@ const Brushing = (props) => {
         //         }
         //     }
 
-        // });
-        // splotRef.current.addEventListener("mouseout", function() {
-        //    
         // });
     }, [props, splotRef]);
 

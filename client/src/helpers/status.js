@@ -8,8 +8,8 @@ export const Mode =  {
 
 // Current step of brushing
 export const  Step = {
-  NOTBRUSHING  : 0,
-  SKIMMING     : 1,
-  INITIALIZING : 2,
-  BRUSHING     : 3
+  NOTBRUSHING  : "not brushing",
+  SKIMMING     : "skimming",
+  INITIALIZING : "initializing",
+  BRUSHING     : "brushing"
 }
