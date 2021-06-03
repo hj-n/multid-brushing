@@ -376,8 +376,9 @@ const Brushing = (props) => {
         updateExecutor.sim = setInterval(async () => {
             if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
-            if (status.step === Step.BRUSHING) {
-                console.log(status)
+
+            // console.log(status.mode)
+            if (status.click && status.step === Step.BRUSHING) {
                 updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
                 updateSelectionText(selectionStatusDiv, selectionInfo);
             }
@@ -391,11 +392,15 @@ const Brushing = (props) => {
     }
 
     function clearSimExecutorInterval() {
+        console.log("INTERVALCNLTH")
         clearInterval(updateExecutor.sim);
-        updateSim(
-            flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
-            currSelections, [], currSelectionNum, null
-        );
+        setTimeout(() => {
+            updateSim(
+                flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
+                currSelections, [], currSelectionNum, null
+            );
+        }, simUpdateDuration * 3)
+
         updateExecutor.sim = null;
     }
 
@@ -436,13 +441,14 @@ const Brushing = (props) => {
     }
 
     function clearExecutors() {
+        b.bX = -props.size; b.bY = -props.size; 
+        bStop.bX = -props.size; bStop.bY = -props.size;
+        status.step = Step.NOTBRUSHING;
         clearSimExecutorInterval();
         clearPosExecutorTimeout();
         if (status.step === Step.INITIALIZING) setPosUpdatingFlag(flag, positionDuration)
         setTimeout(() => { cancelPosInitialization(); }, positionDuration);
-        b.bX = -props.size; b.bY = -props.size; 
-        bStop.bX = -props.size; bStop.bY = -props.size;
-        status.step = Step.NOTBRUSHING;
+
     }
 
     function initiateBrushing() {
@@ -459,7 +465,7 @@ const Brushing = (props) => {
     }
 
     function finishBrushing() {
-        if (status.step === Step.BRUSHING) {
+        if (status.step === Step.BRUSHING && selectionInfo[currSelectionNum] === 0) {
             status.step = Step.SKIMMING;
         }
     }

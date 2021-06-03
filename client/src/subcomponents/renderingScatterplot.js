@@ -34,10 +34,10 @@ export function skimmingSplotRenderingData(
 
   const opacityList = currSelections.map((selectionNum, idx) => {
     return selectionNum === currSelectionNum ? 1 : (   
-      selectionNum === 0 ? density[idx] : (
-        status.mode === Mode.NORMAL ? 1 : (
-          sim[idx] > 0 ? sim[idx] : 0
-        )
+      selectionNum === 0 ? (
+        sim[idx] > 0 ? sim[idx] : density[idx]
+      ) : (
+        status.mode === Mode.OVERWRITE ? ( sim[idx] > 0 ? sim[idx] : 0 ) : 1
       )
     );
   });
