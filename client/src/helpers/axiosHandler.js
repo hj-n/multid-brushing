@@ -10,13 +10,3 @@ export function initialSplotAxiosParam(dataset, method, sample_rate) {
   };
 }
 
-export function initialSplotRenderingData(emb, density, pointLen, radius, border) {
-  return {
-    position: emb,
-    opacity: density,
-    color : new Array(pointLen).fill([0, 0, 0]),
-    radius : new Array(pointLen).fill(radius),
-    border : new Array(pointLen).fill(border),
-    borderColor : new Array(pointLen).fill([0, 0, 0])
-  }
-}

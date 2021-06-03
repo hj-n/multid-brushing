@@ -69,41 +69,41 @@ export class Scatterplot {
 
     this.interactionFrameLoop = null;
 
-    const setInteractionFrameLoop = () => {
-      this.interactionFrameLoop = this.regl.frame(() => {
-        // this.regl.clear({
-        //   color: [255, 255, 255, 0],
-        //   depth: 1,
-        // });
-        this.initializeSplot({
-          mousex: this.mouseX,
-          mousey: this.mouseY,
-          width  : dom.offsetWidth,
-          height : dom.offsetHeight
-        });
-      });
-    }
+    // const setInteractionFrameLoop = () => {
+    //   this.interactionFrameLoop = this.regl.frame(() => {
+    //     // this.regl.clear({
+    //     //   color: [255, 255, 255, 0],
+    //     //   depth: 1,
+    //     // });
+    //     this.initializeSplot({
+    //       mousex: this.mouseX,
+    //       mousey: this.mouseY,
+    //       width  : dom.offsetWidth,
+    //       height : dom.offsetHeight
+    //     });
+    //   });
+    // }
     
-    dom.addEventListener('mouseout', e => {
-      this.mouseX = -2.0;
-      this.mouseY = -2.0;
-      if (this.isUpdating) return;
-      if (this.interactionFrameLoop === null) return;
-      this.interactionFrameLoop.cancel();
-      this.interactionFrameLoop = null;
-    });
+    // dom.addEventListener('mouseout', e => {
+    //   this.mouseX = -2.0;
+    //   this.mouseY = -2.0;
+    //   if (this.isUpdating) return;
+    //   if (this.interactionFrameLoop === null) return;
+    //   this.interactionFrameLoop.cancel();
+    //   this.interactionFrameLoop = null;
+    // });
 
-    dom.addEventListener('mousemove', e => {
-      this.mouseX = (e.offsetX / dom.offsetWidth) * 2 - 1;
-      this.mouseY = - ((e.offsetY / dom.offsetHeight) * 2 - 1);
-      if (this.isUpdating) return;
-      if (this.interactionFrameLoop === null) setInteractionFrameLoop();
-    });
+    // dom.addEventListener('mousemove', e => {
+    //   this.mouseX = (e.offsetX / dom.offsetWidth) * 2 - 1;
+    //   this.mouseY = - ((e.offsetY / dom.offsetHeight) * 2 - 1);
+    //   if (this.isUpdating) return;
+    //   if (this.interactionFrameLoop === null) setInteractionFrameLoop();
+    // });
 
-    dom.addEventListener('mouseover', e => {
-      if (this.isUpdating) return;
-      setInteractionFrameLoop();
-    });
+    // dom.addEventListener('mouseover', e => {
+    //   if (this.isUpdating) return;
+    //   setInteractionFrameLoop();
+    // });
 
   }
 

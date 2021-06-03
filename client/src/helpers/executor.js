@@ -1,16 +1,21 @@
 // codes for managing update executors
 
-import { getMouseoverPoints } from "./utils";
-import  { Step } from "./status";
 
-export function updateSim(b, flag, status, size, emb, colors) {
-  console.log(b.bX);
-  
-  // IF NOT Brushing 
+import  { Step } from "./status";
+import { basicSplotRenderingData, renderScatterplot } from "../subcomponents/renderingScatterplot"
+
+export function updateSim(
+  flag, status, colors, density, pointLen, radius, duration,
+  currSelections, mouseoverPoints
+) {
   switch(status.step){
     case Step.NOTBRUSHING:
-      break;
     case Step.SKIMMING:
+      const data = basicSplotRenderingData(
+        density, pointLen, colors, radius, 
+        currSelections, mouseoverPoints
+      );
+      renderScatterplot(data, duration, 0);
       break;
     case Step.INITIALIZING:
       break;

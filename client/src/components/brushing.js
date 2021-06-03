@@ -8,15 +8,18 @@ import { Heatmap } from '../subcomponents/heatmap';
 import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
+import { initialSplotRendering } from "../subcomponents/renderingScatterplot";
+import { getConsideringPoints } from "../subcomponents/managingSimilarity";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
-import { initialSplotAxiosParam, initialSplotRenderingData } from '../helpers/axiosHandler';
+import { initialSplotAxiosParam } from '../helpers/axiosHandler';
 import { updateSim } from "../helpers/executor";
 
 import { Mode, Step } from "../helpers/status";
 
 
 import "../css/Brushing.css";
+import { getMouseoverPoints } from '../helpers/utils';
 
 
 const Brushing = (props) => {
@@ -55,16 +58,15 @@ const Brushing = (props) => {
     let currSelections;          // grouping status for all points(currently [0, 0, ....])
     let prevSelections;    // previous grouping status for all points (for undo operation with Alt)
     let selectionInfo = [0];  // selection info per group
-    let currentSelectionNum = 1; // current number (index) of brushing selection
+    let currSelectionNum = 1; // current number (index) of brushing selection
 
     let selectionStatusDiv;
 
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
-    let scatterplot;
 
-    const updateInterval = 100
-    const duration = updateInterval * 0.8;
+    const simUpdateInterval = 100
+    const simUpdateDuration = simUpdateInterval * 0.8;
     const positionUpdateWaitingTime = 600;
     const positionDuration = 400;
 
@@ -82,13 +84,13 @@ const Brushing = (props) => {
  
     /* NOTE Adding new Selection */
     function addSelection(e) {
-        if (currentSelectionNum == maxSelection) { alert("Cannot add more selections!!"); return; }
+        if (currSelectionNum == maxSelection) { alert("Cannot add more selections!!"); return; }
 
-        currentSelectionNum += 1;
+        currSelectionNum += 1;
         selectionInfo.push(0);
         prevSelections = currSelections.map(d => d);
 
-        updateSim({bR: 0, bX: 2, bY: 2}, flag, status, props.size, emb, false)
+        updateSim({bR: 0, bX: 2, bY: 2}, flag, status, props.size, emb, false, density, pointLen, currSelections)
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
         eraseBrushedArea(500);
@@ -108,9 +110,7 @@ const Brushing = (props) => {
             currSelections = new Array(pointLen).fill(0); // grouping info (currently [0, 0, ....])
             prevSelections = new Array(pointLen).fill(0);
         })
-        // rendering
-        const data = initialSplotRenderingData(emb, density, pointLen, radius, border);
-        scatterplot = new Scatterplot(data, splotRef.current);
+        initialSplotRendering(emb, density, pointLen, radius, border, splotRef);
         flag.loaded = true;
     }, [props, splotRef])
 
@@ -144,11 +144,11 @@ const Brushing = (props) => {
         if(isClicking) {
             if (!status.alt) mouseoverPoints.forEach(idx => { 
                 if (currSelections[idx] > 0) selectionInfo[currSelections[idx] - 1] -= 1;
-                currSelections[idx] = currentSelectionNum; 
-                selectionInfo[currentSelectionNum - 1] += 1;
+                currSelections[idx] = currSelectionNum; 
+                selectionInfo[currSelectionNum - 1] += 1;
             });
             else               mouseoverPoints.forEach(idx => { 
-                if (currSelections[idx] === currentSelectionNum) {
+                if (currSelections[idx] === currSelectionNum) {
                     if (prevSelections[idx] > 0) {
                         selectionInfo[prevSelections[idx] - 1] += 1;
                         currSelections[idx] = prevSelections[idx];
@@ -156,7 +156,7 @@ const Brushing = (props) => {
                     else {
                         currSelections[idx] = 0;
                     }
-                    selectionInfo[currentSelectionNum - 1] -= 1;
+                    selectionInfo[currSelectionNum - 1] -= 1;
                 }
                 currSelections[idx] = prevSelections[idx]; 
 
@@ -165,7 +165,7 @@ const Brushing = (props) => {
         }
 
         groupPoints = currSelections.reduce((acc, cur, idx) => {
-            if (cur === currentSelectionNum) acc.push(idx);
+            if (cur === currSelectionNum) acc.push(idx);
             return acc;
         }, []);
 
@@ -255,19 +255,19 @@ const Brushing = (props) => {
                     let c = [0, 0, 0];
                     if (currSelections[i] > 0) c = colors[currSelections[i]];
                     else {
-                        if (consideringPointsSet.has(i)) c = colors[currentSelectionNum];
-                        else if (s > 0) c = colors[currentSelectionNum];
+                        if (consideringPointsSet.has(i)) c = colors[currSelectionNum];
+                        else if (s > 0) c = colors[currSelectionNum];
                     }
                     return c;
                 });
                 const opacitylist = sim.map((s, i) => { 
                     // opacity = 0.1;
                     let opacity;
-                    if (currSelections[i] > 0 && currSelections[i] !== currentSelectionNum) {
+                    if (currSelections[i] > 0 && currSelections[i] !== currSelectionNum) {
                         if (status.shift) opacity = density[i];
                         else opacity = 1;
                     }
-                    else if (currSelections[i] === currentSelectionNum) opacity = 1;
+                    else if (currSelections[i] === currSelectionNum) opacity = 1;
                     else opacity = s > 0 ? s : density[i];
                     return opacity;
                 });
@@ -280,12 +280,12 @@ const Brushing = (props) => {
                 let borderColorList = sim.map((s, i) => {
                     let c = [0, 0, 0];
                     if (currSelections[i] > 0) {
-                        if (currSelections[i] === currentSelectionNum) c = [0, 0, 0];
+                        if (currSelections[i] === currSelectionNum) c = [0, 0, 0];
                         else c = colors[currSelections[i]];
                     }
                     else {
-                        if (consideringPointsSet.has(i)) c = colors[currentSelectionNum];
-                        if (s > 0) c = colors[currentSelectionNum];
+                        if (consideringPointsSet.has(i)) c = colors[currSelectionNum];
+                        if (s > 0) c = colors[currSelectionNum];
                     }
                     return c;
                 });
@@ -298,7 +298,7 @@ const Brushing = (props) => {
                     border  : borderlist,
                     borderColor : borderColorList
                 };
-                scatterplot.update(data, flag.brushing? positionDuration : duration, 0);
+                scatterplot.update(data, flag.brushing? positionDuration : simUpdateDuration, 0);
             });
         }
         else {
@@ -312,7 +312,7 @@ const Brushing = (props) => {
                 border : new Array(pointLen).fill(border),
                 borderColor: new Array(pointLen).fill([0, 0, 0])
             }
-            scatterplot.update(data, duration, 0);
+            scatterplot.update(data, simUpdateDuration, 0);
         }
     }
 
@@ -368,14 +368,16 @@ const Brushing = (props) => {
     function initiateSimExecutor() {
         status.step = Step.SKIMMING;
         updateExecutor.sim = setInterval(() => {
-            updateSim(b, flag, status, props.size, emb, colors);
-        }, updateInterval);
+            const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
+            getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            updateSim(flag, status, colors, density, pointLen, radius, simUpdateDuration, currSelections, mouseoverPoints);
+        }, simUpdateInterval);
     }
 
     function clearSimExecutor() {
         clearInterval(updateExecutor.sim);
         status.step = Step.NOTBRUSHING;
-        updateSim({bR: 0, bX: b.bX, bY: b.bY}, flag, status, props.size, emb, colors);
+        updateSim(flag, status, colors, density, pointLen, radius, simUpdateDuration, currSelections, []);
         updateExecutor.sim = null;
     }
 
@@ -398,7 +400,7 @@ const Brushing = (props) => {
         //     if (updateExecutor.sim == null) {
         //         updateExecutor.sim = setInterval(() => {
         //             updateSim(b, props.size, emb, status.click, colors);
-        //         }, updateInterval);
+        //         }, simUpdateInterval);
         //     }
 
         //     if(!status.click) {
@@ -466,8 +468,8 @@ const Brushing = (props) => {
             <div style={sizeMarginStyle(props.size, props.margin)}>
                 <canvas 
                     ref={splotRef}
-                    width={props.size * 2}
-                    height={props.size * 2}
+                    width={props.size * 4}
+                    height={props.size * 4}
                     style={scatterplotStyle(props.size)}
                 />
                 <svg

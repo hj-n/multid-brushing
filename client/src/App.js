@@ -57,7 +57,7 @@ function App({match}) {
         // updateSelectionInfo={updateSelectionInfo}
         colors={colors}
         buttonSize={(size + margin) / maxSelection - margin}
-        radius={15}
+        radius={30}
         border={3}
       />
       {/* <SelectionStatus
