@@ -9,9 +9,12 @@ import { updateSelectionButtons, updateSelectionText } from "../subcomponents/se
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
 
-import { getMouseoverPoints } from "../helpers/utils";
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam, initialSplotRenderingData } from '../helpers/axiosHandler';
+import { updateSim } from "../helpers/executor";
+
+import { Mode, Step } from "../helpers/status";
+
 
 import "../css/Brushing.css";
 
@@ -33,7 +36,11 @@ const Brushing = (props) => {
     // CONSTANT MAINTAINERS (Brusher info, interaction status, update executor, and Flags, etc.)
 
     const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
-    const status = { click: false, alt: false, shift: false };
+    const status = { 
+        click: false, alt: false, shift: false, 
+        mode: Mode.NORMAL, 
+        step: Step.NOTBRUSHING 
+    }; 
     const updateExecutor = { pos: null, sim: null };            //  animation executor
     const flag = { loaded: false, updatePos: false, brushing: false};
     
@@ -81,7 +88,7 @@ const Brushing = (props) => {
         selectionInfo.push(0);
         prevSelections = currSelections.map(d => d);
 
-        updateSim({bR: 0, bX: 2, bY: 2}, props.size, emb, false)
+        updateSim({bR: 0, bX: 2, bY: 2}, flag, status, props.size, emb, false)
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
         eraseBrushedArea(500);
@@ -89,7 +96,6 @@ const Brushing = (props) => {
         flag.updatePos = false; flag.brushing = false;
         originEmb = emb;
     }
-
 
     /* NOTE SCATTERPLOT Initialization */
     useEffect(async () => {
@@ -123,13 +129,15 @@ const Brushing = (props) => {
 
 
     /* NOTE  Updating Similarity */
-    function updateSim(b, size, emb, isClicking) {
+
+    /*
+    function updateSim(b, size, emb, isClicking, colors) {
         if(!flag.loaded) return;  // return if not loaded
 
         // find the points which are "overed" by the mouse
         let mouseoverPoints = getMouseoverPoints(b, size, emb);
         let mouseoverUnfilteredPoints = Array.from(mouseoverPoints);
-        if (!status.shift && !status.alt) 
+        if (status.mode === Mode.NORMAL) 
             mouseoverPoints = mouseoverPoints.filter(idx => currSelections[idx] === 0);
 
         // 
@@ -308,8 +316,12 @@ const Brushing = (props) => {
         }
     }
 
+    */
+
 
     /* NOTE EventListener for Scatterplot / Contour */
+
+    /*
     function positionUpdate(consideringPoints, groupPoints) {
 
         
@@ -351,54 +363,76 @@ const Brushing = (props) => {
         })
     }
 
+    */
+
+    function initiateSimExecutor() {
+        status.step = Step.SKIMMING;
+        updateExecutor.sim = setInterval(() => {
+            updateSim(b, flag, status, props.size, emb, colors);
+        }, updateInterval);
+    }
+
+    function clearSimExecutor() {
+        clearInterval(updateExecutor.sim);
+        status.step = Step.NOTBRUSHING;
+        updateSim({bR: 0, bX: b.bX, bY: b.bY}, flag, status, props.size, emb, colors);
+        updateExecutor.sim = null;
+    }
+
     useEffect(async () => {
-        splotRef.current.addEventListener("mouseover", function() {
+
+        splotRef.current.addEventListener("mouseover", () => {
             if (!flag.loaded) return;
-            updateExecutor.sim = setInterval(() => {
-                updateSim(b, props.size, emb, status.click);
-            }, updateInterval);
+            initiateSimExecutor();
         });
 
-        splotRef.current.addEventListener("mousemove", function(e) {
-            if(!status.click) {
-                clearTimeout(updateExecutor.pos);
-                updateExecutor.pos = null;
-            }
-
-            if (updateExecutor.sim == null) {
-                updateExecutor.sim = setInterval(() => {
-                    updateSim(b, props.size, emb, status.click);
-                }, updateInterval);
-            }
-
-            if (flag.updatePos) {
-                if (!status.click) {
-                    if (Math.abs(b.bX - e.offsetX) + Math.abs(b.bY - e.offsetY) < 30) return;
-                    const t = positionDuration * 0.6
-                    // contourPath.transition().duration(t).style("opacity", 0);
-                    // contourOffsetPath.transition().duration(t).style("opacity", 0);
-                    eraseBrushedArea(t);
-                    if (!flag.brushing) {
-                        emb = originEmb;
-                    }
-                    const data = {
-                        position: emb
-                    };
-                    scatterplot.update(data, t, 0)
-                    setTimeout(() => {
-                        flag.updatePos = false;
-                    }, positionDuration * 0.5);
-                }
-            }
-
+        splotRef.current.addEventListener("mousemove", () => {
+            if (!flag.loaded) return;
+            if (updateExecutor.sim === null) initiateSimExecutor();
         });
-        splotRef.current.addEventListener("mouseout", function() {
-            clearInterval(updateExecutor.sim);
-            updateSim({bR: 0, bX: b.bX, bY: b.bY}, props.size, emb, status.click);
-            updateExecutor.sim = null;
-        });
+
+        splotRef.current.addEventListener("mouseout", () => { clearSimExecutor(); });
+
+        // splotRef.current.addEventListener("mousemove", function(e) {
+        //     if (!flag.loaded) return;
+        //     if (updateExecutor.sim == null) {
+        //         updateExecutor.sim = setInterval(() => {
+        //             updateSim(b, props.size, emb, status.click, colors);
+        //         }, updateInterval);
+        //     }
+
+        //     if(!status.click) {
+        //         clearTimeout(updateExecutor.pos);
+        //         updateExecutor.pos = null;
+        //     }
+
+        //     if (flag.updatePos) {
+        //         if (!status.click) {
+        //             if (Math.abs(b.bX - e.offsetX) + Math.abs(b.bY - e.offsetY) < 30) return;
+        //             const t = positionDuration * 0.6
+        //             // contourPath.transition().duration(t).style("opacity", 0);
+        //             // contourOffsetPath.transition().duration(t).style("opacity", 0);
+        //             eraseBrushedArea(t);
+        //             if (!flag.brushing) {
+        //                 emb = originEmb;
+        //             }
+        //             const data = {
+        //                 position: emb
+        //             };
+        //             scatterplot.update(data, t, 0)
+        //             setTimeout(() => {
+        //                 flag.updatePos = false;
+        //             }, positionDuration * 0.5);
+        //         }
+        //     }
+
+        // });
+        // splotRef.current.addEventListener("mouseout", function() {
+        //    
+        // });
     }, [props, splotRef]);
 
+    
 
 
     return (

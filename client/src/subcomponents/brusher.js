@@ -1,6 +1,7 @@
 // Mouseevent functions for brushing / brusher
 
 import * as d3 from "d3";
+import { Mode } from "../helpers/status";
 
 
 const defaultOpacity = 0.2;
@@ -73,11 +74,13 @@ function documentKeydown(brusher, status, e) {
     if (status.shift) return;
     brusher.attr("fill", "red");
     status.alt = true;
+    status.mode = Mode.ERASE;
   };
   if (e.key === "Shift") {
       if (status.alt) return;
       brusher.attr("fill", "blue")
       status.shift = true;
+      status.mode = Mode.OVERWRITE;
   }
 }
 
@@ -85,9 +88,11 @@ function documentKeyup(brusher, status, e) {
   if (e.key === "Alt") {
     brusher.attr("fill", "green");
     status.alt = false;
+    status.mode = Mode.NORMAL;
   };
   if (e.key === "Shift") {
       brusher.attr("fill", "green");
       status.shift = false;
+      status.mode  = Mode.NORMAL;
   };
 }
