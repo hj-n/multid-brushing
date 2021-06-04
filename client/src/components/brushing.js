@@ -46,7 +46,7 @@ const Brushing = (props) => {
         mode: Mode.NORMAL, 
         step: Step.NOTBRUSHING 
     }; 
-    const updateExecutor = { pos: null, sim: null };            //  animation executor
+    const updateExecutor = { pos: null, sim: null, brush: null };            //  animation executor
     const flag = { loaded: false, posUpdating: false, brushing: false};
     
     // CONSTANT Paremeters for position update query
@@ -71,10 +71,10 @@ const Brushing = (props) => {
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
 
-    const simUpdateInterval = 100
+    const simUpdateInterval = 50
     const simUpdateDuration = simUpdateInterval * 0.8;
-    const positionUpdateWaitingTime = 400;
-    const positionDuration = 300;
+    const positionUpdateWaitingTime = 500;
+    const positionDuration = 400;
 
     // CONSTANT Functions for adjusting constant parameters
 
@@ -128,251 +128,8 @@ const Brushing = (props) => {
         initializeBrushedArea(props.size);
     }, []);
 
- 
-
-    let groupPoints, consideringPoints;
-    let overlay = false;
-
-
-    /* NOTE  Updating Similarity */
-
-    /*
-    function updateSim(b, size, emb, isClicking, colors) {
-        if(!flag.loaded) return;  // return if not loaded
-
-        // find the points which are "overed" by the mouse
-        let mouseoverPoints = getMouseoverPoints(b, size, emb);
-        let mouseoverUnfilteredPoints = Array.from(mouseoverPoints);
-        if (status.mode === Mode.NORMAL) 
-            mouseoverPoints = mouseoverPoints.filter(idx => currSelections[idx] === 0);
-
-        // 
-        if(isClicking) {
-            if (!status.alt) mouseoverPoints.forEach(idx => { 
-                if (currSelections[idx] > 0) selectionInfo[currSelections[idx] - 1] -= 1;
-                currSelections[idx] = currSelectionNum; 
-                selectionInfo[currSelectionNum - 1] += 1;
-            });
-            else               mouseoverPoints.forEach(idx => { 
-                if (currSelections[idx] === currSelectionNum) {
-                    if (prevSelections[idx] > 0) {
-                        selectionInfo[prevSelections[idx] - 1] += 1;
-                        currSelections[idx] = prevSelections[idx];
-                    }
-                    else {
-                        currSelections[idx] = 0;
-                    }
-                    selectionInfo[currSelectionNum - 1] -= 1;
-                }
-                currSelections[idx] = prevSelections[idx]; 
-
-            });
-            updateSelectionText(selectionStatusDiv, selectionInfo);
-        }
-
-        groupPoints = currSelections.reduce((acc, cur, idx) => {
-            if (cur === currSelectionNum) acc.push(idx);
-            return acc;
-        }, []);
-
-        let consideringPointsSet = new Set(groupPoints.concat(mouseoverPoints))
-        consideringPoints = [...consideringPointsSet]
-
-
-        // console.log(consideringPointsSet.size)
-        // console.log(groupPoints.length, mouseoverUnfilteredPoints.length)
-        if(consideringPointsSet.size < groupPoints.length + mouseoverUnfilteredPoints.length 
-           || groupPoints.length === 0 || groupPoints.length === consideringPointsSet.size) overlay = true;
-        else overlay = false;
-
-        // console.log(overlay)
-        
-        if (groupPoints.length === 0) flag.brushing = false;
-    
-
-        if (consideringPoints.length > 0) {
-            // Start waiting for position update
-
-            // if (updateExecutor.pos === null) {
-            //     updateExecutor.pos = setTimeout(() => {
-            //         positionUpdate(consideringPoints, groupPoints);
-            //     }, positionUpdateWaitingTime);
-            // }
-
-            // console.log(flag.posUpdating, status.click, updateExecutor.pos)
-
-            if (!flag.posUpdating && !status.click) { // default) 
-                if (updateExecutor.pos === null) {
-                    updateExecutor.pos = setTimeout(() => {
-                        if (overlay) positionUpdate(consideringPoints, groupPoints);
-                        // updateExecutor.pos = null;
-                    }, positionUpdateWaitingTime);
-                }
-            }
-            if (flag.posUpdating && !status.click) {
-                // if (updateExecutor.pos === null) {
-                //     updateExecutor.pos = setTimeout(() => {
-                //         positionUpdate(consideringPoints, groupPoints);
-                //         updateExecutor.pos = null;
-                //     }, positionUpdateWaitingTime); 
-                // }
-
-            }
-            if (!flag.posUpdating && status.click) {
-
-            }
-            if (flag.posUpdating && status.click) {
-                
-                if (updateExecutor.pos === null) {
-                    updateExecutor.pos = setInterval(() => {
-                        if (overlay) positionUpdate(consideringPoints, groupPoints);
-                    }, positionUpdateWaitingTime);
-                    flag.brushing = true;
-                }
-
-                
-            }
-            // else if (flag.posUpdating && )  {
-
-            // }
-            // if(flag.posUpdating) {
-            //     if (!status.click) return;
-            //     else {
-            //         
-            //     }
-            // }
-            // else {
-                
-            //     else {
-            //         // clearInterval(updateExecutor.pos);
-            //         // updateExecutor.pos = null;
-            //     }
-
-
-            // }
-
-            // update similarity
-            axios.get(url + "similarity", {
-                params: { index: { data: consideringPoints } }
-            }).then(response => {
-
-                const sim = response.data;
-                const colorlist = sim.map((s, i) => { 
-                    let c = [0, 0, 0];
-                    if (currSelections[i] > 0) c = colors[currSelections[i]];
-                    else {
-                        if (consideringPointsSet.has(i)) c = colors[currSelectionNum];
-                        else if (s > 0) c = colors[currSelectionNum];
-                    }
-                    return c;
-                });
-                const opacitylist = sim.map((s, i) => { 
-                    // opacity = 0.1;
-                    let opacity;
-                    if (currSelections[i] > 0 && currSelections[i] !== currSelectionNum) {
-                        if (status.shift) opacity = density[i];
-                        else opacity = 1;
-                    }
-                    else if (currSelections[i] === currSelectionNum) opacity = 1;
-                    else opacity = s > 0 ? s : density[i];
-                    return opacity;
-                });
-                let radlist = new Array(pointLen).fill(radius);
-                let borderlist = new Array(pointLen).fill(border);
-                consideringPoints.forEach(e => {
-                    borderlist[e] = borderlist[e] * 2;
-                    radlist[e]    = radlist[e] * 1.4;
-                });
-                let borderColorList = sim.map((s, i) => {
-                    let c = [0, 0, 0];
-                    if (currSelections[i] > 0) {
-                        if (currSelections[i] === currSelectionNum) c = [0, 0, 0];
-                        else c = colors[currSelections[i]];
-                    }
-                    else {
-                        if (consideringPointsSet.has(i)) c = colors[currSelectionNum];
-                        if (s > 0) c = colors[currSelectionNum];
-                    }
-                    return c;
-                });
-
-                const data = {
-                    position: emb,
-                    opacity : opacitylist,
-                    color   : colorlist,
-                    radius  : radlist,
-                    border  : borderlist,
-                    borderColor : borderColorList
-                };
-                scatterplot.update(data, flag.brushing? positionDuration : simUpdateDuration, 0);
-            });
-        }
-        else {
-            const colorlist = currSelections.map(gNum => colors[gNum]);
-            const opacitylist = currSelections.map((gNum, i) => gNum > 0 ? 1 : density[i]);
-            const data = {
-                position: emb,
-                opacity : opacitylist,
-                color : colorlist,
-                radius : new Array(pointLen).fill(radius),
-                border : new Array(pointLen).fill(border),
-                borderColor: new Array(pointLen).fill([0, 0, 0])
-            }
-            scatterplot.update(data, simUpdateDuration, 0);
-        }
-    }
-
-    
-
-
-    // NOTE EventListener for Scatterplot / Contour 
-
-    
-    function positionUpdate(consideringPoints, groupPoints) {
-
-        
-        if (consideringPoints.length === 0) return;
-
-        flag.posUpdating = true;
-        let start = Date.now();
-        
-        axios.get(url + "positionupdate", {
-            params: {
-                index: { data : consideringPoints }, 
-                group: { data : groupPoints },
-                resolution: props.resolution,
-                scale4offset: 100,
-                offset : 5,   // ratio compared to resolution
-                threshold : 0.35,
-                simthreshold : simThreshold
-            }
-        }).then(response => {
-
-            let end = Date.now();
-            // console.log(end - start)
-
-            updateBrushedArea(response.data.contour, response.data.contour_offsetted, positionDuration);
-            
-            let newPositions = response.data.new_positions;
-            let newEmb = [];
-            emb.forEach((d, i) => { newEmb.push([d[0], d[1]]); });
-            newPositions.forEach(d => {
-                newEmb[d[0]][0] = d[1];
-                newEmb[d[0]][1] = d[2];
-            });
-
-            const newPositionData = {
-                position: newEmb
-            };
-            scatterplot.update(newPositionData, positionDuration, 0);
-            emb = newEmb;
-        })
-    }
-
-    */
-
+    /*  NOTE Interaction Executors */ 
     function initiateSimExecutorInterval() {
-
         updateExecutor.sim = setInterval(async () => {
             if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
@@ -392,7 +149,7 @@ const Brushing = (props) => {
     }
 
     function clearSimExecutorInterval() {
-        console.log("INTERVALCNLTH")
+        // console.log("INTERVALCNLTH")
         clearInterval(updateExecutor.sim);
         setTimeout(() => {
             updateSim(
@@ -453,7 +210,15 @@ const Brushing = (props) => {
 
     function initiateBrushing() {
         status.step = Step.BRUSHING;
-        // 아예 별개로 도는 brushing용 updateExecutor를 구현해야 할듯
+        clearInterval(updateExecutor.sim); updateExecutor.sim = null;
+        clearTimeout(updateExecutor.pos);  updateExecutor.pos = null;
+
+        updateExecutor.brush = setInterval(async () => {
+            console.log("BRUSHING")
+        }, positionUpdateWaitingTime)
+        
+
+        // 아예 별개로 도는 brushing용s updateExecutor를 구현해야 할듯
         // updateExecutor.pos = setInterval(async () => {
         //     if (status.click) {
         //         const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
@@ -487,7 +252,10 @@ const Brushing = (props) => {
     function finishBrushing() {
         if (status.step === Step.BRUSHING && selectionInfo[currSelectionNum] === 0) {
             status.step = Step.SKIMMING;
+            cancelPosInitialization();
+            clearInterval(updateExecutor.brush);
         }
+
     }
 
     useEffect(() => {
@@ -502,7 +270,7 @@ const Brushing = (props) => {
             // console.log(status.step)
 
             if (!flag.loaded) return;
-            if (updateExecutor.sim === null)   { 
+            if (updateExecutor.sim === null && (status.step === Step.NOTBRUSHING || status.step === Step.SKIMMING))   { 
                 status.step = status.step === Step.NOTBRUSHING ? Step.SKIMMING : status.step;
                 initiateSimExecutorInterval(); 
             }

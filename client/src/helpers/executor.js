@@ -48,7 +48,7 @@ export function updatePosition(status, newEmb, duration) {
       renderScatterplot(initializingSplotRenderingData(newEmb), duration, 0)
       break;
     
-      break;
+      // break;
   }
 }
 
