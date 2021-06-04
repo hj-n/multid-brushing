@@ -49,7 +49,7 @@ const Brushing = (props) => {
     const scale4offset = 100;
     const offset       = 5;
     const kdeThreshold = 0.35;
-    let   simThreshold = 0.9;
+    let   simThreshold = 0.6;
 
     // CONSTANT DATA 
     let emb;             // positions
@@ -66,9 +66,9 @@ const Brushing = (props) => {
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
     const simUpdateInterval = 50
-    const simUpdateDuration = simUpdateInterval * 0.2;
-    const positionUpdateWaitingTime = 500;
-    const positionDuration = 500;
+    const simUpdateDuration = simUpdateInterval * 0.35;
+    const positionUpdateWaitingTime = 600;
+    const positionDuration = 600;
 
     // CONSTANT Functions for adjusting constant parameters
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
@@ -180,6 +180,7 @@ const Brushing = (props) => {
         status.step = Step.SKIMMING;
         emb = deepcopyArr(originEmb);
         updatePosition(status, emb, positionDuration);
+        eraseBrushedArea(positionDuration);
         restoreOrigin(url, flag);
     }
 
@@ -189,10 +190,12 @@ const Brushing = (props) => {
         clearSimExecutorInterval();
         clearPosExecutorTimeout();
         if (status.step === Step.INITIALIZING) setPosUpdatingFlag(flag, positionDuration)
-        if (status.step === Step.INITIALIZING || status.step === Step.NORMAL)
+        if (status.step === Step.INITIALIZING || status.step === Step.SKIMMING)
             setTimeout(() => { cancelPosInitialization(); }, positionDuration);
         status.step = Step.NOTBRUSHING;
     }
+
+    let checkTime = positionDuration;
 
     function initiateBrushing() {
         status.step = Step.BRUSHING;
@@ -201,6 +204,10 @@ const Brushing = (props) => {
 
 
         function maintainBrushingExecutor () {
+            if (!status.click) return;
+
+            const start = Date.now();
+
             let mouseoverPoints = getMouseoverPoints(b, props.size, emb);
             let  [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
             if (
@@ -219,13 +226,19 @@ const Brushing = (props) => {
                     );
                     const sim = await getSimilarity(url, consideringPoints);
                     updatePositionSim(
-                        newEmb, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
+                        newEmb, status, colors, density, pointLen, radius, border, checkTime * 0.5, 
                         currSelections, mouseoverPoints, currSelectionNum, sim
                     )
-                    updateBrushedArea(contour, offsettedContour, positionDuration * 0.5);
-                    setTimeout(() => { emb = newEmb; }, positionDuration * 0.5);
+                    updateBrushedArea(contour, offsettedContour, checkTime * 0.5);
+                    setTimeout(() => { emb = newEmb; }, checkTime * 0.5);
+                    updateExecutor.brush = setTimeout(() => { 
+                        emb = newEmb; 
+                        checkTime = Date.now() - start;
+                        console.log(checkTime)
+                        maintainBrushingExecutor();
+                    }, checkTime * 0.5);
                 })();
-                return maintainBrushingExecutor;
+                // maintainBrushingExecutor();
             }
             else {
                 (async () => {
@@ -235,10 +248,12 @@ const Brushing = (props) => {
                         currSelections, [], currSelectionNum, sim
                     );
                 })();
+                return;
             }
         }
-        setTimeout(() => {
-            updateExecutor.brush = setInterval(maintainBrushingExecutor(), positionDuration)
+        updateExecutor.brush =  setTimeout(() => {
+            maintainBrushingExecutor();
+            // updateExecutor.brush = setInterval(maintainBrushingExecutor(), positionDuration)
         }, simUpdateDuration);
         
     }
@@ -248,17 +263,24 @@ const Brushing = (props) => {
             status.step = Step.SKIMMING;
             cancelPosInitialization();
         }
-        clearInterval(updateExecutor.brush);
+        clearTimeout(updateExecutor.brush);
+        eraseBrushedArea(positionDuration);
+        initiateSimExecutorInterval();
+
+
         const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum);
-        setTimeout(() => {
-            updatePosition(status, restoringEmb, positionDuration * 0.5);
-            setTimeout(() => { emb = restoringEmb; }, positionDuration * 0.5);
-        }, positionDuration);
         
-        (async() => {
-            await restoreIdx(url, flag, restoringIdx);
-            initiateSimExecutorInterval();
-        })();
+        // flag.posUpdating = true;
+        // setTimeout(() => {
+           
+        // //    restoreIdx(url, flag, restoringIdx);
+
+        // //    updatePosition(status, restoringEmb, positionDuration * 0.5);
+        // //     setTimeout(() => { emb = restoringEmb; flag.posUpdating = false; initiateSimExecutorInterval()}, positionDuration * 0.5);
+        // }, checkTime);
+        
+
+
 
 
  
@@ -314,7 +336,7 @@ const Brushing = (props) => {
                         type="range"
                         min={1} 
                         max={100}
-                        defaultValue={90} 
+                        defaultValue={60} 
                         onChange={updateSimThreshold}
                         className="slider"
                     />
