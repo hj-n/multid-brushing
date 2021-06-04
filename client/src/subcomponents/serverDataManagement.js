@@ -37,13 +37,8 @@ export function restoreOrigin(url, flag) {
 }
 
 export function restoreIdx(url, flag, idx) {
-  console.log(idx);
-  // flag.posUpdating = true;
   axios.get(url + "restoreidx", idxParam(idx)).then((response) => {
-    if (response.data === "success")
-      // flag.posUpdating = false;
-      ;
-    else
+    if (!response.data === "success")
       throw "Somethings wrong in sever!!"
   })
 }
@@ -68,8 +63,8 @@ export async function getUpdatedPosition(
   kdeThreshold, 
   simThreshold
 ) {
-  // const newEmb = deepcopyArr(emb);
   const newEmb = []
+  let contour, offsettedContour;
   emb.forEach((d, i) => { newEmb.push([d[0], d[1]]); });
   await axios.get(
     url + "positionupdate", 
@@ -82,7 +77,10 @@ export async function getUpdatedPosition(
     newPositions.forEach(d => {
       newEmb[d[0]][0] = d[1];
       newEmb[d[0]][1] = d[2];
-    })
+    });
+    contour = response.data.contour;
+    offsettedContour = response.data.contour_offsetted;
   })
-  return newEmb;
+  return [newEmb, contour, offsettedContour];
+  
 }

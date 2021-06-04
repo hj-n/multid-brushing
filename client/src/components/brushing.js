@@ -159,11 +159,12 @@ const Brushing = (props) => {
                 mouseoverPoints.length === consideringPoints.length)
             ) {
                 status.step = Step.INITIALIZING; // should be fixed after adding brushing functionality
-                const newEmb = await getUpdatedPosition (
+                const [newEmb, contour, offsettedContour] = await getUpdatedPosition (
                     url, emb, consideringPoints, prevSelectedPoints, resolution,
                     scale4offset, offset, kdeThreshold, simThreshold
                 );
                 updatePosition(status, newEmb, positionDuration);
+                updateBrushedArea(contour, offsettedContour, positionDuration);
                 setPosUpdatingFlag(flag, positionDuration);
                 emb = newEmb;
             }
@@ -198,8 +199,9 @@ const Brushing = (props) => {
         clearInterval(updateExecutor.sim); updateExecutor.sim = null;
         clearTimeout(updateExecutor.pos);  updateExecutor.pos = null;
 
+
         function maintainBrushingExecutor () {
-            const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
+            let mouseoverPoints = getMouseoverPoints(b, props.size, emb);
             let  [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
             if (
                 mouseoverPoints.length !== 0 && 
@@ -207,19 +209,21 @@ const Brushing = (props) => {
                 mouseoverPoints.length === consideringPoints.length)
             ) { 
                 (async () => {
-                    const newEmb = await getUpdatedPosition (
+                    updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
+                    updateSelectionText(selectionStatusDiv, selectionInfo);
+                    mouseoverPoints = getMouseoverPoints(b, props.size, emb);
+                    [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+                    const [newEmb, contour, offsettedContour] = await getUpdatedPosition (
                         url, emb, consideringPoints, prevSelectedPoints, resolution,
                         scale4offset, offset, kdeThreshold, simThreshold
                     );
-                    updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
-                    updateSelectionText(selectionStatusDiv, selectionInfo);
                     const sim = await getSimilarity(url, consideringPoints);
-
                     updatePositionSim(
                         newEmb, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
                         currSelections, mouseoverPoints, currSelectionNum, sim
                     )
-                    emb = newEmb;
+                    updateBrushedArea(contour, offsettedContour, positionDuration * 0.5);
+                    setTimeout(() => { emb = newEmb; }, positionDuration * 0.5);
                 })();
                 return maintainBrushingExecutor;
             }
