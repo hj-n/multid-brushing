@@ -71,10 +71,10 @@ const Brushing = (props) => {
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
 
-    const simUpdateInterval = 40
+    const simUpdateInterval = 100
     const simUpdateDuration = simUpdateInterval * 0.8;
-    const positionUpdateWaitingTime = 500;
-    const positionDuration = 400;
+    const positionUpdateWaitingTime = 400;
+    const positionDuration = 300;
 
     // CONSTANT Functions for adjusting constant parameters
 
@@ -399,7 +399,7 @@ const Brushing = (props) => {
                 flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
                 currSelections, [], currSelectionNum, null
             );
-        }, simUpdateDuration * 3)
+        }, simUpdateDuration * 2)
 
         updateExecutor.sim = null;
     }
@@ -443,25 +443,45 @@ const Brushing = (props) => {
     function clearExecutors() {
         b.bX = -props.size; b.bY = -props.size; 
         bStop.bX = -props.size; bStop.bY = -props.size;
-        status.step = Step.NOTBRUSHING;
         clearSimExecutorInterval();
         clearPosExecutorTimeout();
         if (status.step === Step.INITIALIZING) setPosUpdatingFlag(flag, positionDuration)
-        setTimeout(() => { cancelPosInitialization(); }, positionDuration);
-
+        if (status.step === Step.INITIALIZING || status.step === Step.NORMAL)
+            setTimeout(() => { cancelPosInitialization(); }, positionDuration);
+        status.step = Step.NOTBRUSHING;
     }
 
     function initiateBrushing() {
         status.step = Step.BRUSHING;
-        // updateExecutor.sim = setInterval(async () => {
-        //     const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
-        //     updateSelectionInfo(status, mouseoverPoints, currSelections, currSelectionNum, selectionInfo);
-        //     const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-            
-        // }, simUpdateDuration);
-        // updateExecutor.pos = setInterval(() => {
+        // 아예 별개로 도는 brushing용 updateExecutor를 구현해야 할듯
+        // updateExecutor.pos = setInterval(async () => {
+        //     if (status.click) {
+        //         const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
+        //         const [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+        //         if (
+        //             mouseoverPoints.length !== 0 && 
+        //            (pointSetIntersection.length !== 0 || 
+        //             mouseoverPoints.length === consideringPoints.length)
+        //         ) {    
+        //             let start = Date.now();
+        //             const newEmb = await getUpdatedPosition (
+        //                 url, emb, consideringPoints, prevSelectedPoints, resolution,
+        //                 scale4offset, offset, kdeThreshold, simThreshold
+        //             );
+        //             console.log(Date.now() - start)
+        //             updatePosition(status, newEmb, positionDuration);
+                   
+        //             // emb = newEmb;/
+        //             // emb = deepcopyArr(newEmb);
+        //             setTimeout(() => { emb = newEmb; }, positionDuration)
+        //         }
+        //     }
+        //     else {
 
-        // });
+        //     }
+
+        // }, positionUpdateWaitingTime);
+        
     }
 
     function finishBrushing() {
@@ -471,73 +491,31 @@ const Brushing = (props) => {
     }
 
     useEffect(() => {
-
         splotRef.current.addEventListener("mouseover", () => {
             if (!flag.loaded) return;
-            status.step = Step.SKIMMING;
+            if (selectionInfo[currSelectionNum] === 0) status.step = Step.SKIMMING;
+            else                                       status.step = Step.BRUSHING;
             initiateSimExecutorInterval();
         });
 
         splotRef.current.addEventListener("mousemove", (e) => {
-
             // console.log(status.step)
 
             if (!flag.loaded) return;
-            if (status.click) {
-                initiateBrushing();
-            }
-            else {
-                finishBrushing();
-            }
             if (updateExecutor.sim === null)   { 
                 status.step = status.step === Step.NOTBRUSHING ? Step.SKIMMING : status.step;
                 initiateSimExecutorInterval(); 
             }
-            if (updateExecutor.pos !== null)   {  clearPosExecutorTimeout();      }
+            if (updateExecutor.pos !== null && status.step === Step.SKIMMING)   clearPosExecutorTimeout(); 
             if (status.step === Step.SKIMMING) initiatePosExecutorTimeout();
             if (status.step === Step.INITIALIZING && !flag.posUpdating && checkMoved(bStop, e))
                 cancelPosInitialization();
-            // }
         });
 
-        splotRef.current.addEventListener("mouseout", () => { 
-            clearExecutors();
-        });
+        splotRef.current.addEventListener("mouseout", () => { clearExecutors(); });
+        splotRef.current.addEventListener("mousedown", () => { initiateBrushing(); });
+        splotRef.current.addEventListener("mouseup", () => { finishBrushing(); });
 
-        // splotRef.current.addEventListener("mousemove", function(e) {
-        //     if (!flag.loaded) return;
-        //     if (updateExecutor.sim == null) {
-        //         updateExecutor.sim = setInterval(() => {
-        //             updateSim(b, props.size, emb, status.click, colors);
-        //         }, simUpdateInterval);
-        //     }
-
-        //     if(!status.click) {
-        //         clearTimeout(updateExecutor.pos);
-        //         updateExecutor.pos = null;
-        //     }
-
-        //     if (flag.posUpdating) {
-        //         if (!status.click) {
-        //             if (Math.abs(b.bX - e.offsetX) + Math.abs(b.bY - e.offsetY) < 30) return;
-        //             const t = positionDuration * 0.6
-        //             // contourPath.transition().duration(t).style("opacity", 0);
-        //             // contourOffsetPath.transition().duration(t).style("opacity", 0);
-        //             eraseBrushedArea(t);
-        //             if (!flag.brushing) {
-        //                 emb = originEmb;
-        //             }
-        //             const data = {
-        //                 position: emb
-        //             };
-        //             scatterplot.update(data, t, 0)
-        //             setTimeout(() => {
-        //                 flag.posUpdating = false;
-        //             }, positionDuration * 0.5);
-        //         }
-        //     }
-
-        // });
     }, [props, splotRef]);
 
     

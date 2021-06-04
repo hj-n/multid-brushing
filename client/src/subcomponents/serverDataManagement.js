@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { similarityParam, positionUpdateParam } from "../helpers/axiosHandler";
+import { deepcopyArr } from "../helpers/utils"
 
 function union(a, b) {
   return new Set([...a, ...b]);
@@ -56,8 +57,9 @@ export async function getUpdatedPosition(
   kdeThreshold, 
   simThreshold
 ) {
-  const newEmb = emb;
-  // emb.forEach((d, i) => { newEmb.push([d[0], d[1]]); });
+  // const newEmb = deepcopyArr(emb);
+  const newEmb = []
+  emb.forEach((d, i) => { newEmb.push([d[0], d[1]]); });
   await axios.get(
     url + "positionupdate", 
     positionUpdateParam(

@@ -44,9 +44,10 @@ export function updatePosition(status, newEmb, duration) {
     case Step.NOTBRUSHING: break;
     case Step.SKIMMING: 
     case Step.INITIALIZING:
+    case Step.BRUSHING:
       renderScatterplot(initializingSplotRenderingData(newEmb), duration, 0)
       break;
-    case Step.BRUSHING:
+    
       break;
   }
 }
