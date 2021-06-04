@@ -2,9 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
 
-import { Scatterplot } from "../subcomponents/scatterplot";
-import { heatmapData } from "../subcomponents/heatmapData";
-import { Heatmap } from '../subcomponents/heatmap';
 import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
@@ -16,7 +13,6 @@ import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
 import { updatePosition, updateSim } from "../helpers/executor";
 import { Mode, Step } from "../helpers/status";
-
 
 import "../css/Brushing.css";
 import { checkMoved, deepcopyArr, getMouseoverPoints } from '../helpers/utils';
@@ -65,19 +61,16 @@ const Brushing = (props) => {
     let prevSelections;    // previous grouping status for all points (for undo operation with Alt)
     let selectionInfo = [0, 0];  // selection info per group
     let currSelectionNum = 1; // current number (index) of brushing selection
-
     let selectionStatusDiv;
 
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
-
-    const simUpdateInterval = 50
+    const simUpdateInterval = 100
     const simUpdateDuration = simUpdateInterval * 0.8;
     const positionUpdateWaitingTime = 500;
-    const positionDuration = 400;
+    const positionDuration = 500;
 
     // CONSTANT Functions for adjusting constant parameters
-
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
     function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
 
@@ -133,12 +126,6 @@ const Brushing = (props) => {
         updateExecutor.sim = setInterval(async () => {
             if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
-
-            // console.log(status.mode)
-            if (status.click && status.step === Step.BRUSHING) {
-                updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
-                updateSelectionText(selectionStatusDiv, selectionInfo);
-            }
             const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
             const sim = await getSimilarity(url, consideringPoints);
             updateSim (
@@ -149,7 +136,6 @@ const Brushing = (props) => {
     }
 
     function clearSimExecutorInterval() {
-        // console.log("INTERVALCNLTH")
         clearInterval(updateExecutor.sim);
         setTimeout(() => {
             updateSim(
@@ -185,7 +171,6 @@ const Brushing = (props) => {
     }
     
     function clearPosExecutorTimeout() {
-        // console.log("CLEAR")
         clearTimeout(updateExecutor.pos);
         updateExecutor.pos = null;
     }
@@ -215,7 +200,39 @@ const Brushing = (props) => {
 
         updateExecutor.brush = setInterval(async () => {
             console.log("BRUSHING")
-        }, positionUpdateWaitingTime)
+
+            const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
+            let  [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            
+            // update similarity
+            await (async () => {           
+                const sim = await getSimilarity(url, consideringPoints);
+                updateSim (
+                    flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
+                    currSelections, mouseoverPoints, currSelectionNum, sim
+                );
+            })();
+
+            if (
+                mouseoverPoints.length !== 0 && 
+               (pointSetIntersection.length !== 0 || 
+                mouseoverPoints.length === consideringPoints.length)
+            ) {
+                updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
+                updateSelectionText(selectionStatusDiv, selectionInfo);
+                [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+
+                // update position
+                (async () => {             
+                    const newEmb = await getUpdatedPosition (
+                        url, emb, consideringPoints, prevSelectedPoints, resolution,
+                        scale4offset, offset, kdeThreshold, simThreshold
+                    );
+                    updatePosition(status, newEmb, positionDuration);
+                    emb = newEmb;
+                })();
+            }
+        }, positionDuration)
         
 
         // 아예 별개로 도는 brushing용s updateExecutor를 구현해야 할듯
@@ -253,9 +270,9 @@ const Brushing = (props) => {
         if (status.step === Step.BRUSHING && selectionInfo[currSelectionNum] === 0) {
             status.step = Step.SKIMMING;
             cancelPosInitialization();
-            clearInterval(updateExecutor.brush);
         }
-
+        clearInterval(updateExecutor.brush);
+        initiateSimExecutorInterval();
     }
 
     useEffect(() => {
