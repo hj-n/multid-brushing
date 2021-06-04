@@ -59,8 +59,6 @@ export function skimmingSplotRenderingData(
     ) : colorDarker(colors[selectionNum], 2);
   });
 
-
-
   return {
     color : colorList,
     opacity: opacityList,
@@ -100,8 +98,59 @@ export function initializingSplotRenderingData(newEmb) {
   };
 }
 
+export function brushingSplotRenderingData(
+  newEmb, status, density, pointLen, colors, radius, border,
+  currSelections, mouseoverPoints, currSelectionNum, sim
+) {
+  const colorList = currSelections.map((selectionNum, idx) => {
+    return selectionNum !== 0 ? colors[selectionNum] : (
+      sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
+    );
+  });
+
+  const opacityList = currSelections.map((selectionNum, idx) => {
+    return selectionNum === currSelectionNum ? 1 : (   
+      selectionNum === 0 ? (
+        sim[idx] > 0 ? sim[idx] : density[idx]
+      ) : (
+        status.mode === Mode.OVERWRITE ? ( sim[idx] > 0 ? sim[idx] : 0 ) : 1
+      )
+    );
+  });
+
+  const radiusList = new Array(pointLen).fill(radius);
+  const borderList = new Array(pointLen).fill(border)
+  mouseoverPoints.forEach(idx => {
+    radiusList[idx] = radius * 1.4;
+    borderList[idx] = border * 2;
+  });
+
+  const borderColorList = currSelections.map((selectionNum, idx) => {
+    if (selectionNum > 0) {
+      radiusList[idx] = radius * 1.4;
+      borderList[idx] = border * 5;
+    }
+    return selectionNum === 0 ? (
+      sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
+    ) : colorDarker(colors[selectionNum], 2);
+  });
+
+  return {
+    position: newEmb,
+    color : colorList,
+    opacity: opacityList,
+    radius : radiusList,
+    border : borderList,
+    borderColor : borderColorList
+  };
+}
+
 export function renderScatterplot(data, duration, delay) {
   scatterplot.update(data, duration, delay);
+}
+
+export function isScatterplotRendering() {
+  return scatterplot.isUpdating;
 }
 
 

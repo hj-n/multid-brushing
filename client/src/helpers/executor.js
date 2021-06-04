@@ -6,6 +6,7 @@ import {
   notBrushingSplotRenderingData,
   skimmingSplotRenderingData,
   initializingSplotRenderingData, 
+  brushingSplotRenderingData,
   renderScatterplot,
 } from "../subcomponents/renderingScatterplot";
 
@@ -51,5 +52,16 @@ export function updatePosition(status, newEmb, duration) {
       // break;
   }
 }
+
+export function updatePositionSim(
+  newEmb, status, colors, density, pointLen, radius, border, duration, 
+  currSelections, mouseoverPoints, currSelectionNum, sim) {
+  renderScatterplot(
+    brushingSplotRenderingData(
+      newEmb, status, density, pointLen, colors, radius, border, 
+      currSelections, mouseoverPoints, currSelectionNum, sim 
+    ), duration, 0
+  )
+};
 
 

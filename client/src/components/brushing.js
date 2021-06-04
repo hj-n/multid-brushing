@@ -5,13 +5,13 @@ import axios from 'axios';
 import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
-import { initialSplotRendering } from "../subcomponents/renderingScatterplot";
+import { initialSplotRendering, isScatterplotRendering } from "../subcomponents/renderingScatterplot";
 import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin } from "../subcomponents/serverDataManagement";
 import { updateSelectionInfo } from "../subcomponents/selectionManagement";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
-import { updatePosition, updateSim } from "../helpers/executor";
+import { updatePosition, updatePositionSim, updateSim } from "../helpers/executor";
 import { Mode, Step } from "../helpers/status";
 
 import "../css/Brushing.css";
@@ -66,7 +66,7 @@ const Brushing = (props) => {
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
     const simUpdateInterval = 100
-    const simUpdateDuration = simUpdateInterval * 0.8;
+    const simUpdateDuration = simUpdateInterval * 0.2;
     const positionUpdateWaitingTime = 500;
     const positionDuration = 500;
 
@@ -198,71 +198,44 @@ const Brushing = (props) => {
         clearInterval(updateExecutor.sim); updateExecutor.sim = null;
         clearTimeout(updateExecutor.pos);  updateExecutor.pos = null;
 
-        updateExecutor.brush = setInterval(async () => {
-            console.log("BRUSHING")
-
+        function maintainBrushingExecutor () {
             const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
             let  [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-            
-            // update similarity
-            await (async () => {           
-                const sim = await getSimilarity(url, consideringPoints);
-                updateSim (
-                    flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
-                    currSelections, mouseoverPoints, currSelectionNum, sim
-                );
-            })();
-
             if (
                 mouseoverPoints.length !== 0 && 
-               (pointSetIntersection.length !== 0 || 
+                (pointSetIntersection.length !== 0 || 
                 mouseoverPoints.length === consideringPoints.length)
-            ) {
-                updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
-                updateSelectionText(selectionStatusDiv, selectionInfo);
-                [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-
-                // update position
-                (async () => {             
+            ) { 
+                (async () => {
                     const newEmb = await getUpdatedPosition (
                         url, emb, consideringPoints, prevSelectedPoints, resolution,
                         scale4offset, offset, kdeThreshold, simThreshold
                     );
-                    updatePosition(status, newEmb, positionDuration);
+                    updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
+                    updateSelectionText(selectionStatusDiv, selectionInfo);
+                    const sim = await getSimilarity(url, consideringPoints);
+
+                    updatePositionSim(
+                        newEmb, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
+                        currSelections, mouseoverPoints, currSelectionNum, sim
+                    )
                     emb = newEmb;
                 })();
+                return maintainBrushingExecutor;
             }
-        }, positionDuration)
-        
-
-        // 아예 별개로 도는 brushing용s updateExecutor를 구현해야 할듯
-        // updateExecutor.pos = setInterval(async () => {
-        //     if (status.click) {
-        //         const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
-        //         const [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-        //         if (
-        //             mouseoverPoints.length !== 0 && 
-        //            (pointSetIntersection.length !== 0 || 
-        //             mouseoverPoints.length === consideringPoints.length)
-        //         ) {    
-        //             let start = Date.now();
-        //             const newEmb = await getUpdatedPosition (
-        //                 url, emb, consideringPoints, prevSelectedPoints, resolution,
-        //                 scale4offset, offset, kdeThreshold, simThreshold
-        //             );
-        //             console.log(Date.now() - start)
-        //             updatePosition(status, newEmb, positionDuration);
-                   
-        //             // emb = newEmb;/
-        //             // emb = deepcopyArr(newEmb);
-        //             setTimeout(() => { emb = newEmb; }, positionDuration)
-        //         }
-        //     }
-        //     else {
-
-        //     }
-
-        // }, positionUpdateWaitingTime);
+            else {
+                (async () => {
+                    const sim = await getSimilarity(url, prevSelectedPoints);
+                    updateSim (
+                        flag, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
+                        currSelections, [], currSelectionNum, sim
+                    );
+                })();
+            }
+        }
+        setTimeout(() => {
+            updateExecutor.brush = setInterval(maintainBrushingExecutor(), positionDuration)
+        }, simUpdateDuration);
         
     }
 
@@ -304,8 +277,6 @@ const Brushing = (props) => {
     }, [props, splotRef]);
 
     
-
-
     return (
         <div>
             {/* For Hyperparameter change */}
