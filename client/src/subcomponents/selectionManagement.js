@@ -1,6 +1,7 @@
-// code to revise the selection info
+// code to revise / control / utilize the selection info
 
 import { Mode } from "../helpers/status";
+import { deepcopyArr } from "../helpers/utils";
 
 
 
@@ -30,6 +31,18 @@ export function updateSelectionInfo(status, mouseoverPoints, prevSelections, cur
       }
     });
   }
-
-  
 }
+
+export function restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum) {
+  const restoringEmb = deepcopyArr(emb);
+  const restoringIdx = []
+  currSelections.forEach((selectionNum, idx) => {
+    if (selectionNum !== 0 && selectionNum !== currSelectionNum) {
+      restoringEmb[idx][0] = originEmb[idx][0];
+      restoringEmb[idx][1] = originEmb[idx][1];
+      restoringIdx.push(idx);
+    }
+  });
+  return [restoringEmb, restoringIdx];
+}
+

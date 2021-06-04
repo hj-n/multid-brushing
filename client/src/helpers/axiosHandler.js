@@ -20,6 +20,16 @@ export function similarityParam(consideringPoints) {
   };
 }
 
+export function idxParam(idx) {
+  return {
+    params: {
+      index: {
+        data: idx
+      }
+    }
+  };
+}
+
 export function positionUpdateParam(
   consideringPoints, 
   prevSelectedPoints, 

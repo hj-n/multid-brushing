@@ -6,8 +6,8 @@ import { updateSelectionButtons, updateSelectionText } from "../subcomponents/se
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
 import { initialSplotRendering, isScatterplotRendering } from "../subcomponents/renderingScatterplot";
-import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin } from "../subcomponents/serverDataManagement";
-import { updateSelectionInfo } from "../subcomponents/selectionManagement";
+import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, restoreIdx } from "../subcomponents/serverDataManagement";
+import { updateSelectionInfo, restoreOtherSelections } from "../subcomponents/selectionManagement";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
@@ -65,7 +65,7 @@ const Brushing = (props) => {
 
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
-    const simUpdateInterval = 100
+    const simUpdateInterval = 50
     const simUpdateDuration = simUpdateInterval * 0.2;
     const positionUpdateWaitingTime = 500;
     const positionDuration = 500;
@@ -95,7 +95,7 @@ const Brushing = (props) => {
         eraseBrushedArea(500);
 
         flag.posUpdating = false; flag.isBrushing = false;
-        originEmb = emb;
+        originEmb = deepcopyArr(emb);
     }
 
     /* NOTE SCATTERPLOT Initialization */
@@ -239,13 +239,25 @@ const Brushing = (props) => {
         
     }
 
-    function finishBrushing() {
+    function clearBrushing() {
         if (status.step === Step.BRUSHING && selectionInfo[currSelectionNum] === 0) {
             status.step = Step.SKIMMING;
             cancelPosInitialization();
         }
         clearInterval(updateExecutor.brush);
-        initiateSimExecutorInterval();
+        const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum);
+        setTimeout(() => {
+            updatePosition(status, restoringEmb, positionDuration * 0.5);
+            setTimeout(() => { emb = restoringEmb; }, positionDuration * 0.5);
+        }, positionDuration);
+        
+        (async() => {
+            await restoreIdx(url, flag, restoringIdx);
+            initiateSimExecutorInterval();
+        })();
+
+
+ 
     }
 
     useEffect(() => {
@@ -272,7 +284,7 @@ const Brushing = (props) => {
 
         splotRef.current.addEventListener("mouseout", () => { clearExecutors(); });
         splotRef.current.addEventListener("mousedown", () => { initiateBrushing(); });
-        splotRef.current.addEventListener("mouseup", () => { finishBrushing(); });
+        splotRef.current.addEventListener("mouseup", () => { clearBrushing(); });
 
     }, [props, splotRef]);
 

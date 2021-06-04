@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { similarityParam, positionUpdateParam } from "../helpers/axiosHandler";
-import { deepcopyArr } from "../helpers/utils"
+import { similarityParam, positionUpdateParam, idxParam } from "../helpers/axiosHandler";
 
 function union(a, b) {
   return new Set([...a, ...b]);
@@ -34,6 +33,18 @@ export function restoreOrigin(url, flag) {
       flag.posUpdating = false;
     else
       throw "Somethings wrong in server!!";
+  })
+}
+
+export function restoreIdx(url, flag, idx) {
+  console.log(idx);
+  // flag.posUpdating = true;
+  axios.get(url + "restoreidx", idxParam(idx)).then((response) => {
+    if (response.data === "success")
+      // flag.posUpdating = false;
+      ;
+    else
+      throw "Somethings wrong in sever!!"
   })
 }
 
