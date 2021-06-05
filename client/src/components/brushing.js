@@ -124,9 +124,11 @@ const Brushing = (props) => {
 
     /*  NOTE Interaction Executors */ 
     function initiateSimExecutorInterval() {
+        console.log("INITIATING")
         if (flag.mouseout) return;
         if (status.click) return;
-        if (flag.posUpdating) return;
+        // if (flag.posUpdating) return;
+        clearInterval(updateExecutor.sim);
         updateExecutor.sim = setInterval(async () => {
             if (status.click || flag.posUpdating) { clearInterval(updateExecutor.sim);}
             if (flag.posUpdating) return;
@@ -149,7 +151,6 @@ const Brushing = (props) => {
             );
         }, simUpdateDuration * 2)
 
-        // updateExecutor.sim = null;
     }
 
     function initiatePosExecutorTimeout() {
@@ -189,6 +190,7 @@ const Brushing = (props) => {
         updatePosition(status, emb, positionDuration);
         eraseBrushedArea(positionDuration);
         restoreOrigin(url, flag); 
+        initiateSimExecutorInterval();
     }
 
     function clearExecutors() {
@@ -239,7 +241,7 @@ const Brushing = (props) => {
                     )
                     updateBrushedArea(contour, offsettedContour, checkTime * 0.5);
                     setTimeout(() => { emb = newEmb; }, checkTime * 0.5);
-                    updateExecutor.brush = setTimeout(() => { 
+                    setTimeout(() => { 
                         emb = newEmb; 
                         checkTime = Date.now() - start;
                         console.log(checkTime)
@@ -261,6 +263,7 @@ const Brushing = (props) => {
                 return;
             }
         }
+        console.log(updateExecutor.brush)
         if (updateExecutor.brush === null)
         updateExecutor.brush =  setTimeout(() => {
             maintainBrushingExecutor();
@@ -296,10 +299,9 @@ const Brushing = (props) => {
         });
 
         splotRef.current.addEventListener("mousemove", (e) => {
-            flag.mouseout = false;
-
             if (!flag.loaded) return;
-            if (updateExecutor.sim === null && (status.step === Step.NOTBRUSHING || status.step === Step.SKIMMING))   { 
+            flag.mouseout = false;
+            if ((status.step === Step.NOTBRUSHING || status.step === Step.SKIMMING))   { 
                 status.step = status.step === Step.NOTBRUSHING ? Step.SKIMMING : status.step;
                 // initiateSimExecutorInterval(); 
             }
@@ -309,9 +311,9 @@ const Brushing = (props) => {
                 cancelPosInitialization();
         });
 
-        splotRef.current.addEventListener("mouseout", () => { flag.mouseout = true; clearExecutors(); });
-        splotRef.current.addEventListener("mousedown", () => { initiateBrushing(); });
-        splotRef.current.addEventListener("mouseup", () => { clearBrushing(); });
+        splotRef.current.addEventListener("mouseout", () => { if (!flag.loaded) return; flag.mouseout = true; clearExecutors(); });
+        splotRef.current.addEventListener("mousedown", () => { if (!flag.loaded) return; initiateBrushing(); });
+        splotRef.current.addEventListener("mouseup", () => {  if (!flag.loaded) return; clearBrushing(); });
 
     }, [props, splotRef]);
 
