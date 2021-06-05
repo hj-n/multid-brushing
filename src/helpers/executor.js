@@ -11,7 +11,7 @@ import {
 } from "../brushing_component/subcomponents/renderingScatterplot";
 
 export function updateSim(
-  flag, status, colors, density, pointLen, radius, border, duration, 
+  status, colors, density, pointLen, radius, border, duration, 
   currSelections, mouseoverPoints, currSelectionNum, sim
 ) {
   switch(status.step){

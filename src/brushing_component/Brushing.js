@@ -97,7 +97,10 @@ const Brushing = (props) => {
         prevSelections = deepcopyArr(currSelections);
         props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, positionDuration);
 
-        updateSim({bR: 0, bX: 2, bY: 2}, flag, status, props.size, emb, false, density, pointLen, currSelections)
+        updateSim(
+            status, colors, density, pointLen, radius, border, 0, 
+            currSelections, [], currSelectionNum, null
+        ) 
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
         eraseBrushedArea(500);
@@ -152,7 +155,7 @@ const Brushing = (props) => {
             const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
             const sim = await getSimilarity(url, consideringPoints);
             updateSim (
-                flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
+                status, colors, density, pointLen, radius, border, simUpdateDuration, 
                 currSelections, mouseoverPoints, currSelectionNum, sim
             );
         }, simUpdateInterval);
@@ -162,7 +165,7 @@ const Brushing = (props) => {
         clearInterval(updateExecutor.sim);
         setTimeout(() => {
             updateSim(
-                flag, status, colors, density, pointLen, radius, border, simUpdateDuration, 
+                status, colors, density, pointLen, radius, border, simUpdateDuration, 
                 currSelections, [], currSelectionNum, null
             );
         }, simUpdateDuration * 2)
@@ -268,7 +271,6 @@ const Brushing = (props) => {
                     setTimeout(() => { 
                         emb = newEmb; 
                         checkTime = Date.now() - start;
-                        // console.log(checkTime)
                         maintainBrushingExecutor();
                     }, checkTime * 0.5);
                     return;
