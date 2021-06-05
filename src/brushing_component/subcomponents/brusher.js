@@ -71,28 +71,39 @@ function splotWheel(brusher, b, e) {
 
 function documentKeydown(brusher, status, e) {
   if (e.key === "Alt") {
-    if (status.shift) return;
+    if (status.shift || status.ctrl) return;
     brusher.attr("fill", "red");
     status.alt = true;
     status.mode = Mode.ERASE;
   };
   if (e.key === "Shift") {
-      if (status.alt) return;
+      if (status.alt || status.ctrl) return;
       brusher.attr("fill", "blue")
       status.shift = true;
       status.mode = Mode.OVERWRITE;
   }
+  if (e.key === "Control" || e.key === "Meta") {   // For mac users 
+    if (status.shift || status.alt) return;
+    brusher.attr("fill", "orange")
+    status.ctrl = true;
+    status.mode = Mode.DRAGGING;
+  }
 }
 
 function documentKeyup(brusher, status, e) {
-  if (e.key === "Alt") {
+  if (e.key === "Alt" && !e.shift && !e.ctrl) {
     brusher.attr("fill", "green");
     status.alt = false;
     status.mode = Mode.NORMAL;
   };
-  if (e.key === "Shift") {
-      brusher.attr("fill", "green");
-      status.shift = false;
-      status.mode  = Mode.NORMAL;
+  if (e.key === "Shift" && !e.alt && !e.ctrl) {
+    brusher.attr("fill", "green");
+    status.shift = false;
+    status.mode  = Mode.NORMAL;
   };
+  if ((e.key === "Control" || e.key === "Meta") && !e.shift && !e.alt) {
+    brusher.attr("fill", "green");
+    status.ctrl = false;
+    status.mode = Mode.NORMAL;
+  }
 }

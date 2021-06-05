@@ -2,7 +2,8 @@
 export const Mode =  {
   NORMAL    : "normal",
   ERASE     : "erase",
-  OVERWRITE : "overwrite"
+  OVERWRITE : "overwrite",
+  DRAGGING  : "dragging"
 }
 
 

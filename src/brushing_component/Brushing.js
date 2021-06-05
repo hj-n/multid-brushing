@@ -39,7 +39,7 @@ const Brushing = (props) => {
     const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
     const bStop = {bX: -2, bY: -2};
     const status = { 
-        click: false, alt: false, shift: false, 
+        click: false, alt: false, shift: false, ctrl: false,
         mode: Mode.NORMAL, 
         step: Step.NOTBRUSHING 
     }; 
@@ -242,6 +242,7 @@ const Brushing = (props) => {
 
             let mouseoverPoints = getMouseoverPoints(b, props.size, emb);
             let [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            
             if (
                 mouseoverPoints.length !== 0 && 
                 (pointSetIntersection.length !== 0 || 
@@ -276,11 +277,14 @@ const Brushing = (props) => {
             else {
                 (async () => {
                     const sim = await getSimilarity(url, prevSelectedPoints);
-                    updateSim (
-                        flag, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
-                        currSelections, [], currSelectionNum, sim
-                    );
-                    maintainBrushingExecutor();
+                    setTimeout(() => {
+                        updateSim (
+                            flag, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
+                            currSelections, [], currSelectionNum, sim
+                        );
+                        maintainBrushingExecutor();
+                    }, checkTime * 0.5);
+
                 })();
                 return;
             }

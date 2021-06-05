@@ -41,6 +41,7 @@ export function updateSim(
 }
 
 export function updatePosition(status, newEmb, duration) {
+
   switch(status.step){
     case Step.NOTBRUSHING: break;
     case Step.SKIMMING: 
@@ -56,6 +57,7 @@ export function updatePosition(status, newEmb, duration) {
 export function updatePositionSim(
   newEmb, status, colors, density, pointLen, radius, border, duration, 
   currSelections, mouseoverPoints, currSelectionNum, sim) {
+
   renderScatterplot(
     brushingSplotRenderingData(
       newEmb, status, density, pointLen, colors, radius, border, 
