@@ -278,10 +278,6 @@ const Brushing = (props) => {
                 (async () => {
                     const sim = await getSimilarity(url, prevSelectedPoints);
                     setTimeout(() => {
-                        updateSim (
-                            flag, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
-                            currSelections, [], currSelectionNum, sim
-                        );
                         maintainBrushingExecutor();
                     }, checkTime * 0.5);
 

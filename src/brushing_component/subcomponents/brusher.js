@@ -1,7 +1,7 @@
 // Mouseevent functions for brushing / brusher
 
 import * as d3 from "d3";
-import { Mode } from "../../helpers/status";
+import { Mode, Step } from "../../helpers/status";
 
 
 const defaultOpacity = 0.2;
@@ -84,6 +84,7 @@ function documentKeydown(brusher, status, e) {
   }
   if (e.key === "Control" || e.key === "Meta") {   // For mac users 
     if (status.shift || status.alt) return;
+    if (status.step === Step.INITIALIZING || status.click) return;
     brusher.attr("fill", "orange")
     status.ctrl = true;
     status.mode = Mode.DRAGGING;
@@ -102,6 +103,7 @@ function documentKeyup(brusher, status, e) {
     status.mode  = Mode.NORMAL;
   };
   if ((e.key === "Control" || e.key === "Meta") && !e.shift && !e.alt) {
+    if (status.mode !== Mode.DRAGGING) return;
     brusher.attr("fill", "green");
     status.ctrl = false;
     status.mode = Mode.NORMAL;
