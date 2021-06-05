@@ -366,11 +366,11 @@ const Brushing = (props) => {
                     style={Object.assign({}, { pointerEvents: "none" }, scatterplotStyle(props.size))}
                 />
             </div>
-            {/* button to add new group */}
+            {/* Selection Status */}
+            <div id="selectionStatus" style={{display: 'flex'}}></div>
             <div style={Object.assign({}, widthMarginStyle(props.size, props.margin), { height: 30 })}>
                 <button className={"selection"} onClick={addSelection}>Click to Add New Selections</button>
             </div>
-            <div id="selectionStatus" style={{display: 'flex'}}></div>
         </div>
     );
 }
