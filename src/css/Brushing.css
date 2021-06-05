@@ -21,6 +21,7 @@ button.brushButtons {
   height: 30px;
   float: right;
   margin-left: 10px;
+  font-family: 'Raleway', sans-serif;
   /* border-radius: 3px; */
 }
 
