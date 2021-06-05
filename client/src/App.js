@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 
-import Brushing from "./components/Brushing";
+import Brushing from "./brushing_component/Brushing";
 import SelectionInfoView from "./components/SelectionInfoView"
 
 import { generateColors } from "./helpers/utils";

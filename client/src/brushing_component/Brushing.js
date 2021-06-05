@@ -2,12 +2,12 @@ import React, { useRef, useEffect} from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
 
-import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
-import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
-import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
-import { initialSplotRendering} from "../subcomponents/renderingScatterplot";
-import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx } from "../subcomponents/serverDataManagement";
-import { updateSelectionInfo, restoreOtherSelections } from "../subcomponents/selectionManagement";
+import { updateSelectionButtons, updateSelectionText } from "./subcomponents/selectionStatus";
+import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "./subcomponents/brushedArea";
+import { initializeBrusher, addSplotEventListener, documentEventListener } from './subcomponents/brusher';
+import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
+import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx } from "./subcomponents/serverDataManagement";
+import { updateSelectionInfo, restoreOtherSelections } from "./subcomponents/selectionManagement";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';

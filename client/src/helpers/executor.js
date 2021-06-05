@@ -8,7 +8,7 @@ import {
   initializingSplotRenderingData, 
   brushingSplotRenderingData,
   renderScatterplot,
-} from "../subcomponents/renderingScatterplot";
+} from "../brushing_component/subcomponents/renderingScatterplot";
 
 export function updateSim(
   flag, status, colors, density, pointLen, radius, border, duration, 

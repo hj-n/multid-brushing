@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { similarityParam, positionUpdateParam, idxParam } from "../helpers/axiosHandler";
+import { similarityParam, positionUpdateParam, idxParam } from "../../helpers/axiosHandler";
 
 function union(a, b) {
   return new Set([...a, ...b]);

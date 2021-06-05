@@ -1,7 +1,7 @@
 // Mouseevent functions for brushing / brusher
 
 import * as d3 from "d3";
-import { Mode } from "../helpers/status";
+import { Mode } from "../../helpers/status";
 
 
 const defaultOpacity = 0.2;

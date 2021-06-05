@@ -23,7 +23,7 @@
  * }
  */
 
-import { deepcopyArr } from "../helpers/utils";
+import { deepcopyArr } from "../../helpers/utils";
 
 
 export class Scatterplot {

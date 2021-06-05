@@ -1,7 +1,7 @@
 // code to revise / control / utilize the selection info
 
-import { Mode } from "../helpers/status";
-import { deepcopyArr } from "../helpers/utils";
+import { Mode } from "../../helpers/status";
+import { deepcopyArr } from "../../helpers/utils";
 
 
 

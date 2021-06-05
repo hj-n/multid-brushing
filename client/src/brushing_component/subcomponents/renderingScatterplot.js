@@ -1,7 +1,7 @@
 import { Scatterplot } from "./scatterplot";
 
-import { colorDarker } from "../helpers/utils";
-import { Mode } from "../helpers/status";
+import { colorDarker } from "../../helpers/utils";
+import { Mode } from "../../helpers/status";
 
 let scatterplot;
 
