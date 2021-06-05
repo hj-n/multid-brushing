@@ -8,8 +8,8 @@ const SelectionInfoMatrix = forwardRef((props, ref) => {
   }));
 
   const updateMatrix = (matrixInfo, duration) => {
-    // TODO
-    console.log("UPDATE MATRIX", matrixInfo, duration);
+    // TODO  
+    // console.log("UPDATE MATRIX", matrixInfo, duration);
 
   }
 
