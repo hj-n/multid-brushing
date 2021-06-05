@@ -85,7 +85,6 @@ const Brushing = (props) => {
     /* NOTE Manaing Selection Button */
     const addSelectionButtonRef = useRef(null)
     const updateCurrSelectionNum = (num) => {
-        console.log(num);
         currSelectionNum = num;
         prevSelections = deepcopyArr(currSelections);
         updateSim(
@@ -423,9 +422,6 @@ const Brushing = (props) => {
             if ((e.key === "Control" || e.key === "Meta") && !e.shift && !e.alt) {
                 if (status.step === Step.BRUSHING) return;
                 if (status.click) {
-                    console.log("READSS");
-
-
                     bDragStart.bX = null;
                     bDragStart.bY = null;
                     updateWhenDragging(
@@ -434,13 +430,9 @@ const Brushing = (props) => {
                     )
                     status.step = Step.SKIMMING;
                 }
-
             }
-
         })
-
     }, [props, splotRef]);
-
     
     return (
         <div>
