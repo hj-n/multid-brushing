@@ -125,7 +125,7 @@ const Brushing = (props) => {
 
     /*  NOTE Interaction Executors */ 
     function initiateSimExecutorInterval() {
-        console.log("INITIATING")
+        // console.log("INITIATING")
         if (flag.mouseout) return;
         if (status.click) return;
         // if (flag.posUpdating) return;
@@ -246,7 +246,7 @@ const Brushing = (props) => {
                     setTimeout(() => { 
                         emb = newEmb; 
                         checkTime = Date.now() - start;
-                        console.log(checkTime)
+                        // console.log(checkTime)
                         maintainBrushingExecutor();
                     }, checkTime * 0.5);
                     return;
@@ -265,7 +265,7 @@ const Brushing = (props) => {
                 return;
             }
         }
-        console.log(updateExecutor.brush)
+        // console.log(updateExecutor.brush)
         if (updateExecutor.brush === null)
         updateExecutor.brush =  setTimeout(() => {
             maintainBrushingExecutor();
@@ -281,7 +281,7 @@ const Brushing = (props) => {
         clearTimeout(updateExecutor.brush);
         updateExecutor.brush = null;
         eraseBrushedArea(positionDuration);
-        console.log("SIm executor run!!")
+        // console.log("SIm executor run!!")
         
         setTimeout(() => {
             const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum);

@@ -14,8 +14,6 @@ export function updateSim(
   flag, status, colors, density, pointLen, radius, border, duration, 
   currSelections, mouseoverPoints, currSelectionNum, sim
 ) {
-
-  console.log("UDPATE SIM")
   switch(status.step){
     case Step.NOTBRUSHING:
     case Step.SKIMMING:
