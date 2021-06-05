@@ -36,6 +36,13 @@ export function restoreOrigin(url, flag) {
   })
 }
 
+export function updateOrigin(url) {
+  axios.get(url + "updateorigin").then((response) => { 
+    if (!response.data === "success")
+      throw "Somethings wrong in server!!";
+  })
+}
+
 export function restoreIdx(url, flag, idx) {
   axios.get(url + "restoreidx", idxParam(idx)).then((response) => {
     if (!response.data === "success")

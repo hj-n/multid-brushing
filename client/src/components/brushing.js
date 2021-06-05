@@ -6,7 +6,7 @@ import { updateSelectionButtons, updateSelectionText } from "../subcomponents/se
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
 import { initialSplotRendering, isScatterplotRendering } from "../subcomponents/renderingScatterplot";
-import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, restoreIdx } from "../subcomponents/serverDataManagement";
+import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx } from "../subcomponents/serverDataManagement";
 import { updateSelectionInfo, restoreOtherSelections } from "../subcomponents/selectionManagement";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
@@ -96,6 +96,7 @@ const Brushing = (props) => {
 
         flag.posUpdating = false; flag.isBrushing = false;
         originEmb = deepcopyArr(emb);
+        updateOrigin(url);
     }
 
     /* NOTE SCATTERPLOT Initialization */
@@ -127,7 +128,7 @@ const Brushing = (props) => {
         if (status.click) return;
         if (flag.posUpdating) return;
         updateExecutor.sim = setInterval(async () => {
-            if (status.click) { clearInterval(updateExecutor.sim);}
+            if (status.click || flag.posUpdating) { clearInterval(updateExecutor.sim);}
             if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
             const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
@@ -157,6 +158,8 @@ const Brushing = (props) => {
             bStop.bY = b.bY;
             const mouseoverPoints = getMouseoverPoints(b, props.size, emb);
             const [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            
+            setPosUpdatingFlag(flag, positionDuration * 1.5);
             if (
                 mouseoverPoints.length !== 0 && 
                (pointSetIntersection.length !== 0 || 
@@ -167,10 +170,9 @@ const Brushing = (props) => {
                     url, emb, consideringPoints, prevSelectedPoints, resolution,
                     scale4offset, offset, kdeThreshold, simThreshold
                 );
-                if (status.click) return;
+                if (status.click) { return; }
                 updatePosition(status, newEmb, positionDuration);
                 updateBrushedArea(contour, offsettedContour, positionDuration);
-                setPosUpdatingFlag(flag, positionDuration);
                 emb = newEmb;
             }
         }, positionUpdateWaitingTime);
@@ -186,7 +188,7 @@ const Brushing = (props) => {
         emb = deepcopyArr(originEmb);
         updatePosition(status, emb, positionDuration);
         eraseBrushedArea(positionDuration);
-        restoreOrigin(url, flag);
+        restoreOrigin(url, flag); 
     }
 
     function clearExecutors() {
@@ -281,7 +283,7 @@ const Brushing = (props) => {
             restoreIdx(url, flag, restoringIdx);
             updatePosition(status, restoringEmb, positionDuration * 0.5);
             setTimeout(() => { emb = restoringEmb; initiateSimExecutorInterval(); }, positionDuration * 0.5); 
-        }, checkTime);
+        }, checkTime * 1.5);
     }
 
     useEffect(() => {
@@ -299,7 +301,7 @@ const Brushing = (props) => {
             if (!flag.loaded) return;
             if (updateExecutor.sim === null && (status.step === Step.NOTBRUSHING || status.step === Step.SKIMMING))   { 
                 status.step = status.step === Step.NOTBRUSHING ? Step.SKIMMING : status.step;
-                initiateSimExecutorInterval(); 
+                // initiateSimExecutorInterval(); 
             }
             if (updateExecutor.pos !== null && status.step === Step.SKIMMING)   clearPosExecutorTimeout(); 
             if (status.step === Step.SKIMMING) initiatePosExecutorTimeout();
