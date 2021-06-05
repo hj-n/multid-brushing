@@ -11,8 +11,10 @@ const SelectionInfoView = forwardRef((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     update(selectionInfo, overwritedSelectionInfo, duration) {
-      selectionInfoBarChartRef.current.update(selectionInfo, duration);
-      selectionInfoMatrixRef.current.update(overwritedSelectionInfo, duration);
+      const slicedSelectionInfo = selectionInfo.slice(1);
+      const slicedOverwritedSelectionInfo = overwritedSelectionInfo.slice(1).map(arr => arr.slice(1));
+      selectionInfoBarChartRef.current.update(slicedSelectionInfo, duration);
+      selectionInfoMatrixRef.current.update(slicedOverwritedSelectionInfo, duration);
     }
   }));
 
