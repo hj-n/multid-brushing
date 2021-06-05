@@ -96,12 +96,21 @@ export function notBrushingSplotRenderingData(
   const borderColorList = currSelections.map((selectionNum, idx) => {
     return selectionNum === 0 ? [0, 0, 0] : colorDarker(colors[selectionNum], 2);
   });
+
+  const radiusList = new Array(pointLen).fill(radius);
+  const borderList = new Array(pointLen).fill(border);
+  currSelections.map((selectionNum, idx) => {
+    if (selectionNum > 0) {
+      radiusList[idx] = radius * 1.4;
+      borderList[idx] = border * 5;
+    }
+  });
   
   return {
     color: colorList,
     opacity: opacityList,
-    radius: new Array(pointLen).fill(radius),
-    border: new Array(pointLen).fill(border),
+    radius: radiusList,
+    border: borderList,
     borderColor: borderColorList
   }
 }
@@ -121,6 +130,16 @@ export function brushingSplotRenderingData(
     currSelections, mouseoverPoints, currSelectionNum, sim
   );
   data.position = newEmb;
+  return data;
+}
+
+export function initialProjectionRenderingData(
+  emb, density, colors, currSelections, radius, border, pointLen
+) {
+  const data = notBrushingSplotRenderingData(
+    density, colors, currSelections, radius, border, pointLen
+  );
+  data.position = emb;
   return data;
 }
 

@@ -84,6 +84,9 @@ const Brushing = (props) => {
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
         updateSelectionText(selectionStatusDiv, selectionInfo);
     }, []);
+
+    /* NOTE Button onClick Functions */
+    const addSelectionButtonRef = useRef(null)
  
     /* NOTE Adding new Selection */
     function addSelection(e) {
@@ -105,7 +108,13 @@ const Brushing = (props) => {
     }
 
     /* NOTE Show / disable initial embeddings */
-    function initialProjection(e) { initialProjectionExecutor(e, splotRef.current, initialEmb, emb); }
+    function initialProjection(e) { 
+        initialProjectionExecutor(
+            e, splotRef.current, initialEmb, emb, positionDuration,
+            density, colors, currSelections, radius, border, pointLen, 
+            addSelectionButtonRef.current
+        ); 
+    }
 
     /* NOTE SCATTERPLOT Initialization */
     useEffect(async () => {
@@ -213,7 +222,6 @@ const Brushing = (props) => {
     }
 
     let checkTime = positionDuration;
-
     function initiateBrushing() {
         status.step = Step.BRUSHING;
         clearInterval(updateExecutor.sim);
@@ -387,8 +395,15 @@ const Brushing = (props) => {
             {/* Selection Status */}
             <div id="selectionStatus" style={{margin: props.margin}}></div>
             <div style={Object.assign({}, widthMarginStyle(props.size, props.margin), { height: 30 })}>
-                <button className={"brushButtons"} onClick={addSelection}>Click to Add New Selections</button>
-                <button className={"brushButtons"} onClick={initialProjection}>Show Initial Projection</button>
+                <button 
+                    ref={addSelectionButtonRef}
+                    className={"brushButtons"} 
+                    onClick={addSelection}
+                >Click to Add New Selections</button>
+                <button 
+                    className={"brushButtons"} 
+                    onClick={initialProjection}
+                >Show Initial Projection</button>
             </div>
         </div>
     );
