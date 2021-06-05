@@ -46,16 +46,24 @@ export function updateSelectionInfo(
   }
 }
 
-export function restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum) {
+export function restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum, erasedAll) {
   const restoringEmb = deepcopyArr(emb);
   const restoringIdx = []
   currSelections.forEach((selectionNum, idx) => {
-    if (selectionNum !== 0 && selectionNum !== currSelectionNum) {
+    if (erasedAll) {
       restoringEmb[idx][0] = originEmb[idx][0];
       restoringEmb[idx][1] = originEmb[idx][1];
       restoringIdx.push(idx);
     }
-  });
+    else {
+      if (selectionNum !== 0 && selectionNum !== currSelectionNum) {
+        restoringEmb[idx][0] = originEmb[idx][0];
+        restoringEmb[idx][1] = originEmb[idx][1];
+        restoringIdx.push(idx);
+      }
+    }
+    });
+    
   return [restoringEmb, restoringIdx];
 }
 

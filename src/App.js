@@ -47,7 +47,7 @@ function App({match}) {
           resolution={resolution}
           getSelectionInfo={getSelectionInfo}
           colors={colors}
-          buttonSize={(size + margin) / maxSelection - margin}
+          buttonSize={(size - margin) / maxSelection - margin}
           radius={30}
           border={3}
         />

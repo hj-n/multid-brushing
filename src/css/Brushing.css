@@ -8,10 +8,20 @@ div.hname {
   width: 290px;
 }
 
-button.selection {
+#selectionStatus {
+  display: flex;
+  border: 1px solid black;
+  border-radius: 3px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+button.brushButtons {
   width: 200px;
   height: 30px;
   float: right;
+  margin-left: 10px;
+  /* border-radius: 3px; */
 }
 
 .slider {

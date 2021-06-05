@@ -8,6 +8,7 @@ import { initializeBrusher, addSplotEventListener, documentEventListener } from 
 import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
 import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx } from "./subcomponents/serverDataManagement";
 import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos } from "./subcomponents/selectionManagement";
+import { initialProjectionExecutor } from "./subcomponents/showPrevProjections"
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
@@ -73,7 +74,7 @@ const Brushing = (props) => {
     const positionUpdateWaitingTime = 600;
     const positionDuration = 600;
 
-    // CONSTANT Functions for adjusting constant parameters
+    /* CONSTANT Functions for adjusting constant parameters */
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
     function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
 
@@ -102,6 +103,9 @@ const Brushing = (props) => {
         originEmb = deepcopyArr(emb);
         updateOrigin(url);
     }
+
+    /* NOTE Show / disable initial embeddings */
+    function initialProjection(e) { initialProjectionExecutor(e, splotRef.current, initialEmb, emb); }
 
     /* NOTE SCATTERPLOT Initialization */
     useEffect(async () => {
@@ -201,6 +205,7 @@ const Brushing = (props) => {
         bStop.bX = -props.size; bStop.bY = -props.size;
         clearSimExecutorInterval();
         clearPosExecutorTimeout();
+        eraseBrushedArea(positionDuration);
         if (status.step === Step.INITIALIZING) setPosUpdatingFlag(flag, positionDuration)
         if (status.step === Step.INITIALIZING || status.step === Step.SKIMMING)
             setTimeout(() => { cancelPosInitialization(); }, positionDuration);
@@ -218,6 +223,13 @@ const Brushing = (props) => {
         function maintainBrushingExecutor () {
             if (!status.click) return;
             clearInterval(updateExecutor.sim);  // updateExecutor.sim = null;
+
+            if (status.mode === Mode.ERASE && status.click && selectionInfo[currSelectionNum] === 0) {
+                eraseBrushedArea(positionDuration * 0.5);
+                setTimeout(() => { maintainBrushingExecutor(); } , positionDuration * 0.5)
+                return;
+            }
+
             const start = Date.now();
 
             let mouseoverPoints = getMouseoverPoints(b, props.size, emb);
@@ -279,10 +291,16 @@ const Brushing = (props) => {
         }
         clearTimeout(updateExecutor.brush);
         updateExecutor.brush = null;
-        eraseBrushedArea(positionDuration);
+
+        let erasedAll = false;
+        if (selectionInfo[currSelectionNum] === 0) { 
+            eraseBrushedArea(positionDuration); 
+            erasedAll = true;
+        }
+        console.log(erasedAll);
         
         setTimeout(() => {
-            const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum);
+            const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum, erasedAll);
             restoreIdx(url, flag, restoringIdx);
             updatePosition(status, restoringEmb, positionDuration * 0.5);
             setTimeout(() => { emb = restoringEmb; initiateSimExecutorInterval(); }, positionDuration * 0.5); 
@@ -367,9 +385,10 @@ const Brushing = (props) => {
                 />
             </div>
             {/* Selection Status */}
-            <div id="selectionStatus" style={{display: 'flex'}}></div>
+            <div id="selectionStatus" style={{margin: props.margin}}></div>
             <div style={Object.assign({}, widthMarginStyle(props.size, props.margin), { height: 30 })}>
-                <button className={"selection"} onClick={addSelection}>Click to Add New Selections</button>
+                <button className={"brushButtons"} onClick={addSelection}>Click to Add New Selections</button>
+                <button className={"brushButtons"} onClick={initialProjection}>Show Initial Projection</button>
             </div>
         </div>
     );
