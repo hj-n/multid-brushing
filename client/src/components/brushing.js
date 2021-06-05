@@ -167,6 +167,7 @@ const Brushing = (props) => {
                     url, emb, consideringPoints, prevSelectedPoints, resolution,
                     scale4offset, offset, kdeThreshold, simThreshold
                 );
+                if (status.click) return;
                 updatePosition(status, newEmb, positionDuration);
                 updateBrushedArea(contour, offsettedContour, positionDuration);
                 setPosUpdatingFlag(flag, positionDuration);
