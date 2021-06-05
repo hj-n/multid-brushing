@@ -1,6 +1,6 @@
 import { Scatterplot } from "./scatterplot";
 
-import { colorDarker } from "../../helpers/utils";
+import { colorDarker, deepcopyArr } from "../../helpers/utils";
 import { Mode } from "../../helpers/status";
 
 let scatterplot;
@@ -140,6 +140,39 @@ export function initialProjectionRenderingData(
     density, colors, currSelections, radius, border, pointLen
   );
   data.position = emb;
+  return data;
+}
+
+export function draggingProjectionRenderingData(
+  b, bDragStart, size, currentHoveringSelections, emb, density, colors, currSelections, radius, border, pointLen
+) {
+  const data = notBrushingSplotRenderingData(
+    density, colors, currSelections, radius, border, pointLen
+  );
+  data.position = deepcopyArr(emb);
+  // console.log(b, bDragStart)
+  
+  let xDiff = 0, yDiff = 0;
+  if (bDragStart.bX !== null && bDragStart.bY !== null) {
+    xDiff = (b.bX - bDragStart.bX) / (size / 2);
+    yDiff = (b.bY - bDragStart.bY) / (size / 2);
+    
+    
+  }
+
+  currSelections.forEach((selectionNum, idx) => {
+    currentHoveringSelections.forEach((hoveringSelectionNum) => {
+      if (selectionNum === hoveringSelectionNum) {
+        data.radius[idx] = radius * 1.7;
+        data.border[idx] = border * 4;
+        data.borderColor[idx] = colorDarker(colors[hoveringSelectionNum], -2)
+        data.position[idx][0] += xDiff;
+        data.position[idx][1] -= yDiff;
+      }
+    })
+  })
+
+  
   return data;
 }
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { similarityParam, positionUpdateParam, idxParam } from "../../helpers/axiosHandler";
+import { similarityParam, positionUpdateParam, idxParam, embDiffParam } from "../../helpers/axiosHandler";
 
 function union(a, b) {
   return new Set([...a, ...b]);
@@ -45,6 +45,13 @@ export function updateOrigin(url) {
 
 export function restoreIdx(url, flag, idx) {
   axios.get(url + "restoreidx", idxParam(idx)).then((response) => {
+    if (!response.data === "success")
+      throw "Somethings wrong in sever!!"
+  })
+}
+
+export function updateEmbDiff(url, idx, xDiff, yDiff) {
+  axios.get(url + "updateembdiff", embDiffParam(idx, xDiff, yDiff)).then(response => {
     if (!response.data === "success")
       throw "Somethings wrong in sever!!"
   })

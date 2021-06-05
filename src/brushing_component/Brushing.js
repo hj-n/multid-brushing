@@ -6,13 +6,13 @@ import { updateSelectionButtons, updateSelectionText } from "./subcomponents/sel
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "./subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from './subcomponents/brusher';
 import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
-import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx } from "./subcomponents/serverDataManagement";
-import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos } from "./subcomponents/selectionManagement";
+import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx, updateEmbDiff } from "./subcomponents/serverDataManagement";
+import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos, getHoveringSelections } from "./subcomponents/selectionManagement";
 import { initialProjectionExecutor } from "./subcomponents/showPrevProjections"
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
-import { updatePosition, updatePositionSim, updateSim } from "../helpers/executor";
+import { updatePosition, updatePositionSim, updateSim, updateWhenDragging } from "../helpers/executor";
 import { Mode, Step } from "../helpers/status";
 
 import "../css/Brushing.css";
@@ -67,6 +67,10 @@ const Brushing = (props) => {
     const selectionInfo = [0, 0];  // selection info per group
     const overwritedSelectionInfo = [[0, 0], [0, 0]]; // overwitied info
 
+    // CONSTANT for dragging
+    let currentHoveringSelections = [];
+    const bDragStart = { bX: null, bY: null };
+
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
     const simUpdateInterval = 50
@@ -96,7 +100,6 @@ const Brushing = (props) => {
         addSpaceToSelectionInfos(selectionInfo, overwritedSelectionInfo);
         prevSelections = deepcopyArr(currSelections);
         props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, positionDuration);
-
         updateSim(
             status, colors, density, pointLen, radius, border, 0, 
             currSelections, [], currSelectionNum, null
@@ -149,15 +152,26 @@ const Brushing = (props) => {
         // if (flag.posUpdating) return;
         clearInterval(updateExecutor.sim);
         updateExecutor.sim = setInterval(async () => {
-            if (status.click || flag.posUpdating) { clearInterval(updateExecutor.sim);}
+            if ((status.click || flag.posUpdating) && status.mode !== Mode.DRAGGING) { clearInterval(updateExecutor.sim);}
             if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
             const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-            const sim = await getSimilarity(url, consideringPoints);
-            updateSim (
-                status, colors, density, pointLen, radius, border, simUpdateDuration, 
-                currSelections, mouseoverPoints, currSelectionNum, sim
-            );
+            if (status.mode === Mode.DRAGGING) {
+                if (bDragStart.bX === null && bDragStart.bY === null)
+                    currentHoveringSelections = getHoveringSelections(mouseoverPoints, currSelections, currSelectionNum);
+                updateWhenDragging(
+                    b, bDragStart, props.size, currentHoveringSelections, emb, density, colors, 
+                    currSelections, radius, border, pointLen, simUpdateDuration
+                );
+            }
+            else {
+                const sim = await getSimilarity(url, consideringPoints);
+                updateSim (
+                    status, colors, density, pointLen, radius, border, simUpdateDuration, 
+                    currSelections, mouseoverPoints, currSelectionNum, sim
+                );
+            }
+
         }, simUpdateInterval);
     }
 
@@ -307,7 +321,6 @@ const Brushing = (props) => {
             eraseBrushedArea(positionDuration); 
             erasedAll = true;
         }
-        console.log(erasedAll);
         
         setTimeout(() => {
             const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum, erasedAll);
@@ -340,8 +353,61 @@ const Brushing = (props) => {
         });
 
         splotRef.current.addEventListener("mouseout", () => { if (!flag.loaded) return; flag.mouseout = true; clearExecutors(); });
-        splotRef.current.addEventListener("mousedown", () => { if (!flag.loaded) return; initiateBrushing(); });
-        splotRef.current.addEventListener("mouseup", () => {  if (!flag.loaded) return; clearBrushing(); });
+        splotRef.current.addEventListener("mousedown", () => { 
+            if (!flag.loaded) return; 
+            if (status.mode === Mode.DRAGGING) {
+                bDragStart.bX = b.bX;
+                bDragStart.bY = b.bY;
+            }
+            else initiateBrushing(); 
+            
+        });
+        splotRef.current.addEventListener("mouseup", () => {  
+            if (!flag.loaded) return; 
+            if (status.mode === Mode.DRAGGING) {
+                let xDiff = 0, yDiff = 0;
+                if (bDragStart.bX !== null && bDragStart.bY !== null) {
+                    xDiff = (b.bX - bDragStart.bX) / (props.size / 2);
+                    yDiff = (b.bY - bDragStart.bY) / (props.size / 2);
+                }
+                const embDiffIdx = []
+                emb.forEach((pos, idx) => {
+                    currentHoveringSelections.forEach((hoveringSelectionNum) => {
+                        if (currSelections[idx] === hoveringSelectionNum) {
+                            pos[0] += xDiff;
+                            pos[1] -= yDiff;
+                            originEmb[idx][0] += xDiff;
+                            originEmb[idx][1] -= yDiff;
+                            embDiffIdx.push(idx);
+                        }
+                    });
+                });
+                updateEmbDiff(url, embDiffIdx, xDiff, yDiff)
+                bDragStart.bX = null;
+                bDragStart.bY = null;
+            }
+            else clearBrushing(); 
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (!flag.loaded) return;
+            if ((e.key === "Control" || e.key === "Meta") && !e.shift && !e.alt) {
+                if (status.click) {
+                    console.log("READSS");
+
+
+                    bDragStart.bX = null;
+                    bDragStart.bY = null;
+                    updateWhenDragging(
+                        b, bDragStart, props.size, currentHoveringSelections, emb, density, colors, 
+                        currSelections, radius, border, pointLen, simUpdateDuration
+                    )
+                    status.step = Step.SKIMMING;
+                }
+
+            }
+
+        })
 
     }, [props, splotRef]);
 

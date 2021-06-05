@@ -72,3 +72,12 @@ export function addSpaceToSelectionInfos(selectionInfo, overwritedSelectionInfo)
   for(let i = 0; i < overwritedSelectionInfo.length; i++) overwritedSelectionInfo[i].push(0);
   overwritedSelectionInfo.push(new Array(overwritedSelectionInfo.length + 1).fill(0));  
 }
+
+export function getHoveringSelections(mouseoverPoints, currSelections, currSelectionNum) {
+  const hoveringSelectionsSet = new Set();
+  mouseoverPoints.forEach(idx => {
+    if (currSelections[idx] !== 0 && currSelections[idx] !== currSelectionNum) 
+      hoveringSelectionsSet.add(currSelections[idx]);
+  })
+  return Array.from(hoveringSelectionsSet);
+}

@@ -30,6 +30,18 @@ export function idxParam(idx) {
   };
 }
 
+export function embDiffParam(idx, xDiff, yDiff) {
+  return {
+    params: {
+      index: {
+        data: idx
+      },
+      xDiff: xDiff,
+      yDiff: yDiff
+    }
+  };
+}
+
 export function positionUpdateParam(
   consideringPoints, 
   prevSelectedPoints, 

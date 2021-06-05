@@ -2,6 +2,7 @@
 
 import * as d3 from "d3";
 import { Mode, Step } from "../../helpers/status";
+import { eraseBrushedArea } from "./brushedArea";
 
 
 const defaultOpacity = 0.2;
@@ -85,6 +86,7 @@ function documentKeydown(brusher, status, e) {
   if (e.key === "Control" || e.key === "Meta") {   // For mac users 
     if (status.shift || status.alt) return;
     if (status.step === Step.INITIALIZING || status.click) return;
+    eraseBrushedArea(100);
     brusher.attr("fill", "orange")
     status.ctrl = true;
     status.mode = Mode.DRAGGING;

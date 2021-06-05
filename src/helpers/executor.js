@@ -1,13 +1,14 @@
 // codes for managing update executors
 
 
-import  { Step } from "./status";
+import  { Mode, Step } from "./status";
 import { 
   notBrushingSplotRenderingData,
   skimmingSplotRenderingData,
   initializingSplotRenderingData, 
   brushingSplotRenderingData,
   renderScatterplot,
+  draggingProjectionRenderingData,
 } from "../brushing_component/subcomponents/renderingScatterplot";
 
 export function updateSim(
@@ -34,10 +35,18 @@ export function updateSim(
       break;
     case Step.INITIALIZING:
       break;
-
-      // break;
   }
-  
+}
+
+export function updateWhenDragging(
+  b, bDragStart, size, currentHoveringSelections, emb, density, colors, 
+  currSelections, radius, border, pointLen, duration
+) {
+  renderScatterplot(
+    draggingProjectionRenderingData(
+      b, bDragStart, size, currentHoveringSelections, emb, density, colors, currSelections, radius, border, pointLen
+    ), duration, 0
+  );
 }
 
 export function updatePosition(status, newEmb, duration) {
@@ -56,7 +65,8 @@ export function updatePosition(status, newEmb, duration) {
 
 export function updatePositionSim(
   newEmb, status, colors, density, pointLen, radius, border, duration, 
-  currSelections, mouseoverPoints, currSelectionNum, sim) {
+  currSelections, mouseoverPoints, currSelectionNum, sim
+) {
 
   renderScatterplot(
     brushingSplotRenderingData(
