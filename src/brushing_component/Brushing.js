@@ -7,7 +7,7 @@ import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "./su
 import { initializeBrusher, addSplotEventListener, documentEventListener } from './subcomponents/brusher';
 import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
 import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx } from "./subcomponents/serverDataManagement";
-import { updateSelectionInfo, restoreOtherSelections } from "./subcomponents/selectionManagement";
+import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos } from "./subcomponents/selectionManagement";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
@@ -53,15 +53,18 @@ const Brushing = (props) => {
 
     // CONSTANT DATA 
     let emb;             // positions
-    let initialEmb;
+    let initialEmb;      // initial positions
     let originEmb;       // original positions
     let density;         // initial snn density of points
     let pointLen;        // number of points
+
+    // CONSTANT for managing selections
     let currSelections;          // grouping status for all points(currently [0, 0, ....])
     let prevSelections;    // previous grouping status for all points (for undo operation with Alt)
-    let selectionInfo = [0, 0];  // selection info per group
     let currSelectionNum = 1; // current number (index) of brushing selection
     let selectionStatusDiv;
+    const selectionInfo = [0, 0];  // selection info per group
+    const overwritedSelectionInfo = [[0, 0], [0, 0]]; // overwitied info
 
     // CONSTANT Scatterplot / Brushing Management
     const splotRef = useRef(null);
@@ -86,9 +89,9 @@ const Brushing = (props) => {
         if (currSelectionNum === maxSelection) { alert("Cannot add more selections!!"); return; }
 
         currSelectionNum += 1;
-        selectionInfo.push(0);
+        addSpaceToSelectionInfos(selectionInfo, overwritedSelectionInfo);
         prevSelections = deepcopyArr(currSelections);
-        props.getSelectionInfo(selectionInfo);
+        props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, positionDuration);
 
         updateSim({bR: 0, bX: 2, bY: 2}, flag, status, props.size, emb, false, density, pointLen, currSelections)
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
@@ -125,7 +128,6 @@ const Brushing = (props) => {
 
     /*  NOTE Interaction Executors */ 
     function initiateSimExecutorInterval() {
-        // console.log("INITIATING")
         if (flag.mouseout) return;
         if (status.click) return;
         // if (flag.posUpdating) return;
@@ -216,20 +218,19 @@ const Brushing = (props) => {
         function maintainBrushingExecutor () {
             if (!status.click) return;
             clearInterval(updateExecutor.sim);  // updateExecutor.sim = null;
-
             const start = Date.now();
 
             let mouseoverPoints = getMouseoverPoints(b, props.size, emb);
-            let  [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
+            let [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
             if (
                 mouseoverPoints.length !== 0 && 
                 (pointSetIntersection.length !== 0 || 
                 mouseoverPoints.length === consideringPoints.length)
             ) { 
                 (async () => {
-                    updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
+                    updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo, overwritedSelectionInfo);
                     updateSelectionText(selectionStatusDiv, selectionInfo);
-                    props.getSelectionInfo(selectionInfo);
+                    props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, checkTime * 0.5);
                     mouseoverPoints = getMouseoverPoints(b, props.size, emb);
                     [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
                     const [newEmb, contour, offsettedContour] = await getUpdatedPosition (
@@ -251,7 +252,6 @@ const Brushing = (props) => {
                     }, checkTime * 0.5);
                     return;
                 })();
-                // maintainBrushingExecutor();
             }
             else {
                 (async () => {
@@ -265,7 +265,6 @@ const Brushing = (props) => {
                 return;
             }
         }
-        // console.log(updateExecutor.brush)
         if (updateExecutor.brush === null)
         updateExecutor.brush =  setTimeout(() => {
             maintainBrushingExecutor();
@@ -281,7 +280,6 @@ const Brushing = (props) => {
         clearTimeout(updateExecutor.brush);
         updateExecutor.brush = null;
         eraseBrushedArea(positionDuration);
-        // console.log("SIm executor run!!")
         
         setTimeout(() => {
             const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum);

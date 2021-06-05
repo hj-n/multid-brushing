@@ -29,7 +29,9 @@ function App({match}) {
 
   // NOTE SelectionInfo View
   const selectionInfoViewRef = useRef();
-  const getSelectionInfo = (selectionInfo) => { selectionInfoViewRef.current.update(selectionInfo.slice(1)); }
+  const getSelectionInfo = (selectionInfo, overwritedSelectionInfo, duration) => { 
+    selectionInfoViewRef.current.update(selectionInfo, overwritedSelectionInfo, duration); 
+  }
 
   return (
     <div className="App">

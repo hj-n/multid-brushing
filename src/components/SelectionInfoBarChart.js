@@ -3,12 +3,14 @@ import { scatterplotStyle } from '../helpers/styles'
 
 const SelectionInfoBarChart = forwardRef((props, ref) => {
 
-  useImperativeHandle(ref, (selectionInfo) => ({ 
-    update(selectionInfo) { updateBarChart(selectionInfo); }
+  useImperativeHandle(ref, () => ({ 
+    update(selectionInfo, duration) { updateBarChart(selectionInfo, duration); }
   }));
  
-  const updateBarChart = (selectionInfo) => {
-    console.log("UPDATE BAR CHART", selectionInfo);
+  const updateBarChart = (selectionInfo, duration) => {
+    // TODO
+    console.log("UPDATE BAR CHART", selectionInfo, duration);
+    
   }
 
   // style이나 위치같은건 대충 나중에 맞추면 되니까 일단은 props.width랑 props.margin 사용해서 맘대로
@@ -26,8 +28,7 @@ const SelectionInfoBarChart = forwardRef((props, ref) => {
         }}
       />
     </div>
-  )
-
+  );
 });
 
 export default SelectionInfoBarChart;

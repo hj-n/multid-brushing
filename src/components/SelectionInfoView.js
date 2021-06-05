@@ -9,10 +9,10 @@ const SelectionInfoView = forwardRef((props, ref) => {
   const selectionInfoMatrixRef = useRef();
   const selectionInfoBarChartRef = useRef();
 
-  useImperativeHandle(ref, (selectionInfo) => ({
-    update(selectionInfo) {
-      selectionInfoBarChartRef.current.update(selectionInfo);
-      selectionInfoMatrixRef.current.update("X");
+  useImperativeHandle(ref, () => ({
+    update(selectionInfo, overwritedSelectionInfo, duration) {
+      selectionInfoBarChartRef.current.update(selectionInfo, duration);
+      selectionInfoMatrixRef.current.update(overwritedSelectionInfo, duration);
     }
   }));
 

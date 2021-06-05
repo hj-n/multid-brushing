@@ -3,12 +3,14 @@ import { scatterplotStyle } from '../helpers/styles'
 
 const SelectionInfoMatrix = forwardRef((props, ref) => {
 
-  useImperativeHandle(ref, (matrixInfo) => ({
-    update(matrixInfo) { updateMatrix(matrixInfo); }
+  useImperativeHandle(ref, () => ({
+    update(matrixInfo, duration) { updateMatrix(matrixInfo, duration); }
   }));
 
-  const updateMatrix = (matrixInfo) => {
-    console.log("UPDATE MATRIX", matrixInfo);
+  const updateMatrix = (matrixInfo, duration) => {
+    // TODO
+    console.log("UPDATE MATRIX", matrixInfo, duration);
+
   }
 
 
@@ -27,8 +29,7 @@ const SelectionInfoMatrix = forwardRef((props, ref) => {
         }}
       />
     </div>
-  )
-
+  );
 });
 
 export default SelectionInfoMatrix;

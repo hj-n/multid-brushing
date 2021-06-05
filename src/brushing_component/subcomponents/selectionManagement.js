@@ -5,7 +5,14 @@ import { deepcopyArr } from "../../helpers/utils";
 
 
 
-export function updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo) {  
+export function updateSelectionInfo(
+  status, mouseoverPoints, 
+  prevSelections, 
+  currSelections, 
+  currSelectionNum, 
+  selectionInfo,
+  overwritedSelectionInfo
+) {  
   if (status.mode !== Mode.ERASE) {
     mouseoverPoints.forEach((idx) => {
       if (currSelections[idx] === currSelectionNum) return;
@@ -17,6 +24,8 @@ export function updateSelectionInfo(status, mouseoverPoints, prevSelections, cur
         if (status.mode === Mode.OVERWRITE) {
           selectionInfo[currSelections[idx]] -= 1;
           selectionInfo[currSelectionNum] += 1;
+          overwritedSelectionInfo[currSelectionNum][currSelections[idx]] += 1;
+          overwritedSelectionInfo[currSelections[idx]][currSelectionNum] += 1;
           currSelections[idx] = currSelectionNum;
         } 
       }
@@ -25,9 +34,13 @@ export function updateSelectionInfo(status, mouseoverPoints, prevSelections, cur
   else {
     mouseoverPoints.forEach((idx) => {
       if (currSelections[idx] === currSelectionNum) {
-        currSelections[idx] = prevSelections[idx];
         selectionInfo[currSelectionNum] -= 1;
         selectionInfo[prevSelections[idx]] += 1;
+        if (prevSelections[idx] !== 0) {
+          overwritedSelectionInfo[currSelectionNum][prevSelections[idx]] -= 1;
+          overwritedSelectionInfo[prevSelections[idx]][currSelectionNum] -= 1;
+        }
+        currSelections[idx] = prevSelections[idx];
       }
     });
   }
@@ -46,3 +59,8 @@ export function restoreOtherSelections(emb, originEmb, currSelections, currSelec
   return [restoringEmb, restoringIdx];
 }
 
+export function addSpaceToSelectionInfos(selectionInfo, overwritedSelectionInfo) {
+  selectionInfo.push(0);
+  for(let i = 0; i < overwritedSelectionInfo.length; i++) overwritedSelectionInfo[i].push(0);
+  overwritedSelectionInfo.push(new Array(overwritedSelectionInfo.length + 1).fill(0));  
+}
