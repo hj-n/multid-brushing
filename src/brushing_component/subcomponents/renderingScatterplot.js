@@ -6,10 +6,7 @@ import { Mode } from "../../helpers/status";
 let scatterplot;
 
 
-export function initialSplotRendering(emb, density, pointLen, radius, border, splotRef) {
-  const data = initialSplotRenderingData(emb, density, pointLen, radius, border);
-  scatterplot = new Scatterplot(data, splotRef.current);
-}
+
 
 function initialSplotRenderingData(emb, density, pointLen, radius, border) {
   return {
@@ -22,7 +19,7 @@ function initialSplotRenderingData(emb, density, pointLen, radius, border) {
   }
 }
 
-export function skimmingSplotRenderingData(
+function skimmingBrushingNonPositionData(
   status, density, pointLen, colors, radius, border,
   currSelections, mouseoverPoints, currSelectionNum, sim
 ) {
@@ -31,7 +28,6 @@ export function skimmingSplotRenderingData(
       sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
     );
   });
-
   const opacityList = currSelections.map((selectionNum, idx) => {
     return selectionNum === currSelectionNum ? 1 : (   
       selectionNum === 0 ? (
@@ -66,6 +62,24 @@ export function skimmingSplotRenderingData(
     border : borderList,
     borderColor : borderColorList
   };
+} 
+
+
+
+
+export function initialSplotRendering(emb, density, pointLen, radius, border, splotRef) {
+  const data = initialSplotRenderingData(emb, density, pointLen, radius, border);
+  scatterplot = new Scatterplot(data, splotRef.current);
+}
+
+export function skimmingSplotRenderingData(
+  status, density, pointLen, colors, radius, border,
+  currSelections, mouseoverPoints, currSelectionNum, sim
+) {
+  return skimmingBrushingNonPositionData(
+    status, density, pointLen, colors, radius, border,
+    currSelections, mouseoverPoints, currSelectionNum, sim
+  );
 }
 
 export function notBrushingSplotRenderingData(
@@ -102,47 +116,12 @@ export function brushingSplotRenderingData(
   newEmb, status, density, pointLen, colors, radius, border,
   currSelections, mouseoverPoints, currSelectionNum, sim
 ) {
-  const colorList = currSelections.map((selectionNum, idx) => {
-    return selectionNum !== 0 ? colors[selectionNum] : (
-      sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
-    );
-  });
-
-  const opacityList = currSelections.map((selectionNum, idx) => {
-    return selectionNum === currSelectionNum ? 1 : (   
-      selectionNum === 0 ? (
-        sim[idx] > 0 ? sim[idx] : density[idx]
-      ) : (
-        status.mode === Mode.OVERWRITE ? ( sim[idx] > 0 ? sim[idx] : 0 ) : 1
-      )
-    );
-  });
-
-  const radiusList = new Array(pointLen).fill(radius);
-  const borderList = new Array(pointLen).fill(border)
-  mouseoverPoints.forEach(idx => {
-    radiusList[idx] = radius * 1.4;
-    borderList[idx] = border * 2;
-  });
-
-  const borderColorList = currSelections.map((selectionNum, idx) => {
-    if (selectionNum > 0) {
-      radiusList[idx] = radius * 1.4;
-      borderList[idx] = border * 5;
-    }
-    return selectionNum === 0 ? (
-      sim[idx] > 0 ? colors[currSelectionNum] : [0, 0, 0]
-    ) : colorDarker(colors[selectionNum], 2);
-  });
-
-  return {
-    position: newEmb,
-    color : colorList,
-    opacity: opacityList,
-    radius : radiusList,
-    border : borderList,
-    borderColor : borderColorList
-  };
+  const data = skimmingBrushingNonPositionData(
+    status, density, pointLen, colors, radius, border,
+    currSelections, mouseoverPoints, currSelectionNum, sim
+  );
+  data.position = newEmb;
+  return data;
 }
 
 export function renderScatterplot(data, duration, delay) {
