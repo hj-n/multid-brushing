@@ -1,17 +1,33 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
-import { widthMarginStyle } from '../helpers/styles';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+
+import SelectionInfoMatrix from "./SelectionInfoMatrix";
+import SelectionInfoBarChart from "./SelectionInfoBarChart";
 
 const SelectionInfoView = forwardRef((props, ref) => {
 
+
+  const selectionInfoMatrixRef = useRef();
+  const selectionInfoBarChartRef = useRef();
+
   useImperativeHandle(ref, (selectionInfo) => ({
     update(selectionInfo) {
-      console.log(selectionInfo)
+      selectionInfoBarChartRef.current.update(selectionInfo);
+      selectionInfoMatrixRef.current.update("X");
     }
   }));
 
   return (
-    <div style={widthMarginStyle(props.size, props.margin)}>
-      TESTTEST
+    <div style={{ margin: props.margin, width: props.width}}>
+      <SelectionInfoBarChart
+        width={props.width}
+        margin={props.margin}
+        ref={selectionInfoBarChartRef}
+      />
+      <SelectionInfoMatrix
+        width={props.width}
+        margin={props.margin}
+        ref={selectionInfoMatrixRef}
+      />
     </div>
   );
 });

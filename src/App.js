@@ -8,7 +8,6 @@ import { generateColors } from "./helpers/utils";
 
 function App({match}) {
 
-
   // CONSTANT Parameter Settings
   const PATH = "http://127.0.0.1:5000/";
   const defaultParams = {
@@ -21,7 +20,6 @@ function App({match}) {
   const method      = params.method  === undefined ? defaultParams.method  : params.method;
   const sample_rate = params.sample  === undefined || isNaN(parseInt(params.sample)) ? defaultParams.sample_rate  : parseInt(params.sample);
 
-
   // CONSTANT Layout / Design constants
   const size = 500;
   const margin = 10;
@@ -29,21 +27,9 @@ function App({match}) {
   const maxSelection = 10;
   const colors = generateColors();
 
-
-  // NOTE STATEs that we use
-
+  // NOTE SelectionInfo View
   const selectionInfoViewRef = useRef();
   const getSelectionInfo = (selectionInfo) => { selectionInfoViewRef.current.update(selectionInfo.slice(1)); }
-
-
-  // const selectionStatusRef = useRef();
-
-  // let selectionInfo = [0];
-  // function updateSelectionInfo(mode) {
-  //   if (mode === "add") { selectionInfo.push(0); }
-  //   selectionStatusRef.current.update(mode);
-  // }
-
 
   return (
     <div className="App">
@@ -64,7 +50,6 @@ function App({match}) {
           border={3}
         />
         <SelectionInfoView
-          // info={selectionInfo}
           ref={selectionInfoViewRef}
           width={size * 0.4}
           margin={margin}
