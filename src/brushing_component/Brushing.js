@@ -82,31 +82,60 @@ const Brushing = (props) => {
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
     function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
 
+    /* NOTE Manaing Selection Button */
+    const addSelectionButtonRef = useRef(null)
+    const updateCurrSelectionNum = (num) => {
+        console.log(num);
+        currSelectionNum = num;
+        prevSelections = deepcopyArr(currSelections);
+        updateSim(
+            status, colors, density, pointLen, radius, border, 0, 
+            currSelections, [], currSelectionNum, null
+        ) 
+        updateSelectionButtons(
+            selectionStatusDiv, selectionInfo, currSelectionNum, 
+            props.buttonSize, props.margin, props.colors, updateCurrSelectionNum
+        );
+        updateSelectionText(selectionStatusDiv, selectionInfo);
+        eraseBrushedArea(positionDuration);
+
+        flag.posUpdating = false; flag.isBrushing = false;
+        originEmb = deepcopyArr(emb);
+        updateOrigin(url);
+
+    }
+    
+
     /* NOTE Selection Info Initialization */
     useEffect(() => {
         selectionStatusDiv = d3.select("#selectionStatus");
-        updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
+        updateSelectionButtons(
+            selectionStatusDiv, selectionInfo, currSelectionNum, 
+            props.buttonSize, props.margin, props.colors, updateCurrSelectionNum
+        );
         updateSelectionText(selectionStatusDiv, selectionInfo);
     }, []);
 
-    /* NOTE Button onClick Functions */
-    const addSelectionButtonRef = useRef(null)
  
     /* NOTE Adding new Selection */
     function addSelection(e) {
         if (currSelectionNum === maxSelection) { alert("Cannot add more selections!!"); return; }
 
-        currSelectionNum += 1;
+        
         addSpaceToSelectionInfos(selectionInfo, overwritedSelectionInfo);
+        currSelectionNum = selectionInfo.length - 1;
         prevSelections = deepcopyArr(currSelections);
         props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, positionDuration);
         updateSim(
             status, colors, density, pointLen, radius, border, 0, 
             currSelections, [], currSelectionNum, null
         ) 
-        updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
+        updateSelectionButtons(
+            selectionStatusDiv, selectionInfo, currSelectionNum, 
+            props.buttonSize, props.margin, props.colors, updateCurrSelectionNum
+        );
         updateSelectionText(selectionStatusDiv, selectionInfo);
-        eraseBrushedArea(500);
+        eraseBrushedArea(positionDuration);
 
         flag.posUpdating = false; flag.isBrushing = false;
         originEmb = deepcopyArr(emb);
@@ -392,6 +421,7 @@ const Brushing = (props) => {
         document.addEventListener("keyup", (e) => {
             if (!flag.loaded) return;
             if ((e.key === "Control" || e.key === "Meta") && !e.shift && !e.alt) {
+                if (status.step === Step.BRUSHING) return;
                 if (status.click) {
                     console.log("READSS");
 
