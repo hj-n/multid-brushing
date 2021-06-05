@@ -1,7 +1,7 @@
-import React, { useRef, useContext, createContext } from 'react';
+import React, { useRef } from 'react';
 
 import Brushing from "./components/Brushing";
-
+import SelectionInfoView from "./components/SelectionInfoView"
 
 import { generateColors } from "./helpers/utils";
 
@@ -32,7 +32,9 @@ function App({match}) {
 
   // NOTE STATEs that we use
 
-  // const [selectionInfo, setSelectionInfo] = useState([0]);
+  const selectionInfoViewRef = useRef();
+  const getSelectionInfo = (selectionInfo) => { selectionInfoViewRef.current.update(selectionInfo.slice(1)); }
+
 
   // const selectionStatusRef = useRef();
 
@@ -45,28 +47,30 @@ function App({match}) {
 
   return (
     <div className="App">
-      <Brushing 
-        url={PATH}
-        size={size}
-        margin={margin}
-        dataset={dataset}
-        maxSelection={maxSelection}
-        method={method}
-        sample={sample_rate}
-        resolution={resolution}
-        // updateSelectionInfo={updateSelectionInfo}
-        colors={colors}
-        buttonSize={(size + margin) / maxSelection - margin}
-        radius={30}
-        border={3}
-      />
-      {/* <SelectionStatus
-        info={selectionInfo}
-        ref={selectionStatusRef}
-        margin={margin}
-        buttonSize={(size + margin) / maxSelection - margin}
-        colors={colors}
-      /> */}
+      <div style={{display: "flex"}}>
+        <Brushing 
+          url={PATH}
+          size={size}
+          margin={margin}
+          dataset={dataset}
+          maxSelection={maxSelection}
+          method={method}
+          sample={sample_rate}
+          resolution={resolution}
+          getSelectionInfo={getSelectionInfo}
+          colors={colors}
+          buttonSize={(size + margin) / maxSelection - margin}
+          radius={30}
+          border={3}
+        />
+        <SelectionInfoView
+          // info={selectionInfo}
+          ref={selectionInfoViewRef}
+          width={size * 0.4}
+          margin={margin}
+          colors={colors}
+        />
+      </div>
     </div>
   );
 }

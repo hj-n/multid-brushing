@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect} from 'react';
 import * as d3 from "d3";
 import axios from 'axios';
 
 import { updateSelectionButtons, updateSelectionText } from "../subcomponents/selectionStatus";
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "../subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from '../subcomponents/brusher';
-import { initialSplotRendering, isScatterplotRendering } from "../subcomponents/renderingScatterplot";
+import { initialSplotRendering} from "../subcomponents/renderingScatterplot";
 import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx } from "../subcomponents/serverDataManagement";
 import { updateSelectionInfo, restoreOtherSelections } from "../subcomponents/selectionManagement";
 
@@ -83,11 +83,12 @@ const Brushing = (props) => {
  
     /* NOTE Adding new Selection */
     function addSelection(e) {
-        if (currSelectionNum == maxSelection) { alert("Cannot add more selections!!"); return; }
+        if (currSelectionNum === maxSelection) { alert("Cannot add more selections!!"); return; }
 
         currSelectionNum += 1;
         selectionInfo.push(0);
         prevSelections = deepcopyArr(currSelections);
+        props.getSelectionInfo(selectionInfo);
 
         updateSim({bR: 0, bX: 2, bY: 2}, flag, status, props.size, emb, false, density, pointLen, currSelections)
         updateSelectionButtons(selectionStatusDiv, selectionInfo, props.buttonSize, props.margin, props.colors);
@@ -228,6 +229,7 @@ const Brushing = (props) => {
                 (async () => {
                     updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo);
                     updateSelectionText(selectionStatusDiv, selectionInfo);
+                    props.getSelectionInfo(selectionInfo);
                     mouseoverPoints = getMouseoverPoints(b, props.size, emb);
                     [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
                     const [newEmb, contour, offsettedContour] = await getUpdatedPosition (

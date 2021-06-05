@@ -1,7 +1,7 @@
 // codes for managing update executors
 
 
-import  { Mode, Step } from "./status";
+import  { Step } from "./status";
 import { 
   notBrushingSplotRenderingData,
   skimmingSplotRenderingData,
