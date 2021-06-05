@@ -19,13 +19,13 @@ export function initializeBrusher(b) {
                           .style("opacity", 0);
 }
 
-export function addSplotEventListener(dom, b, status, updateExecutor) {
-  dom.addEventListener("mouseover", function( ) { splotMouseover(brusher);        });
-  dom.addEventListener("mousemove", function(e) { splotMousemove(brusher, b, e);  });
-  dom.addEventListener("mouseout" , function( ) { splotMouseout (brusher);        });
+export function addSplotEventListener(dom, b, status) {
+  dom.addEventListener("mouseover", function( ) { splotMouseover(brusher);         });
+  dom.addEventListener("mousemove", function(e) { splotMousemove(brusher, b, e);   });
+  dom.addEventListener("mouseout" , function( ) { splotMouseout (brusher);         });
   dom.addEventListener("mousedown", function( ) { splotMousedown(brusher, status); });
-  dom.addEventListener("mouseup"  , function( ) { splotMouseup  (brusher, status) });
-  dom.addEventListener("wheel"    , function(e) { splotWheel    (brusher, b, e); })
+  dom.addEventListener("mouseup"  , function( ) { splotMouseup  (brusher, status)  });
+  dom.addEventListener("wheel"    , function(e) { splotWheel    (brusher, b, e);   });
 }
 
 export function documentEventListener(status) {
@@ -46,6 +46,7 @@ function splotMousemove(brusher, b, e) {
 }
 
 function splotMouseout(brusher) {
+  // flag.mouseout = true;
   brusher.transition()
          .duration(300)
          .style("opacity", 0);

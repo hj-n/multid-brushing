@@ -43,7 +43,7 @@ const Brushing = (props) => {
         step: Step.NOTBRUSHING 
     }; 
     const updateExecutor = { pos: null, sim: null, brush: null };            //  animation executor
-    const flag = { loaded: false, posUpdating: false, brushing: false};
+    const flag = { loaded: false, posUpdating: false, brushing: false, mouseout: true };
     
     // CONSTANT Paremeters for position update query
     const scale4offset = 100;
@@ -116,14 +116,18 @@ const Brushing = (props) => {
     /* NOTE Brusher / Brushed Area Interaction Setting */
     useEffect(() => {        
         initializeBrusher(b);
-        addSplotEventListener(splotRef.current, b, status, updateExecutor);
+        addSplotEventListener(splotRef.current, b, status);
         documentEventListener(status);
         initializeBrushedArea(props.size);
     }, []);
 
     /*  NOTE Interaction Executors */ 
     function initiateSimExecutorInterval() {
+        if (flag.mouseout) return;
+        if (status.click) return;
+        if (flag.posUpdating) return;
         updateExecutor.sim = setInterval(async () => {
+            if (status.click) { clearInterval(updateExecutor.sim);}
             if (flag.posUpdating) return;
             const mouseoverPoints   = getMouseoverPoints(b, props.size, emb);
             const [consideringPoints, _, __] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
@@ -144,7 +148,7 @@ const Brushing = (props) => {
             );
         }, simUpdateDuration * 2)
 
-        updateExecutor.sim = null;
+        // updateExecutor.sim = null;
     }
 
     function initiatePosExecutorTimeout() {
@@ -199,12 +203,13 @@ const Brushing = (props) => {
 
     function initiateBrushing() {
         status.step = Step.BRUSHING;
-        clearInterval(updateExecutor.sim); updateExecutor.sim = null;
+        clearInterval(updateExecutor.sim);
         clearTimeout(updateExecutor.pos);  updateExecutor.pos = null;
 
 
         function maintainBrushingExecutor () {
             if (!status.click) return;
+            clearInterval(updateExecutor.sim);  // updateExecutor.sim = null;
 
             const start = Date.now();
 
@@ -237,6 +242,7 @@ const Brushing = (props) => {
                         console.log(checkTime)
                         maintainBrushingExecutor();
                     }, checkTime * 0.5);
+                    return;
                 })();
                 // maintainBrushingExecutor();
             }
@@ -247,14 +253,15 @@ const Brushing = (props) => {
                         flag, status, colors, density, pointLen, radius, border, positionDuration * 0.5, 
                         currSelections, [], currSelectionNum, sim
                     );
+                    maintainBrushingExecutor();
                 })();
                 return;
             }
         }
+        if (updateExecutor.brush === null)
         updateExecutor.brush =  setTimeout(() => {
             maintainBrushingExecutor();
-            // updateExecutor.brush = setInterval(maintainBrushingExecutor(), positionDuration)
-        }, simUpdateDuration);
+           }, simUpdateDuration);
         
     }
 
@@ -264,38 +271,29 @@ const Brushing = (props) => {
             cancelPosInitialization();
         }
         clearTimeout(updateExecutor.brush);
+        updateExecutor.brush = null;
         eraseBrushedArea(positionDuration);
-        initiateSimExecutorInterval();
-
-
-        const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum);
+        console.log("SIm executor run!!")
         
-        // flag.posUpdating = true;
-        // setTimeout(() => {
-           
-        // //    restoreIdx(url, flag, restoringIdx);
-
-        // //    updatePosition(status, restoringEmb, positionDuration * 0.5);
-        // //     setTimeout(() => { emb = restoringEmb; flag.posUpdating = false; initiateSimExecutorInterval()}, positionDuration * 0.5);
-        // }, checkTime);
-        
-
-
-
-
- 
+        setTimeout(() => {
+            const [restoringEmb, restoringIdx] = restoreOtherSelections(emb, originEmb, currSelections, currSelectionNum);
+            restoreIdx(url, flag, restoringIdx);
+            updatePosition(status, restoringEmb, positionDuration * 0.5);
+            setTimeout(() => { emb = restoringEmb; initiateSimExecutorInterval(); }, positionDuration * 0.5); 
+        }, checkTime);
     }
 
     useEffect(() => {
         splotRef.current.addEventListener("mouseover", () => {
             if (!flag.loaded) return;
+            flag.mouseout = false;
             if (selectionInfo[currSelectionNum] === 0) status.step = Step.SKIMMING;
             else                                       status.step = Step.BRUSHING;
             initiateSimExecutorInterval();
         });
 
         splotRef.current.addEventListener("mousemove", (e) => {
-            // console.log(status.step)
+            flag.mouseout = false;
 
             if (!flag.loaded) return;
             if (updateExecutor.sim === null && (status.step === Step.NOTBRUSHING || status.step === Step.SKIMMING))   { 
@@ -308,7 +306,7 @@ const Brushing = (props) => {
                 cancelPosInitialization();
         });
 
-        splotRef.current.addEventListener("mouseout", () => { clearExecutors(); });
+        splotRef.current.addEventListener("mouseout", () => { flag.mouseout = true; clearExecutors(); });
         splotRef.current.addEventListener("mousedown", () => { initiateBrushing(); });
         splotRef.current.addEventListener("mouseup", () => { clearBrushing(); });
 
