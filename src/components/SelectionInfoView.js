@@ -23,11 +23,13 @@ const SelectionInfoView = forwardRef((props, ref) => {
       <SelectionInfoBarChart
         width={props.width}
         margin={props.margin}
+        colors={props.colors.slice(1)}
         ref={selectionInfoBarChartRef}
       />
       <SelectionInfoMatrix
         width={props.width}
         margin={props.margin}
+        color={"blue"}
         ref={selectionInfoMatrixRef}
       />
     </div>

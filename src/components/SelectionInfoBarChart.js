@@ -10,6 +10,7 @@ const SelectionInfoBarChart = forwardRef((props, ref) => {
   const updateBarChart = (selectionInfo, duration) => {
     // TODO
     // console.log("UPDATE BAR CHART", selectionInfo, duration);
+    // console.log(props.colors)
     
   }
 
