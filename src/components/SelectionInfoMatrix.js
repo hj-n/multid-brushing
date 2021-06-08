@@ -1,5 +1,6 @@
+import { rangeTransformDependencies } from 'mathjs';
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { scatterplotStyle } from '../helpers/styles'
+import { scatterplotStyle } from '../helpers/styles';
 
 const SelectionInfoMatrix = forwardRef((props, ref) => {
 
@@ -9,7 +10,46 @@ const SelectionInfoMatrix = forwardRef((props, ref) => {
 
   const updateMatrix = (matrixInfo, duration) => {
     // TODO  
-    // console.log("UPDATE MATRIX", matrixInfo, duration);
+    //console.log("UPDATE MATRIX", matrixInfo[0][0], duration);
+    var d3 = require("d3");
+    let svg = d3.select('svg#selectionInfoMatrix');
+    var margin = 20;// = props.margin;
+    var height = props.width + margin;
+    var length = matrixInfo.length;
+    let x = d3.scaleBand()
+              .domain([...Array(length).keys()])
+              .range([margin, props.width - margin])
+              .padding(0.2);
+
+    let y = d3.scaleBand()
+              .domain([...Array(length).keys()])
+              .range([height - margin, margin])
+              .padding(0.2);
+    function make_data(d){
+      let result = [];
+      d.forEach((d1, i1) => d1.forEach((d2, i2) => result.push({col : i1, row : i2, val : d2})));
+      return result;
+    }
+    let matrix_data = make_data(matrixInfo);
+    svg.selectAll('rect').data(matrix_data, d => {return d.col+':'+d.row})
+        .join(
+          enter => enter.append('rect')
+                        .attr("x", d => x(d.col))
+                        .attr("y", d => y(d.row))
+                        .attr('width', x.bandwidth())
+                        .attr('height', y.bandwidth())
+                        .style('fill', props.color)
+                        .style('opacity', 0)
+                        .call(enter => enter.transition()
+                                              .duration(1200)
+                                              .style('opacity', d => d)),
+          update => update.call(update => update.transition()
+                                                  .duration(1200)
+                                                  .attr("x", d => x(d.col))
+                                                  .attr("y", d => y(d.row))
+                                                  .attr('width', x.bandwidth())
+                                                  .attr('height', y.bandwidth())
+                                                  .style('opacity', d => d)));
 
   }
 
