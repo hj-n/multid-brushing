@@ -154,7 +154,7 @@ const Brushing = (props) => {
         ); 
     }
 
-    /* NOTE SCATTERPLOT Initialization */
+    /* NOTE SCATTERPLOT / TRACE Initialization */
     useEffect(async () => {
         await axios.get(url + "init", initialSplotAxiosParam(dataset, method, sample_rate)).then(response => {
             emb        = response.data.emb;
@@ -166,6 +166,7 @@ const Brushing = (props) => {
             prevSelections = new Array(pointLen).fill(0);
         })
         initialSplotRendering(emb, density, pointLen, radius, border, splotRef);
+        initializeTrace(pointLen, traceRef.current);
         flag.loaded = true;
     }, [props, splotRef])
 
@@ -177,11 +178,7 @@ const Brushing = (props) => {
         initializeBrushedArea(props.size);
     }, []);
 
-    /* NOTE Trace Initialization */
-    useEffect(() => {
-        // Trace(pointLen, traceRef.current);
-        initializeTrace(pointLen, traceRef.current);
-    });
+   
 
     /*  NOTE Interaction Executors */ 
     function initiateSimExecutorInterval() {
@@ -319,6 +316,7 @@ const Brushing = (props) => {
                         newEmb, status, colors, density, pointLen, radius, border, checkTime * 0.5, 
                         currSelections, mouseoverPoints, currSelectionNum, sim
                     )
+                    activateTrace(emb, newEmb, pointsFromOutside, checkTime * 0.5);
                     updateBrushedArea(contour, offsettedContour, checkTime * 0.5);
                     setTimeout(() => { emb = newEmb; }, checkTime * 0.5);
                     setTimeout(() => { 

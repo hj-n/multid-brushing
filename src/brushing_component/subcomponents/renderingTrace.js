@@ -10,6 +10,7 @@ export function initializeTrace(pointLen, dom) {
 export function activateTrace(
 	emb, newEmb, pointsFromOutside, augmentTime
 ) {
+	// console.log(emb, newEmb)
 	const startTime = Date.now();
 	trace.updateLineData(emb, newEmb, pointsFromOutside, augmentTime, startTime)
 }
