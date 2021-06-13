@@ -9,6 +9,7 @@ import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
 import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx, updateEmbDiff } from "./subcomponents/serverDataManagement";
 import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos, getHoveringSelections } from "./subcomponents/selectionManagement";
 import { initialProjectionExecutor } from "./subcomponents/showPrevProjections"
+import { initializeTrace } from "./subcomponents/renderingTrace";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
@@ -77,6 +78,9 @@ const Brushing = (props) => {
     const simUpdateDuration = simUpdateInterval * 0.35;
     const positionUpdateWaitingTime = 600;
     const positionDuration = 600;
+
+    // CONSTANT Trace Management
+    const traceRef = useRef(null);
 
     /* CONSTANT Functions for adjusting constant parameters */
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
@@ -172,6 +176,12 @@ const Brushing = (props) => {
         documentEventListener(status);
         initializeBrushedArea(props.size);
     }, []);
+
+    /* NOTE Trace Initialization */
+    useEffect(() => {
+        // Trace(pointLen, traceRef.current);
+        initializeTrace(pointLen, traceRef.current);
+    });
 
     /*  NOTE Interaction Executors */ 
     function initiateSimExecutorInterval() {
@@ -468,6 +478,12 @@ const Brushing = (props) => {
                     width={props.size * 4}
                     height={props.size * 4}
                     style={scatterplotStyle(props.size)}
+                />
+                <canvas 
+                    ref={traceRef}
+                    width={props.size * 4}
+                    height={props.size * 4}
+                    style={Object.assign({}, { pointerEvents: "none" }, scatterplotStyle(props.size))}
                 />
                 <svg
                     id={"brusherSvg"}
