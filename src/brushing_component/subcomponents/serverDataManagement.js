@@ -78,7 +78,7 @@ export async function getUpdatedPosition(
   simThreshold
 ) {
   const newEmb = []
-  let contour, offsettedContour;
+  let contour, offsettedContour, pointsFromOutside;
   emb.forEach((d, i) => { newEmb.push([d[0], d[1]]); });
   await axios.get(
     url + "positionupdate", 
@@ -94,7 +94,8 @@ export async function getUpdatedPosition(
     });
     contour = response.data.contour;
     offsettedContour = response.data.contour_offsetted;
+    pointsFromOutside = response.data.points_from_outside;
   })
-  return [newEmb, contour, offsettedContour];
+  return [newEmb, contour, offsettedContour, pointsFromOutside];
   
 }

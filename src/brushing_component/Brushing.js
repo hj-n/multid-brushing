@@ -9,7 +9,7 @@ import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
 import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx, updateEmbDiff } from "./subcomponents/serverDataManagement";
 import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos, getHoveringSelections } from "./subcomponents/selectionManagement";
 import { initialProjectionExecutor } from "./subcomponents/showPrevProjections"
-import { initializeTrace } from "./subcomponents/renderingTrace";
+import { initializeTrace, activateTrace } from "./subcomponents/renderingTrace";
 
 import { scatterplotStyle, widthMarginStyle, sizeMarginStyle } from "../helpers/styles";
 import { initialSplotAxiosParam } from '../helpers/axiosHandler';
@@ -238,12 +238,13 @@ const Brushing = (props) => {
                 mouseoverPoints.length === consideringPoints.length)
             ) {
                 status.step = Step.INITIALIZING; // should be fixed after adding brushing functionality
-                const [newEmb, contour, offsettedContour] = await getUpdatedPosition (
+                const [newEmb, contour, offsettedContour, pointsFromOutside] = await getUpdatedPosition (
                     url, emb, consideringPoints, prevSelectedPoints, resolution,
                     scale4offset, offset, kdeThreshold, simThreshold
                 );
                 if (status.click) { return; }
                 updatePosition(status, newEmb, positionDuration);
+                activateTrace(emb, newEmb, pointsFromOutside, positionDuration);
                 updateBrushedArea(contour, offsettedContour, positionDuration);
                 emb = newEmb;
             }
@@ -309,7 +310,7 @@ const Brushing = (props) => {
                     props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, checkTime * 0.5);
                     mouseoverPoints = getMouseoverPoints(b, props.size, emb);
                     [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
-                    const [newEmb, contour, offsettedContour] = await getUpdatedPosition (
+                    const [newEmb, contour, offsettedContour, pointsFromOutside] = await getUpdatedPosition (
                         url, emb, consideringPoints, prevSelectedPoints, resolution,
                         scale4offset, offset, kdeThreshold, simThreshold
                     );
