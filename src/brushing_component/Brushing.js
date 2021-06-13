@@ -480,8 +480,8 @@ const Brushing = (props) => {
                 />
                 <canvas 
                     ref={traceRef}
-                    width={props.size * 4}
-                    height={props.size * 4}
+                    width={props.size * 0.75}
+                    height={props.size * 0.75}
                     style={Object.assign({}, { pointerEvents: "none" }, scatterplotStyle(props.size))}
                 />
                 <svg

@@ -26,7 +26,7 @@ export class Trace {
 		// Metadata
 		this.dom = dom;
 		this.maintainTime = 200;
-		this.diminishTime = 500;
+		this.diminishTime = 700;
 		this.width = 0.1;
 		this.color = [255, 0, 0]
 
@@ -60,7 +60,7 @@ export class Trace {
 			
 				void main() {
 					if (isDrawing == 1.0) {
-						gl_FragColor = vec4(fragColor, 0.5);
+						gl_FragColor = vec4(fragColor, 0.6);
 					}
 					else {
 						discard;
@@ -145,8 +145,9 @@ export class Trace {
 	}
 
 	updateLineData(emb, newEmb, pointsFromOutside, augmentTime, startTime) {
-		// console.log(this.linePositions)
 		startTime = startTime % 360000;
+
+		const ratio = 0.04;
 		pointsFromOutside.forEach(idx => {
 			this.linePositions[idx * 2][0] = emb[idx][0];
 			this.linePositions[idx * 2][1] = emb[idx][1];
@@ -157,14 +158,22 @@ export class Trace {
 			this.lineDirections[idx * 2][1] = newEmb[idx][1] - emb[idx][1]; 
 			this.lineDirections[idx * 2 + 1][0] = newEmb[idx][0] - emb[idx][0];
 			this.lineDirections[idx * 2 + 1][1] = newEmb[idx][1] - emb[idx][1]; 
+
+			this.linePositions[idx * 2][0] += this.lineDirections[idx * 2][0] * ratio;
+			this.linePositions[idx * 2][1] += this.lineDirections[idx * 2][1] * ratio;
+			this.linePositions[idx * 2 + 1][0]   -= this.lineDirections[idx * 2 + 1][0] * ratio;
+			this.linePositions[idx * 2 + 1][1]   -= this.lineDirections[idx * 2 + 1][1] * ratio;
 			
+			this.lineDirections[idx * 2][0] *= (1 - ratio * 2);
+			this.lineDirections[idx * 2][1] *= (1 - ratio * 2);
+			this.lineDirections[idx * 2 + 1][0] *= (1 - ratio * 2);
+			this.lineDirections[idx * 2 + 1][1] *= (1 - ratio * 2);
+
 			this.startTimeList[idx * 2] = startTime;
 			this.startTimeList[idx * 2 + 1] = startTime;
 			this.augmentTimeList[idx * 2] = augmentTime;
 			this.augmentTimeList[idx * 2 + 1] = augmentTime;
 
 		});
-		console.log(this.augmentTimeList);
-		console.log(startTime);
 	}
 }
