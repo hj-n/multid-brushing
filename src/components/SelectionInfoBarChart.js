@@ -14,7 +14,7 @@ const SelectionInfoBarChart = forwardRef((props, ref) => {
     // console.log("UPDATE BAR CHART", selectionInfo, duration);
     var d3 = require("d3");
     let svg = d3.select('svg#selectionInfoBarChart');
-    var margin = 20;// = props.margin;
+    var margin = 30;// = props.margin;
     var height = props.width + margin;
     let x = d3.scaleBand()
         .domain([...Array(selectionInfo.length).keys()])
