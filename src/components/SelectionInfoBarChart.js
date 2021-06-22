@@ -17,7 +17,7 @@ const SelectionInfoBarChart = forwardRef((props, ref) => {
     var margin = 30;// = props.margin;
     var height = props.width + margin;
     let x = d3.scaleBand()
-        .domain([...Array(selectionInfo.length).keys()])
+        .domain([...Array(selectionInfo.length).keys()].map(n => n + 1))
         .range([margin, props.width - margin])
         .padding(0.2);
     let y = d3.scaleLinear()
@@ -30,7 +30,7 @@ const SelectionInfoBarChart = forwardRef((props, ref) => {
     }else {
       svg.select('g.xbar')
           .transition()
-          .duration(1200)
+          .duration(duration)
           .attr("transform", `translate(0, ${height - margin})`)
           .call(d3.axisBottom(x));
     }
@@ -41,7 +41,7 @@ const SelectionInfoBarChart = forwardRef((props, ref) => {
     }else {
       svg.select('g.ybar')
           .transition()
-          .duration(1200)
+          .duration(duration)
           .attr("transform", `translate(${margin}, 0)`)
           .call(d3.axisLeft(y));
     }
@@ -49,18 +49,15 @@ const SelectionInfoBarChart = forwardRef((props, ref) => {
     svg.selectAll('rect').data(selectionInfo)
         .join(
           enter => enter.append('rect')
-                        .attr("x", (d, i) => x(i))
+                        .attr("x", (d, i) => x(i + 1))
                         .attr("y", d => y(d))
                         .attr('width', x.bandwidth())
                         .attr('height', d => height - margin - y(d))
                         .style('fill', (d, i) => {return `rgb(${props.colors[i][0]}, ${props.colors[i][1]}, ${props.colors[i][2]})`})
-                        .style('opacity', 0)
-                        .call(enter => enter.transition()
-                                              .duration(1200)
-                                              .style('opacity', 1)),
+                        .style('opacity', 1),
           update => update.call(update => update.transition()
-                                                  .duration(1200)
-                                                  .attr("x", (d, i) => x(i))
+                                                  .duration(duration)
+                                                  .attr("x", (d, i) => x(i + 1))
                                                   .attr("y", d => y(d))
                                                   .attr('width', x.bandwidth())
                                                   .attr('height', d => height - margin - y(d))));

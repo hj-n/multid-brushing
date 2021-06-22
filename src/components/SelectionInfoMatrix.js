@@ -17,45 +17,44 @@ const SelectionInfoMatrix = forwardRef((props, ref) => {
     var height = props.width;
     var length = matrixInfo.length;
     let x = d3.scaleBand()
-              .domain([...Array(length).keys()])
-              .range([margin, props.width - margin])
-              .padding(0.2);
+              .domain([...Array(length).keys()].map(n => n + 1))
+              .range([margin, props.width - margin]);
 
     let y = d3.scaleBand()
-              .domain([...Array(length).keys()])
-              .range([height - margin, margin])
-              .padding(0.2);
+              .domain([...Array(length).keys()].map(n => n + 1))
+              .range([margin, height - margin]);
 
     if(svg.selectAll('g.xbar').empty()){
       svg.append('g').attr('class', 'xbar')
-          .attr("transform", `translate(0, ${height - margin})`)
-          .call(d3.axisBottom(x));
+          .attr("transform", `translate(0, ${margin})`)
+          .call(d3.axisTop(x))
+          .call(g => g.select(".domain").attr('stroke-width', 0));
     }else {
       svg.select('g.xbar')
           .transition()
-          .duration(1200)
-          .attr("transform", `translate(0, ${height - margin})`)
-          .call(d3.axisBottom(x));
+          .duration(duration)
+          .call(d3.axisTop(x));
     }
     if(svg.selectAll('g.ybar').empty()){
       svg.append('g').attr('class', 'ybar')
           .attr("transform", `translate(${margin}, 0)`)
-          .call(d3.axisLeft(y));
+          .call(d3.axisLeft(y))
+          .call(g => g.select(".domain").attr('stroke-width', 0));
     }else {
       svg.select('g.ybar')
           .transition()
-          .duration(1200)
-          .attr("transform", `translate(${margin}, 0)`)
+          .duration(duration)
           .call(d3.axisLeft(y));
     }
 
-              
     function make_data(data){
       let result = [];
       var max = d3.max(data, d => d3.max(d));
-      data.forEach((d1, i1) => d1.forEach((d2, i2) => result.push({col : i1, row : i2, val : d2 / max})));
+      if(max == 0) max = 1;
+      data.forEach((d1, i1) => d1.forEach((d2, i2) => result.push({col : i1 + 1, row : i2 + 1, val : d2 / max})));
       return result;
     }
+
     let matrix_data = make_data(matrixInfo);
     svg.selectAll('rect').data(matrix_data, d => {return d.col+':'+d.row})
         .join(
@@ -65,12 +64,9 @@ const SelectionInfoMatrix = forwardRef((props, ref) => {
                         .attr('width', x.bandwidth())
                         .attr('height', y.bandwidth())
                         .style('fill', props.color)
-                        .style('opacity', 0)
-                        .call(enter => enter.transition()
-                                              .duration(1200)
-                                              .style('opacity', d => d.val)),
+                        .style('opacity', d => d.val),
           update => update.call(update => update.transition()
-                                                  .duration(1200)
+                                                  .duration(duration)
                                                   .attr("x", d => x(d.col))
                                                   .attr("y", d => y(d.row))
                                                   .attr('width', x.bandwidth())
