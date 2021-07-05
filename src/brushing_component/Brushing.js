@@ -128,7 +128,7 @@ const Brushing = (props) => {
         addSpaceToSelectionInfos(selectionInfo, overwritedSelectionInfo);
         currSelectionNum = selectionInfo.length - 1;
         prevSelections = deepcopyArr(currSelections);
-        props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, positionDuration);
+        props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, currSelections, positionDuration);
         updateSim(
             status, colors, density, pointLen, radius, border, 0, 
             currSelections, [], currSelectionNum, null
@@ -304,7 +304,7 @@ const Brushing = (props) => {
                 (async () => {
                     updateSelectionInfo(status, mouseoverPoints, prevSelections, currSelections, currSelectionNum, selectionInfo, overwritedSelectionInfo);
                     updateSelectionText(selectionStatusDiv, selectionInfo);
-                    props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, checkTime * 0.5);
+                    props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, currSelections, checkTime * 0.5);
                     mouseoverPoints = getMouseoverPoints(b, props.size, emb);
                     [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
                     const [newEmb, contour, offsettedContour, pointsFromOutside] = await getUpdatedPosition (
