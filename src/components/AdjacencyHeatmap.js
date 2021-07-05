@@ -2,6 +2,8 @@ import React, { forwardRef, useEffect, useImperativeHandle } from "react";
 
 import axios from 'axios';
 
+import { Heatmap } from "./heatmap";
+
 
 const AdjacencyHeatmap = forwardRef((props, ref) => {
 
