@@ -7,17 +7,21 @@
 
 /**
  * INITIALIZATION
- * const heatmap = new Heatmap (data, dom)
+ * const heatmap = new Heatmap (data, resolution, dom)
  * "data" parameter should hold the initial information of the scatterplot
  * "dom" paramter should hold the dom element where the scatterplot will be rendered
  *
  * UPDATE
- * 
+ * heatmap.update(data, duration ,delay)
+ * * note that "duration" and "delay" should be given as millisecond
+ * data: {
+ *   pixelValue: ~~ each element is vec3 (each value denotes to r,g,b, respectively) (length: n * n)
+ * }
  */
 
 export class Heatmap {
-  constructor (data, dom) {
-    this.resolution = data.resolution;
+  constructor (data, resolution, dom) {
+    this.resolution = resolution;
     this.pixelValue = [].concat(...data.pixelValue);
     this.dom = dom;
 
