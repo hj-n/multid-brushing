@@ -24,7 +24,7 @@ export class Heatmap {
     this.resolution = resolution;
     this.pixelValue = [].concat(...data.pixelValue);
     this.dom = dom;
-
+    
     this.pixelSize = this.dom.offsetWidth / this.resolution;
 
     this.yIndex = [];
@@ -68,17 +68,17 @@ export class Heatmap {
       frag: `
         precision highp float;
 
-        varying float fragColor;
+        varying vec3 fragColor;
 
         void main() {
-          gl_FragColor = vec4(1.0 - fragColor, 1, 1, 1);
+          gl_FragColor = vec4(fragColor, 1);
         }
       `,
       vert: `
-        attribute float pixelValue;
+        attribute vec3 pixelValue;
         attribute float x, y;
 
-        varying float fragColor;
+        varying vec3 fragColor;
 
         uniform float pixelSize;
         uniform float resolution;
@@ -147,18 +147,18 @@ export class Heatmap {
       frag: `
         precision highp float;
 
-        varying float fragColor;
+        varying vec3 fragColor;
 
         void main() {
-          gl_FragColor = vec4(1.0 - fragColor, 1, 1, 1);
+          gl_FragColor = vec4(fragColor, 1);
         }
       `,
       vert: `
-        attribute float startPixelValue;
-        attribute float endPixelValue;
+        attribute vec3 startPixelValue;
+        attribute vec3 endPixelValue;
         attribute float x,y;
 
-        varying float fragColor;
+        varying vec3 fragColor;
 
         uniform float pixelSize;
         uniform float delay;
