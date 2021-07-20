@@ -10,11 +10,14 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 
 	let sim_matrix;
 	let heatmap;
+	let pixel;
+	let length;
+
 	function initializeAdjHeatmap() {
 		var canvas = document.getElementById('AdjacencyHeatmap');
 		//console.log(canvas.getContext("2d"));
 		var maxRow = sim_matrix.map(function(row){return Math.max.apply(Math, row);});
-		console.log(sim_matrix);
+		//console.log(sim_matrix);
 		var max = Math.max.apply(null, maxRow);
 		
 		
@@ -26,8 +29,9 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 		// pixel[1] = green;
 		// pixel[2] = blue;
 		//console.log(pixel);
-
-		var pixel = sim_matrix.flat().map(m => [1.0 - m/max, 1.0 - m/max, 1.0 - m/max]);
+		
+		length = sim_matrix.length;
+		pixel = sim_matrix.flat().map(m => [1.0 - m/max, 1.0 - m/max, 1.0]);
 		let data = {pixelValue : [pixel]};
 		//console.log(new_matrix);
 		
@@ -35,7 +39,7 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 		//console.log(new_matrix);
 		//let new_matrix = {pixelValue : matrix.concat(matrix, matrix)};
 		
-		heatmap = new Heatmap(data, 2000, canvas);
+		heatmap = new Heatmap(data, sim_matrix.length, canvas);
 		// //heatmap = new Heatmap(data, resolution, dom);
 	}
 
@@ -44,30 +48,26 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 		//console.log(selectionInfo, currSelections, duration);
 
 		function comp(a, b){
-			let a_ = a.cluster;
-			let b_ = b.cluster;
-			if(a_ === 0){
-				a_ = selectionInfo.length;
-			}
-			if(b_ === 0){
-				b_ = selectionInfo.length;
-			}
-			return a_ - b_;
+			return a.cluster - b.cluster;
 		}
 
-		var copy_currSelections = currSelections.slice();
-		var get_index = [];
-		copy_currSelections.forEach((n, i) => get_index.push({cluster: n, index: i}));
-		get_index.sort(comp);
-		
-		var maxRow = sim_matrix.map(function(row){return Math.max.apply(Math, row);});
-		var max = Math.max.apply(null, maxRow);
-		var flat_matrix = sim_matrix.flat();
-		var reorder_matrix = []
-		get_index.forEach(n => get_index.forEach(m => reorder_matrix.push(flat_matrix[n.index*2000 + m.index])));
-		var pixel = reorder_matrix.map(m => [1.0 - m/max, 1.0 - m/max, 1.0 - m/max]);
+		// var copy_currSelections = currSelections.slice();
+		// var get_index = [];
+		// copy_currSelections.forEach((n, i) => get_index.push({cluster: n, index: i}));
 
-		let data = {pixelValue : [pixel]};
+		var get_index = [];
+		currSelections.forEach((n, i) => {
+			if(n === 0){
+				n = selectionInfo.length;
+			}
+			get_index.push({cluster: n, index: i})
+		});
+		get_index.sort(comp);
+
+
+		var reorder_pixel = []
+		get_index.forEach(n => get_index.forEach(m => reorder_pixel.push(pixel[n.index * length + m.index])));
+		let data = {pixelValue : [reorder_pixel]};
 		
 		heatmap.update(data, duration);
 	}

@@ -24,17 +24,17 @@ export class Heatmap {
     this.resolution = resolution;
     this.pixelValue = [].concat(...data.pixelValue);
     this.dom = dom;
-    
+
     this.pixelSize = this.dom.offsetWidth / this.resolution;
 
     this.yIndex = [];
     for (let i = 0; i < this.resolution; i++) 
-      this.yIndex.push(new Array(this.resolution).fill(i));
+      this.yIndex.push(new Array(this.resolution).fill(this.resolution - i));
 
     this.xIndex = [];
     for (let i = 0; i < this.resolution; i++) 
       this.xIndex.push(Array.from(new Array(this.resolution).keys()));
-    
+      
     this.currentPixelValue = this.pixelValue;
     this.isUpdating = false;
 
