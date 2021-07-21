@@ -15,32 +15,15 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 
 	function initializeAdjHeatmap() {
 		var canvas = document.getElementById('AdjacencyHeatmap');
-		//console.log(canvas.getContext("2d"));
+
 		var maxRow = sim_matrix.map(function(row){return Math.max.apply(Math, row);});
-		//console.log(sim_matrix);
 		var max = Math.max.apply(null, maxRow);
 		
-		
-		// var red = sim_matrix.map(n => n.map(m => m)).flat();
-		// var green = sim_matrix.map(n => n.map(m => 0)).flat();
-		// var blue= sim_matrix.map(n => n.map(m => m)).flat();
-		// var pixel = [];
-		// pixel[0] = red;
-		// pixel[1] = green;
-		// pixel[2] = blue;
-		//console.log(pixel);
-		
 		length = sim_matrix.length;
-		pixel = sim_matrix.flat().map(m => [1.0 - m/max, 1.0 - m/max, 1.0]);
+		pixel = sim_matrix.flat().map(m => [1.0, 1.0 - m/max, 1.0 - m/max]);
 		let data = {pixelValue : [pixel]};
-		//console.log(new_matrix);
-		
-		//let new_matrix = {pixelValue : matrix.concat(sim_matrix, matrix)};
-		//console.log(new_matrix);
-		//let new_matrix = {pixelValue : matrix.concat(matrix, matrix)};
-		
+
 		heatmap = new Heatmap(data, sim_matrix.length, canvas);
-		// //heatmap = new Heatmap(data, resolution, dom);
 	}
 
 	function updateAdjHeatmap(selectionInfo, currSelections, duration) {
@@ -50,11 +33,7 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 		function comp(a, b){
 			return a.cluster - b.cluster;
 		}
-
-		// var copy_currSelections = currSelections.slice();
-		// var get_index = [];
-		// copy_currSelections.forEach((n, i) => get_index.push({cluster: n, index: i}));
-
+		
 		var get_index = [];
 		currSelections.forEach((n, i) => {
 			if(n === 0){
