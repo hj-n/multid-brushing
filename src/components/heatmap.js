@@ -4,6 +4,8 @@
  * Update each pixel's color based on linear color scale
  */
 
+import { ConditionalNodeDependencies, index } from 'mathjs';
+
 
 /**
  * INITIALIZATION
@@ -20,44 +22,70 @@
  */
 
 export class Heatmap {
-  constructor (data, resolution, dom) {
+  constructor (data, resolution, dom, background) {
     this.resolution = resolution;
     this.pixelValue = [].concat(...data.pixelValue);
     this.dom = dom;
 
-    this.pixelSize = this.dom.offsetWidth / this.resolution;
-
+    this.pixelSize = this.dom.width / this.resolution;
+    console.log(this.dom.width);
     this.yIndex = [];
     for (let i = 0; i < this.resolution; i++) 
-      this.yIndex.push(new Array(this.resolution).fill(this.resolution - i));
+      this.yIndex.push(new Array(this.resolution).fill(i));
 
     this.xIndex = [];
     for (let i = 0; i < this.resolution; i++) 
       this.xIndex.push(Array.from(new Array(this.resolution).keys()));
-      
-    this.currentPixelValue = this.pixelValue;
-    this.isUpdating = false;
+   
+    // this.yIndex = [];
+    // for (let i = 0; i < this.resolution; i++) 
+    //   this.yIndex.push(new Array(this.resolution).fill(2.0 * ( (0.5 - i) / this.resolution) + 1.0));
 
+    // this.xIndex = [];
+    // for (let i = 0; i < this.resolution; i++) 
+    //   this.xIndex.push(Array.from([...Array(this.resolution).keys()].map(m => 2.0 * ( (m + 0.5) / this.resolution) - 1.0)));
+    
+    this.isUpdating = false;
+    
     let gl = this.dom.getContext("webgl");
     this.regl = require('regl')(gl);
-
-    let frameLoop = this.regl.frame(() => {
-      
-      this.regl.clear({
-        color: [255, 255, 255, 0],
-        depth: 1,
-      });
-
-      const initializeHmap = this.initializeCommand();
-      initializeHmap({ 
-        pixelSize: this.pixelSize, 
-        resolution: this.resolution
-      });
-
-      if (frameLoop) {
-        frameLoop.cancel();
+    
+    if(background){
+      this.updateIndex = [];
+      for(let i = 0; i < this.resolution; i++){
+        for(let j = 0; j < this.resolution; j++){
+          this.updateIndex.push([i, j]);
+        }
       }
-    });
+      this.updateValue = [...Array(this.resolution * this.resolution).keys()];
+
+      let frameLoop = this.regl.frame(() => {
+        
+        this.regl.clear({
+          color: [0, 0, 0, 0],
+          depth: 1,
+        });
+        const initializeHmap = this.initializeCommand();
+        initializeHmap({ 
+          pixelSize: this.pixelSize, 
+          resolution: this.resolution
+        });
+        
+
+        if (frameLoop) {
+          frameLoop.cancel();
+        }
+      });
+    }
+    else{
+      this.updatePixel = [...Array(this.resolution * this.resolution)].fill(-1);
+      this.updateValue = []
+      this.updateIndex = [];
+      this.currentIndex = [];
+      for(let i = 0; i < this.resolution; i++){
+        this.currentIndex.push(i);
+      }
+    }
 
   }
 
@@ -68,24 +96,24 @@ export class Heatmap {
       frag: `
         precision highp float;
 
-        varying vec3 fragColor;
+        varying float fragColor;
 
         void main() {
-          gl_FragColor = vec4(fragColor, 1);
+          gl_FragColor = vec4(1.0, fragColor, fragColor, 1.0);
         }
       `,
       vert: `
-        attribute vec3 pixelValue;
+        attribute float pixelValue;
         attribute float x, y;
 
-        varying vec3 fragColor;
+        varying float fragColor;
 
         uniform float pixelSize;
         uniform float resolution;
 
         void main() {
           gl_PointSize = pixelSize;
-          gl_Position = vec4(2.0 * ( (x + 0.5) / resolution) - 1.0, 2.0 * ( (y + 0.5) / resolution) - 1.0, 0, 1);
+          gl_Position = vec4(2.0 * ( (x + 0.5) / resolution) - 1.0, 2.0 * ( (- 0.5 - y) / resolution) + 1.0, 0, 1);
 
           fragColor = pixelValue;
         }
@@ -105,23 +133,65 @@ export class Heatmap {
   }
 
   // update heatmap
-  update(data, duration=0, delay=0) {
-    let newPixelValue = [].concat(...data.pixelValue);
+  update(index, background, duration=0, clear=0, delay=0) {
+    let start = new Date();
+    let newIndex = [].concat(...index.pixelIndex);
+    if(background){
+      this.updatePixel = [];
+		  newIndex.forEach(n => newIndex.forEach(m => {
+        this.updatePixel.push(this.pixelValue[m * this.resolution + n])
+      }));
+    }else{
+      if(clear == 1){
+        this.updateIndex = [];
+        this.updateValue = [];
+        this.updatePixel = [...Array(this.resolution * this.resolution)].fill(-1);
+        this.currentIndex = newIndex;
+      }
+      for(let i = 0; i < this.resolution; i++){
+        let c_i = newIndex[i];
+        if(this.currentIndex[i] != c_i){
+          //heatmap 바꾸기 -> i의 위치에 c_get_index[i]의 색깔.
+          for(let j = 0; j < this.resolution; j++){
+            let c_j = newIndex[j];
+            let color = this.pixelValue[c_i * this.resolution + c_j];
 
+            if(this.updatePixel[i * this.resolution + j] == -1){
+              this.updateIndex.push([i, j]);
+              this.updateIndex.push([j, i]);
+              this.updateValue.push(i * this.resolution + j);
+              this.updateValue.push(i * this.resolution + j);
+            }
+            this.updatePixel[i * this.resolution + j] = color;
+            this.updatePixel[j * this.resolution + i] = color;
+          }
+        }
+      }
+      this.currentIndex = newIndex;
+    }
+
+    let p_value = [];
+    let i = 0;
+    while(i < this.updateValue.length){
+      p_value.push(this.updatePixel[this.updateValue[i]]);
+      i++;
+    }
+
+    let start2 = new Date();
     if (this.isUpdating) return;
     else this.isUpdating = true;
 
     let startTime = null;
 
-    const updateHmap = this.updateCommand(newPixelValue);
-
+    const updateHmap = this.updateCommand(p_value);
+    let start3 = new Date();
     let frameLoop = this.regl.frame(({time}) => {
       if (startTime === null) {
         startTime = time;
       }
 
       this.regl.clear({
-        color: [255, 255, 255, 0],
+        color: [0, 0, 0, 0],
         depth: 1,
       });
 
@@ -134,31 +204,30 @@ export class Heatmap {
 
       if (time - startTime > (duration + delay) / 1000) {
         frameLoop.cancel();
-        this.currentPixelValue = newPixelValue;
         this.isUpdating = false;
       }
     });
-
+    let end = new Date();
+    console.log(start2 - start, end - start2, end - start3);
   }
 
   // REGL command for updating heatmap
-  updateCommand(newPixelValue) {
+  updateCommand(p_value) {
     return this.regl({
       frag: `
         precision highp float;
 
-        varying vec3 fragColor;
+        varying float fragColor;
 
         void main() {
-          gl_FragColor = vec4(fragColor, 1);
+          gl_FragColor = vec4(1.0, fragColor, fragColor, 1.0);
         }
       `,
       vert: `
-        attribute vec3 startPixelValue;
-        attribute vec3 endPixelValue;
-        attribute float x,y;
+        attribute float endPixelValue;
+        attribute vec2 index;
 
-        varying vec3 fragColor;
+        varying float fragColor;
 
         uniform float pixelSize;
         uniform float delay;
@@ -166,34 +235,16 @@ export class Heatmap {
         uniform float elapsed;
         uniform float resolution;
 
-        float easeCubicInOut(float t) {
-          t *= 2.0;
-          t = (t <= 1.0 ? t * t * t : (t -= 2.0) * t * t + 2.0) / 2.0;
-
-          if (t > 1.0) {
-            t = 1.0;
-          }
-          return t;
-        }
-
         void main() {
-          float t;
-          if (duration == 0.0 && delay == 0.0) t = 1.0;
-          else if (elapsed < delay) t = 0.0;
-          else                      t = easeCubicInOut((elapsed - delay) / duration);
-
           gl_PointSize = pixelSize;
-          gl_Position = vec4(2.0 * ( (x + 0.5) / resolution) - 1.0, 2.0 * ( (y + 0.5) / resolution) - 1.0, 0, 1);
+          gl_Position = vec4(2.0 * ( (index.x + 0.5) / resolution) - 1.0, 2.0 * ( (- 0.5 - index.y) / resolution) + 1.0, 0, 1);
 
-          fragColor = mix(startPixelValue, endPixelValue, t);
-
+          fragColor = endPixelValue;
         }
       `,
       attributes: {
-        startPixelValue: this.currentPixelValue,
-        endPixelValue: newPixelValue,
-        x: this.xIndex,
-        y: this.yIndex
+        endPixelValue: p_value,
+        index: this.updateIndex
       },
       uniforms: {
         pixelSize: this.regl.prop('pixelSize'),
@@ -202,7 +253,7 @@ export class Heatmap {
         duration: this.regl.prop('duration'),
         elapsed: (context, props) => (context.time - props.startTime) * 1000
       },
-      count: this.resolution * this.resolution,
+      count: this.updateIndex.length,
       primitive: 'points'
     });
   }
