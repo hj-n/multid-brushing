@@ -35,14 +35,6 @@
      this.xIndex = [];
      for (let i = 0; i < this.resolution; i++) 
        this.xIndex.push(Array.from(new Array(this.resolution).keys()));
-    
-     // this.yIndex = [];
-     // for (let i = 0; i < this.resolution; i++) 
-     //   this.yIndex.push(new Array(this.resolution).fill(2.0 * ( (0.5 - i) / this.resolution) + 1.0));
- 
-     // this.xIndex = [];
-     // for (let i = 0; i < this.resolution; i++) 
-     //   this.xIndex.push(Array.from([...Array(this.resolution).keys()].map(m => 2.0 * ( (m + 0.5) / this.resolution) - 1.0)));
      
      this.isUpdating = false;
      this.p_value = [];
@@ -169,9 +161,10 @@
         let x = this.updateIndex[i][0];
         let y = this.updateIndex[i][1];
         if(changedIndex[x] == 1 || changedIndex[y] == 1){
-          this.p_value[i] = this.pixelValue[newIndex[x] * this.resolution + newIndex[y]];
+          let color = this.pixelValue[newIndex[x] * this.resolution + newIndex[y]]
+          this.p_value[i++] = color;
+          this.p_value[i++] = color;
         }
-        i++;
       }
     }else{
       this.p_value = [];
