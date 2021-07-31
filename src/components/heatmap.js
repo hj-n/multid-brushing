@@ -132,7 +132,7 @@
        this.currentIndex = newIndex;
      }
      let start = new Date();
- 
+     
      if(!background){
        let len = this.p_value.length;
        let changedIndex;
@@ -162,9 +162,10 @@
         let y = this.updateIndex[i][1];
         if(changedIndex[x] == 1 || changedIndex[y] == 1){
           let color = this.pixelValue[newIndex[x] * this.resolution + newIndex[y]]
-          this.p_value[i++] = color;
-          this.p_value[i++] = color;
+          this.p_value[i] = color;
+          this.p_value[i + 1] = color;
         }
+        i = i + 2;
       }
     }else{
       this.p_value = [];
