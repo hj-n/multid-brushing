@@ -8,7 +8,8 @@ ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Route exact path="/" component={App}/>
-      <Route path="/:dataset/:method/:sample" component={App}/>
+      <Route exact path="/:isMatrix" component={App}/>
+      <Route path="/:isMatrix/:dataset/:method/:sample" component={App}/>
     </Router>
 
     {/* <App /> */}

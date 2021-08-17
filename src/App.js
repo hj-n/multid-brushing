@@ -14,12 +14,14 @@ function App({match}) {
   const defaultParams = {
     dataset: "mnist",
     method: "pca",
-    sample_rate: 5
+    sample_rate: 5,
+    isMatrix: true
   }
   const params = match.params;
-  const dataset     = params.dataset === undefined ? defaultParams.dataset : params.dataset;
-  const method      = params.method  === undefined ? defaultParams.method  : params.method;
-  const sample_rate = params.sample  === undefined || isNaN(parseInt(params.sample)) ? defaultParams.sample_rate  : parseInt(params.sample);
+  const dataset     = params.dataset  === undefined ? defaultParams.dataset : params.dataset;
+  const method      = params.method   === undefined ? defaultParams.method  : params.method;
+  const sample_rate = params.sample   === undefined || isNaN(parseInt(params.sample)) ? defaultParams.sample_rate  : parseInt(params.sample);
+  const isMatrix    = params.isMatrix === undefined ? defaultParams.isMatrix : params.isMatrix === "true" ? true : false;
 
   // CONSTANT Layout / Design constants
   const size = 500;
@@ -35,7 +37,8 @@ function App({match}) {
   const adjacencyHeatmapRef  = useRef();
   const getSelectionInfo = (selectionInfo, overwritedSelectionInfo, currSelections, duration) => { 
     selectionInfoViewRef.current.update(selectionInfo, overwritedSelectionInfo, duration); 
-    adjacencyHeatmapRef.current.update(selectionInfo, currSelections, duration);
+    if (isMatrix)
+      adjacencyHeatmapRef.current.update(selectionInfo, currSelections, duration);
   }
 
   return (
@@ -62,7 +65,8 @@ function App({match}) {
           margin={margin}
           colors={colors}
         />
-        <AdjacencyHeatmap
+        {isMatrix &&
+          <AdjacencyHeatmap
           ref={adjacencyHeatmapRef}
           url={PATH}
           size={size * 0.9}
@@ -72,6 +76,8 @@ function App({match}) {
           method={method}
           sample={sample_rate}
         />
+        }
+        
       </div>
     </div>
   );
