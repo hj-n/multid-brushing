@@ -6,49 +6,70 @@ import { Heatmap } from "./heatmap";
 import { ConditionalNodeDependencies } from "mathjs";
 
 
+function copyArray(originArray){
+	var index = 0, targetSize = originArray.length, targetArray = [];
+
+	for(; index < targetSize ; index++) {
+		targetArray[index] = originArray[index];
+	}
+	return targetArray;
+}
 const AdjacencyHeatmap = forwardRef((props, ref) => {
 
 	let sim_matrix;
 	let heatmap;
-	let pixel;
-	let length;
-
+	let heatmapupdate;
+	let resolution;
+	let pastSelections;
+	let get_index;
+	let select_num;
+	let cluster_num;
+	
 	function initializeAdjHeatmap() {
 		var canvas = document.getElementById('AdjacencyHeatmap');
+		var canvasupdate = document.getElementById('AdjacencyHeatmapupdate');
 
 		var maxRow = sim_matrix.map(function(row){return Math.max.apply(Math, row);});
 		var max = Math.max.apply(null, maxRow);
 		
-		length = sim_matrix.length;
-		pixel = sim_matrix.flat().map(m => [1.0, 1.0 - m/max, 1.0 - m/max]);
+		resolution = sim_matrix.length;
+		
+		let pixel = sim_matrix.flat().map(m => [1.0 - m/max]);
 		let data = {pixelValue : [pixel]};
 
-		heatmap = new Heatmap(data, sim_matrix.length, canvas);
+		heatmap = new Heatmap(data, resolution, canvas, 1);
+		heatmapupdate = new Heatmap(data, resolution, canvasupdate, 0);
+
+		pastSelections = new Array(resolution).fill(0);
+		select_num = 0;
+		get_index = [...Array(resolution).keys()];
+		cluster_num = 1;
 	}
 
 	function updateAdjHeatmap(selectionInfo, currSelections, duration) {
 		// TODO (use sim_matrix and update infos)
-		//console.log(selectionInfo, currSelections, duration);
-
-		function comp(a, b){
-			return a.cluster - b.cluster;
+		for(let i = 0; i < resolution; i++){
+			if(pastSelections[i] != currSelections[i]){
+				let index_i = get_index.indexOf(i);
+				let val = get_index[select_num];
+				get_index[select_num] = get_index[index_i];
+				get_index[index_i] = val;
+				
+				select_num++;
+			}
 		}
 		
-		var get_index = [];
-		currSelections.forEach((n, i) => {
-			if(n === 0){
-				n = selectionInfo.length;
-			}
-			get_index.push({cluster: n, index: i})
-		});
-		get_index.sort(comp);
+		pastSelections = copyArray(currSelections);
 
-
-		var reorder_pixel = []
-		get_index.forEach(n => get_index.forEach(m => reorder_pixel.push(pixel[n.index * length + m.index])));
-		let data = {pixelValue : [reorder_pixel]};
-		
-		heatmap.update(data, duration);
+		let index = {pixelIndex : get_index};
+		if(selectionInfo.length > cluster_num + 1){
+			cluster_num = selectionInfo.length - 1;
+			heatmap.update(index, 1, duration);
+			heatmapupdate.update(index, 0, duration, 1);
+		}
+		else{
+			heatmapupdate.update(index, 0, duration);
+		}
 	}
 
 	useImperativeHandle(ref, () => ({
@@ -71,39 +92,34 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 		})
 	}, []);
 	return (
-
-		<div >
-			<div style={{display: "block"}}>
-      <div style={{marginBottom: props.margin, marginTop: props.margin}}>
-        Adjacency Heatmap
-      </div>
-	<foreignObject>
-    <canvas id="AdjacencyHeatmap"
-		xmlns="http://www.w3.org/1999/xhtml" 
-		height={props.size}
-		width={props.size}
-		style={{
-			border: "1px solid black",
-			display: "block"
-		}}
-		></canvas>
-  	</foreignObject>
-	
-    </div>
+	<div>
+		<div style={{display: "block"}}>
+			<div style={{marginBottom: props.margin, marginTop: props.margin}}>
+				Adjacency Heatmap
+			</div>
+			<div style={{position: "relative"}}>
+				<canvas id="AdjacencyHeatmap"
+				height={1000}
+				width={1000}
+				style={{
+					position: "absolute",
+					border: "1px solid black",
+					display: "block"
+				}}>
+				</canvas>
+				<canvas id="AdjacencyHeatmapupdate"
+				height={1000}
+				width={1000}
+				style={{
+					position: "absolute",
+					border: "1px solid black",
+					display: "block"
+				}}>
+				</canvas>
+			</div>
 		</div>
+	</div>
 	)
 });
 
 export default AdjacencyHeatmap;
-/*
-      <svg id="AdjacencyHeatmap"
-        width={props.size}       
-        height={props.size} 
-        style={{
-          border: "1px solid black",
-          display: "block"
-        }}
-      >
-
-</svg>
-*/
