@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { similarityParam, positionUpdateParam, idxParam, embDiffParam } from "../../helpers/axiosHandler";
+import { similarityParam, positionUpdateParam, idxParam, embDiffParam, calculateMetricParam } from "../../helpers/axiosHandler";
 
 function union(a, b) {
   return new Set([...a, ...b]);
@@ -98,4 +98,11 @@ export async function getUpdatedPosition(
   })
   return [newEmb, contour, offsettedContour, pointsFromOutside];
   
+}
+
+export function calculateMetric(url, currSelections, currSelectionNum) {
+  axios.get(url + "calculatemetric", calculateMetricParam(currSelections, currSelectionNum)).then((response) => { 
+    if (!response.data === "success")
+      throw "Somethings wrong in server!!";
+  })
 }

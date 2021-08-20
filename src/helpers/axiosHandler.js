@@ -64,3 +64,12 @@ export function positionUpdateParam(
     }
   }
 }
+
+export function calculateMetricParam(currSelections, currSelectionNum) {
+  return {
+    params: {
+      clusteredlabel: { data: currSelections },
+      labelnum: currSelectionNum
+    }
+  };
+}
