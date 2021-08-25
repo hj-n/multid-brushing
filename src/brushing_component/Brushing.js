@@ -140,7 +140,7 @@ const Brushing = (props) => {
             initialProjectionButtonRef.current.disabled = true;
             prevAddSelection = addSelectionButtonRef.current.disabled;
             addSelectionButtonRef.current.disabled = true;
-            calculateMetric(url, currSelections, currSelectionNum);
+            calculateMetric(url, currSelections, currSelectionNum, dataset, method, sample_rate);
         }
         else {
             splotRef.current.style.pointerEvents = prevPointerEvents;

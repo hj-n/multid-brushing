@@ -100,8 +100,8 @@ export async function getUpdatedPosition(
   
 }
 
-export function calculateMetric(url, currSelections, currSelectionNum) {
-  axios.get(url + "calculatemetric", calculateMetricParam(currSelections, currSelectionNum)).then((response) => { 
+export function calculateMetric(url, currSelections, currSelectionNum, dataset, method, sample_rate) {
+  axios.get(url + "calculatemetric", calculateMetricParam(currSelections, currSelectionNum, dataset, method, sample_rate)).then((response) => { 
     if (!response.data === "success")
       throw "Somethings wrong in server!!";
   })
