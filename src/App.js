@@ -12,7 +12,7 @@ function App({match}) {
   // CONSTANT Parameter Settings
   const PATH = "http://127.0.0.1:5000/";
   const defaultParams = {
-    dataset: "spheres",
+    dataset: "mnist",
     method: "umap",
     sample_rate: 5,
     isMatrix: true

@@ -37,3 +37,12 @@ button.brushButtons {
   -webkit-transition: .2s;
   transition: opacity .2s;
 }
+
+.controlButtons {
+  width: 200px;
+  height: 30px;
+  float: right;
+  margin-left: 10px;
+  margin-bottom: 10px;
+  font-family: 'Raleway', sans-serif;
+}

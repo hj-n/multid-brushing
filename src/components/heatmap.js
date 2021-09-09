@@ -208,7 +208,7 @@
        }
      });
      let end = new Date();
-     console.log(start2 - start, start3 - start2, end - start3);
+     //console.log(start2 - start, start3 - start2, end - start3);
    }
  
    // REGL command for updating heatmap

@@ -6,7 +6,7 @@ import { updateSelectionButtons, updateSelectionText } from "./subcomponents/sel
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "./subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from './subcomponents/brusher';
 import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
-import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx, updateEmbDiff } from "./subcomponents/serverDataManagement";
+import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx, updateEmbDiff, calculateMetric } from "./subcomponents/serverDataManagement";
 import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos, getHoveringSelections } from "./subcomponents/selectionManagement";
 import { initialProjectionExecutor } from "./subcomponents/showPrevProjections"
 import { initializeTrace, activateTrace } from "./subcomponents/renderingTrace";
@@ -87,7 +87,11 @@ const Brushing = (props) => {
     function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
 
     /* NOTE Manaing Selection Button */
-    const addSelectionButtonRef = useRef(null)
+    const startBrushingButtonRef = useRef(null);
+    const stopBrushingButtonRef = useRef(null);
+    const addSelectionButtonRef = useRef(null);
+    const initialProjectionButtonRef = useRef(null);
+
     const updateCurrSelectionNum = (num) => {
         currSelectionNum = num;
         prevSelections = deepcopyArr(currSelections);
@@ -119,7 +123,35 @@ const Brushing = (props) => {
         updateSelectionText(selectionStatusDiv, selectionInfo);
     }, []);
 
- 
+
+
+    /* NOTE Start or Stop Brushing */
+    let prevPointerEvents = "auto";
+    let prevAddSelection = false;
+    function startstopBrushing(e) {
+        // console.log(currSelections.reduce(function add(sum, currValue) {
+        //     return sum + currValue;
+        //   }, 0), currSelections);
+        if (startBrushingButtonRef.current.disabled) {
+            prevPointerEvents = splotRef.current.style.pointerEvents;
+            splotRef.current.style.pointerEvents = "none";
+            startBrushingButtonRef.current.disabled = false;
+            stopBrushingButtonRef.current.disabled = true;
+            initialProjectionButtonRef.current.disabled = true;
+            prevAddSelection = addSelectionButtonRef.current.disabled;
+            addSelectionButtonRef.current.disabled = true;
+            calculateMetric(url, currSelections, currSelectionNum, dataset, method, sample_rate);
+        }
+        else {
+            splotRef.current.style.pointerEvents = prevPointerEvents;
+            startBrushingButtonRef.current.disabled = true;
+            stopBrushingButtonRef.current.disabled = false;
+            initialProjectionButtonRef.current.disabled = false;
+            addSelectionButtonRef.current.disabled = prevAddSelection;
+            
+        }
+    }
+
     /* NOTE Adding new Selection */
     function addSelection(e) {
         if (currSelectionNum === maxSelection) { alert("Cannot add more selections!!"); return; }
@@ -168,6 +200,7 @@ const Brushing = (props) => {
         initialSplotRendering(emb, density, pointLen, radius, border, splotRef);
         initializeTrace(pointLen, traceRef.current);
         flag.loaded = true;
+        startBrushingButtonRef.current.disabled = true;
     }, [props, splotRef])
 
     /* NOTE Brusher / Brushed Area Interaction Setting */
@@ -501,11 +534,22 @@ const Brushing = (props) => {
             <div id="selectionStatus" style={{margin: props.margin}}></div>
             <div style={Object.assign({}, widthMarginStyle(props.size, props.margin), { height: 30 })}>
                 <button 
+                    ref={startBrushingButtonRef}
+                    className={"controlButtons"} 
+                    onClick={startstopBrushing}
+                >Start Brushing</button>
+                <button 
+                    ref={stopBrushingButtonRef}
+                    className={"controlButtons"} 
+                    onClick={startstopBrushing}
+                >Stop Brushing</button>
+                <button 
                     ref={addSelectionButtonRef}
                     className={"brushButtons"} 
                     onClick={addSelection}
                 >Click to Add New Selections</button>
                 <button 
+                    ref={initialProjectionButtonRef}
                     className={"brushButtons"} 
                     onClick={initialProjection}
                 >Show Initial Projection</button>
