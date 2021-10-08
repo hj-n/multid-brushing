@@ -22,56 +22,59 @@
   */
  
  export class Heatmap {
-   constructor (data, resolution, dom, background) {
+   constructor(data, resolution, dom, background) {
      this.resolution = resolution;
      this.pixelValue = [].concat(...data.pixelValue);
+     this.clusterColor = data.clusterColor;
      this.dom = dom;
  
      this.pixelSize = this.dom.width / this.resolution;
+     this.pixelColor = [];
      this.yIndex = [];
-     for (let i = 0; i < this.resolution; i++) 
-       this.yIndex.push(new Array(this.resolution).fill(i));
- 
      this.xIndex = [];
-     for (let i = 0; i < this.resolution; i++) 
+ 
+     for (let i = 0; i < this.resolution; i++) {
+       this.pixelColor.push(new Array(this.resolution).fill(this.clusterColor[0]));
+       this.yIndex.push(new Array(this.resolution).fill(i));
        this.xIndex.push(Array.from(new Array(this.resolution).keys()));
-     
+     }
      this.isUpdating = false;
      this.p_value = [];
-
+	 this.color_value = [];
+ 
      let gl = this.dom.getContext("webgl");
      this.regl = require('regl')(gl);
-     
-     if(background){
+ 
+     if (background) {
        this.updateIndex = [];
-       for(let i = 0; i < this.resolution; i++){
-         for(let j = 0; j < this.resolution; j++){
+       for (let i = 0; i < this.resolution; i++) {
+         for (let j = 0; j < this.resolution; j++) {
            this.updateIndex.push([i, j]);
          }
        }
        let frameLoop = this.regl.frame(() => {
-         
+ 
          this.regl.clear({
            color: [0, 0, 0, 0],
            depth: 1,
          });
          const initializeHmap = this.initializeCommand();
-         initializeHmap({ 
-           pixelSize: this.pixelSize, 
+         initializeHmap({
+           pixelSize: this.pixelSize,
            resolution: this.resolution
          });
-         
+ 
  
          if (frameLoop) {
            frameLoop.cancel();
          }
        });
      }
-     else{
+     else {
        (this.visited = []).length = this.resolution; this.visited.fill(0);
        this.updateIndex = [];
        this.currentIndex = [];
-       for(let i = 0; i < this.resolution; i++){
+       for (let i = 0; i < this.resolution; i++) {
          this.currentIndex.push(i);
        }
      }
@@ -83,32 +86,37 @@
    initializeCommand() {
      return this.regl({
        frag: `
-         precision highp float;
- 
-         varying float fragColor;
- 
-         void main() {
-           gl_FragColor = vec4(1.0, fragColor, fragColor, 1.0);
-         }
-       `,
+          precision highp float;
+  
+          varying vec3 fragColor;
+          varying float fragValue;
+  
+          void main() {
+            gl_FragColor = vec4(1.0 - (1.0 - fragColor.x) * fragValue, 1.0 - (1.0 - fragColor.y) * fragValue, 1.0 - (1.0 - fragColor.z) * fragValue, 1.0);
+          }
+        `,
        vert: `
-         attribute float pixelValue;
-         attribute float x, y;
- 
-         varying float fragColor;
- 
-         uniform float pixelSize;
-         uniform float resolution;
- 
-         void main() {
-           gl_PointSize = pixelSize;
-           gl_Position = vec4(2.0 * ( (x + 0.5) / resolution) - 1.0, 2.0 * ( (- 0.5 - y) / resolution) + 1.0, 0, 1);
- 
-           fragColor = pixelValue;
-         }
-       `,
+          attribute float pixelValue;
+          attribute vec3 pixelColor;
+          attribute float x, y;
+  
+          varying vec3 fragColor;
+          varying float fragValue;
+  
+          uniform float pixelSize;
+          uniform float resolution;
+  
+          void main() {
+            gl_PointSize = pixelSize;
+            gl_Position = vec4(2.0 * ( (x + 0.5) / resolution) - 1.0, 2.0 * ( (- 0.5 - y) / resolution) + 1.0, 0, 1);
+  
+            fragColor = pixelColor;
+            fragValue = pixelValue;
+          }
+        `,
        attributes: {
          pixelValue: this.pixelValue,
+         pixelColor: this.pixelColor,
          x: this.xIndex,
          y: this.yIndex
        },
@@ -122,58 +130,92 @@
    }
  
    // update heatmap
-   update(index, background, duration=0, clear=0, delay=0) {
-     let newIndex = [].concat(...index.pixelIndex);
-   
-     if(clear == 1){
+   update(data, background, duration = 0, clear = 0, delay = 0) {
+     let newIndex = [].concat(...data.pixelIndex);
+	 let clusterIndex = data.clusterIndex;
+ 
+     if (clear == 1) {
        this.updateIndex = [];
        this.p_value = [];
+	   this.color_value = [];
        (this.visited = []).length = this.resolution; this.visited.fill(0);
        this.currentIndex = newIndex;
      }
      let start = new Date();
-     
-     if(!background){
+ 
+     if (!background) {
        let len = this.p_value.length;
        let changedIndex;
        (changedIndex = []).length = this.resolution; changedIndex.fill(0);
-       for(let i = 0; i < this.resolution; i++){
-         if(this.currentIndex[i] != newIndex[i]){
+       for (let i = 0; i < this.resolution; i++) {
+         if (this.currentIndex[i] != newIndex[i]) {
            changedIndex[i] = 1;
+
            //heatmap 바꾸기 -> i의 위치에 c_get_index[i]의 색깔.
-           if(this.visited[i] == 0){
-            for(let j = 0; j < this.resolution; j++){
-              if(this.visited[j] == 0){
-                let color = this.pixelValue[newIndex[i] * this.resolution + newIndex[j]]
-                this.updateIndex.push([i, j]);
-                this.updateIndex.push([j, i]);
-                this.p_value.push(color);
-                this.p_value.push(color);
-              }
-            }
-            this.visited[i] = 1;
-          }
-        }
-      }
-      this.currentIndex = newIndex;
-      let i = 0;
-      while(i < len){
-        let x = this.updateIndex[i][0];
-        let y = this.updateIndex[i][1];
-        if(changedIndex[x] == 1 || changedIndex[y] == 1){
-          let color = this.pixelValue[newIndex[x] * this.resolution + newIndex[y]]
-          this.p_value[i] = color;
-          this.p_value[i + 1] = color;
-        }
-        i = i + 2;
-      }
-    }else{
-      this.p_value = [];
-      let i = 0;
-      while(i < this.updateIndex.length){
-        this.p_value.push(this.pixelValue[newIndex[this.updateIndex[i][0]] * this.resolution + newIndex[this.updateIndex[i][1]]]);
-        i++;
-      }
+           if (this.visited[i] == 0) {
+             for (let j = 0; j < this.resolution; j++) {
+               if (this.visited[j] == 0) {
+                 let value = this.pixelValue[newIndex[i] * this.resolution + newIndex[j]]
+                 this.updateIndex.push([i, j]);
+                 this.updateIndex.push([j, i]);
+                 this.p_value.push(value);
+                 this.p_value.push(value);
+
+				 let color;
+				 if(clusterIndex[i] == clusterIndex[j]){
+					 color = this.clusterColor[clusterIndex[i]];
+				 } else{
+					 color = this.clusterColor[0];
+				 }
+				 this.color_value.push(color)
+				 this.color_value.push(color)
+               }
+             }
+             this.visited[i] = 1;
+           }
+         }
+       }
+       this.currentIndex = newIndex;
+       let i = 0;
+       while (i < len) {
+         let x = this.updateIndex[i][0];
+         let y = this.updateIndex[i][1];
+         if (changedIndex[x] == 1 || changedIndex[y] == 1) {
+           let value = this.pixelValue[newIndex[x] * this.resolution + newIndex[y]]
+           this.p_value[i] = value;
+           this.p_value[i + 1] = value;
+
+		   let color;
+		   if(clusterIndex[x] == clusterIndex[y]){
+			   color = this.clusterColor[clusterIndex[x]];
+		   } else{
+			   color = this.clusterColor[0];
+		   }
+		   this.color_value[i] = color;
+		   this.color_value[i + 1] = color;
+		
+         }
+         i = i + 2;
+       }
+	   console.log(this.p_value, this.color_value, this.updateIndex);
+     } else {
+       this.p_value = [];
+	   this.color_value = [];
+       let i = 0;
+       while (i < this.updateIndex.length) {
+		   let x = this.updateIndex[i][0];
+		   let y = this.updateIndex[i][1]
+         this.p_value.push(this.pixelValue[newIndex[x] * this.resolution + newIndex[y]]);
+		
+		 if(clusterIndex[x] == clusterIndex[y]){
+			this.color_value.push(this.clusterColor[clusterIndex[x]]);
+		 } else{
+			this.color_value.push(this.clusterColor[0]);
+		 }
+
+         i++;
+       }
+	   console.log(this.p_value, this.color_value, this.updateIndex);
      }
  
  
@@ -185,7 +227,7 @@
  
      const updateHmap = this.updateCommand();
      let start3 = new Date();
-     let frameLoop = this.regl.frame(({time}) => {
+     let frameLoop = this.regl.frame(({ time }) => {
        if (startTime === null) {
          startTime = time;
        }
@@ -215,35 +257,40 @@
    updateCommand() {
      return this.regl({
        frag: `
-         precision highp float;
- 
-         varying float fragColor;
- 
-         void main() {
-           gl_FragColor = vec4(1.0, fragColor, fragColor, 1.0);
-         }
-       `,
+          precision highp float;
+  
+          varying float fragValue;
+          varying vec3 fragColor;
+  
+          void main() {
+            gl_FragColor = vec4(1.0 - (1.0 - fragColor.x) * fragValue, 1.0 - (1.0 - fragColor.y) * fragValue, 1.0 - (1.0 - fragColor.z) * fragValue, 1.0);
+          }
+        `,
        vert: `
-         attribute float endPixelValue;
-         attribute vec2 index;
- 
-         varying float fragColor;
- 
-         uniform float pixelSize;
-         uniform float delay;
-         uniform float duration;
-         uniform float elapsed;
-         uniform float resolution;
- 
-         void main() {
-           gl_PointSize = pixelSize;
-           gl_Position = vec4(2.0 * ( (index.x + 0.5) / resolution) - 1.0, 2.0 * ( (- 0.5 - index.y) / resolution) + 1.0, 0, 1);
- 
-           fragColor = endPixelValue;
-         }
-       `,
+          attribute float PixelValue;
+          attribute vec3 PixelColor;
+          attribute vec2 index;
+  
+          varying float fragValue;
+          varying vec3 fragColor;
+  
+          uniform float pixelSize;
+          uniform float delay;
+          uniform float duration;
+          uniform float elapsed;
+          uniform float resolution;
+  
+          void main() {
+            gl_PointSize = pixelSize;
+            gl_Position = vec4(2.0 * ( (index.x + 0.5) / resolution) - 1.0, 2.0 * ( (- 0.5 - index.y) / resolution) + 1.0, 0, 1);
+  
+            fragColor = PixelColor;
+            fragValue = PixelValue;
+          }
+        `,
        attributes: {
-         endPixelValue: this.p_value,
+         PixelValue: this.p_value,
+		 PixelColor : this.color_value,
          index: this.updateIndex
        },
        uniforms: {
@@ -260,4 +307,5 @@
  
  
  }
+ 
  

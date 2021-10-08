@@ -75,6 +75,7 @@ function App({match}) {
           dataset={dataset}
           method={method}
           sample={sample_rate}
+          colors={colors}
         />
         }
         
