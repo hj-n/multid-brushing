@@ -14,7 +14,7 @@ function App({match}) {
   const defaultParams = {
     dataset: "mnist",
     method: "umap",
-    sample_rate: 5,
+    sample_rate: 1,
     isMatrix: true
   }
   const params = match.params;

@@ -51,7 +51,7 @@ const Brushing = (props) => {
     const scale4offset = 100;
     const offset       = 5;
     const kdeThreshold = 0.35;
-    let   simThreshold = 0.6;
+    let   simThreshold = 0.1;
 
     // CONSTANT DATA 
     let emb;             // positions

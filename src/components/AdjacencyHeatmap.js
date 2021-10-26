@@ -84,7 +84,7 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 			params: {
 				dataset: props.dataset,
 				method: props.method,
-				sample : props.sample_rate
+				sample : props.sample
 			}
 		}).then(response => {
 			sim_matrix = response.data
