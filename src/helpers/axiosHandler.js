@@ -49,7 +49,8 @@ export function positionUpdateParam(
   scale4offset,
   offset,   // ratio compared to resolution
   kdeThreshold, 
-  simThreshold
+  simThreshold,
+  status
 ) {
 
   return {
@@ -60,7 +61,8 @@ export function positionUpdateParam(
       scale4offset: scale4offset,
       offset : offset,   
       threshold : kdeThreshold,
-      simthreshold : simThreshold
+      simthreshold : simThreshold,
+      status: status
     }
   }
 }

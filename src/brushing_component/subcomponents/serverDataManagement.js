@@ -75,7 +75,8 @@ export async function getUpdatedPosition(
   scale4offset,
   offset,   // ratio compared to resolution
   kdeThreshold, 
-  simThreshold
+  simThreshold,
+  status
 ) {
   const newEmb = []
   let contour, offsettedContour, pointsFromOutside;
@@ -84,7 +85,7 @@ export async function getUpdatedPosition(
     url + "positionupdate", 
     positionUpdateParam(
       consideringPoints, prevSelectedPoints, resolution,
-      scale4offset, offset, kdeThreshold, simThreshold
+      scale4offset, offset, kdeThreshold, simThreshold, status
     )
   ).then(response => {
     const newPositions = response.data.new_positions;

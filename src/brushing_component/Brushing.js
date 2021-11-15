@@ -270,7 +270,7 @@ const Brushing = (props) => {
                 status.step = Step.INITIALIZING; // should be fixed after adding brushing functionality
                 const [newEmb, contour, offsettedContour, pointsFromOutside] = await getUpdatedPosition (
                     url, emb, consideringPoints, prevSelectedPoints, resolution,
-                    scale4offset, offset, kdeThreshold, simThreshold
+                    scale4offset, offset, kdeThreshold, simThreshold, "initiate"
                 );
                 if (status.click) { return; }
                 updatePosition(status, newEmb, positionDuration);
@@ -342,7 +342,7 @@ const Brushing = (props) => {
                     [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
                     const [newEmb, contour, offsettedContour, pointsFromOutside] = await getUpdatedPosition (
                         url, emb, consideringPoints, prevSelectedPoints, resolution,
-                        scale4offset, offset, kdeThreshold, simThreshold
+                        scale4offset, offset, kdeThreshold, simThreshold, "brush"
                     );
                     const sim = await getSimilarity(url, consideringPoints);
                     updatePositionSim(
