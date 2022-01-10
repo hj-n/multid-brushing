@@ -3,6 +3,8 @@ import React, { useRef } from 'react';
 import Brushing from "./brushing_component/Brushing";
 import SelectionInfoView from "./components/SelectionInfoView"
 import AdjacencyHeatmap from './components/AdjacencyHeatmap';
+import ParallelCoordinates from './components/ParallelCoordinates';
+
 
 import { generateColors } from "./helpers/utils";
 
@@ -15,13 +17,15 @@ function App({match}) {
     dataset: "mnist",
     method: "umap",
     sample_rate: 1,
-    isMatrix: true
+    isMatrix: false,
+    isPCP: true,
   }
   const params = match.params;
   const dataset     = params.dataset  === undefined ? defaultParams.dataset : params.dataset;
   const method      = params.method   === undefined ? defaultParams.method  : params.method;
   const sample_rate = params.sample   === undefined || isNaN(parseInt(params.sample)) ? defaultParams.sample_rate  : parseInt(params.sample);
   const isMatrix    = params.isMatrix === undefined ? defaultParams.isMatrix : params.isMatrix === "true" ? true : false;
+  const isPCP       = params.isPCP    === undefined ? defaultParams.isPCP : params.isPCP === "true" ? true : false;
 
   // CONSTANT Layout / Design constants
   const size = 500;
@@ -33,13 +37,17 @@ function App({match}) {
   const pointLen = 2000;
 
   // NOTE SelectionInfo View
-  const selectionInfoViewRef = useRef();
+  // const selectionInfoViewRef = useRef();
   const adjacencyHeatmapRef  = useRef();
+  const parallelCoordinatesRef = useRef();
   const getSelectionInfo = (selectionInfo, overwritedSelectionInfo, currSelections, duration) => { 
-    selectionInfoViewRef.current.update(selectionInfo, overwritedSelectionInfo, duration); 
+    // selectionInfoViewRef.current.update(selectionInfo, overwritedSelectionInfo, duration); 
     if (isMatrix)
       adjacencyHeatmapRef.current.update(selectionInfo, currSelections, duration);
+    if (isPCP)
+      parallelCoordinatesRef.current.update(selectionInfo, currSelections, duration);
   }
+
 
   return (
     <div className="App">
@@ -56,15 +64,27 @@ function App({match}) {
           getSelectionInfo={getSelectionInfo}
           colors={colors}
           buttonSize={(size - margin) / maxSelection - margin}
-          radius={30}
+          // radius={22}
+          // border={1.5}
+          radius={25}
           border={3}
         />
-        <SelectionInfoView
+        {isPCP &&
+          <ParallelCoordinates
+            ref={parallelCoordinatesRef}
+            width={size * 1.3}
+            height={size * 0.6}
+            margin={margin * 3}
+            colors={colors}
+            url={PATH}
+          />
+        }
+        {/* <SelectionInfoView
           ref={selectionInfoViewRef}
           width={size * 0.4}
           margin={margin}
           colors={colors}
-        />
+        /> */}
         {isMatrix &&
           <AdjacencyHeatmap
           ref={adjacencyHeatmapRef}

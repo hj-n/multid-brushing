@@ -9,7 +9,7 @@ ReactDOM.render(
     <Router>
       <Route exact path="/" component={App}/>
       <Route exact path="/:isMatrix" component={App}/>
-      <Route path="/:isMatrix/:dataset/:method/:sample" component={App}/>
+      <Route path="/:isMatrix/:isPCP/:dataset/:method/:sample" component={App}/>
     </Router>
 
     {/* <App /> */}

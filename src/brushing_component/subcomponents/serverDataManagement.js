@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { similarityParam, positionUpdateParam, idxParam, embDiffParam, calculateMetricParam } from "../../helpers/axiosHandler";
+import { similarityParam, positionUpdateParam, idxParam, embDiffParam, calculateMetricParam, updateRealSimThresholdParam } from "../../helpers/axiosHandler";
 
 function union(a, b) {
   return new Set([...a, ...b]);
@@ -57,13 +57,23 @@ export function updateEmbDiff(url, idx, xDiff, yDiff) {
   })
 }
 
-export async function getSimilarity(url, consideringPoints) {
+export async function getSimilarity(url, consideringPoints, realSimThreshold) {
   let sim;
   if (consideringPoints.length === 0) return null; 
-  await axios.get(url + "similarity", similarityParam(consideringPoints)).then(response => {
+  await axios.get(url + "similarity", similarityParam(consideringPoints, realSimThreshold)).then(response => {
     sim = response.data; 
   });
   return sim;
+}
+
+export function updateRealSimThresholdServer(url, realSimThreshold) {
+  axios.get(
+    url + "updateRealSimThreshold", 
+    updateRealSimThresholdParam(realSimThreshold)
+  ).then((response) => { 
+    if (!response.data === "success")
+      throw "Somethings wrong in server!!";
+  })
 }
 
 export async function getUpdatedPosition(

@@ -10,14 +10,29 @@ export function initialSplotAxiosParam(dataset, method, sample_rate) {
   };
 }
 
-export function similarityParam(consideringPoints) {
+export function similarityParam(consideringPoints, realSimThreshold) {
   return {
     params: {
       index: {
-        data: consideringPoints
-      }
+        data: consideringPoints, 
+        
+      },
+      realSimThreshold: realSimThreshold
     }
   };
+}
+
+export function updateRealSimThresholdParam(realSimThreshold) {
+  console.log({
+    params: {
+      realSimThreshold : realSimThreshold
+    }
+  })
+  return {
+    params: {
+      realSimThreshold : realSimThreshold
+    }
+  }
 }
 
 export function idxParam(idx) {

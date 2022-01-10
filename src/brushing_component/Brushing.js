@@ -6,7 +6,11 @@ import { updateSelectionButtons, updateSelectionText } from "./subcomponents/sel
 import { eraseBrushedArea, initializeBrushedArea, updateBrushedArea } from "./subcomponents/brushedArea";
 import { initializeBrusher, addSplotEventListener, documentEventListener } from './subcomponents/brusher';
 import { initialSplotRendering} from "./subcomponents/renderingScatterplot";
-import { getConsideringPoints, getSimilarity, getUpdatedPosition, restoreOrigin, updateOrigin, restoreIdx, updateEmbDiff, calculateMetric } from "./subcomponents/serverDataManagement";
+import { 
+    getConsideringPoints, getSimilarity, getUpdatedPosition, 
+    restoreOrigin, updateOrigin, restoreIdx, updateEmbDiff, 
+    calculateMetric, updateRealSimThresholdServer
+} from "./subcomponents/serverDataManagement";
 import { updateSelectionInfo, restoreOtherSelections, addSpaceToSelectionInfos, getHoveringSelections } from "./subcomponents/selectionManagement";
 import { initialProjectionExecutor } from "./subcomponents/showPrevProjections"
 import { initializeTrace, activateTrace } from "./subcomponents/renderingTrace";
@@ -51,7 +55,8 @@ const Brushing = (props) => {
     const scale4offset = 100;
     const offset       = 5;
     const kdeThreshold = 0.35;
-    let   simThreshold = 0.1;
+    let   simThreshold = 0.2;  // closeness threshold
+    let   realSimThreshold = 0.1; // similarity Threshold
 
     // CONSTANT DATA 
     let emb;             // positions
@@ -85,6 +90,11 @@ const Brushing = (props) => {
     /* CONSTANT Functions for adjusting constant parameters */
     function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
     function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
+    function updateRealSimThreshold(e) { 
+        realSimThreshold = e.target.valueAsNumber / 100
+        updateRealSimThresholdServer(url, realSimThreshold);
+    }
+
 
     /* NOTE Manaing Selection Button */
     const startBrushingButtonRef = useRef(null);
@@ -233,7 +243,7 @@ const Brushing = (props) => {
                 );
             }
             else {
-                const sim = await getSimilarity(url, consideringPoints);
+                const sim = await getSimilarity(url, consideringPoints, realSimThreshold);
                 updateSim (
                     status, colors, density, pointLen, radius, border, simUpdateDuration, 
                     currSelections, mouseoverPoints, currSelectionNum, sim
@@ -344,7 +354,7 @@ const Brushing = (props) => {
                         url, emb, consideringPoints, prevSelectedPoints, resolution,
                         scale4offset, offset, kdeThreshold, simThreshold, "brush"
                     );
-                    const sim = await getSimilarity(url, consideringPoints);
+                    const sim = await getSimilarity(url, consideringPoints, realSimThreshold);
                     updatePositionSim(
                         newEmb, status, colors, density, pointLen, radius, border, checkTime * 0.5, 
                         currSelections, mouseoverPoints, currSelectionNum, sim
@@ -362,7 +372,7 @@ const Brushing = (props) => {
             }
             else {
                 (async () => {
-                    const sim = await getSimilarity(url, prevSelectedPoints);
+                    const sim = await getSimilarity(url, prevSelectedPoints, realSimThreshold);
                     setTimeout(() => {
                         maintainBrushingExecutor();
                     }, checkTime * 0.5);
@@ -497,7 +507,18 @@ const Brushing = (props) => {
                         type="range"
                         min={1} 
                         max={100}
-                        defaultValue={60} 
+                        defaultValue={10} 
+                        onMouseUp={updateRealSimThreshold}
+                        className="slider"
+                    />
+                </div>
+                <div className="hparam">
+                    <div className="hname">Closeness Threshold</div>
+                    <input 
+                        type="range"
+                        min={1} 
+                        max={100}
+                        defaultValue={20} 
                         onChange={updateSimThreshold}
                         className="slider"
                     />
