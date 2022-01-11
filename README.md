@@ -1,3 +1,4 @@
-# Data guided Brusing for Multidimensional Projection
+# Distortion-aware brushing for Multidimensional Projections
 
-Code for the application
+- will be deployed soon!!
+- [server code](https://github.com/hj-n/distortion-aware-brushing-backend)
