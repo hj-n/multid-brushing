@@ -105,8 +105,8 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
             </div>
 				<div style={{ position: "relative" }}>
 					<canvas id="AdjacencyHeatmap"
-						height={1000}
-						width={1000}
+						height={612}
+						width={612}
 						style={{
 							position: "absolute",
 							border: "1px solid black",
@@ -114,8 +114,8 @@ const AdjacencyHeatmap = forwardRef((props, ref) => {
 						}}>
 					</canvas>
 					<canvas id="AdjacencyHeatmapupdate"
-						height={1000}
-						width={1000}
+						height={612}
+						width={612}
 						style={{
 							position: "absolute",
 							border: "1px solid black",
