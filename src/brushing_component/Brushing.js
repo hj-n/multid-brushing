@@ -40,7 +40,7 @@ const Brushing = (props) => {
     const colors = props.colors;
 
     // CONSTANT MAINTAINERS (Brusher info, interaction status, update executor, and Flags, etc.)
-
+    const defaultBR = 20;
     const b = { bX: -2, bY: -2, bR: 20, wheelSensitivity: 1 };  // Brusher info maintainer
     const bStop = {bX: -2, bY: -2};
     const status = { 
@@ -53,10 +53,11 @@ const Brushing = (props) => {
     
     // CONSTANT Paremeters for position update query
     const scale4offset = 100;
-    const offset       = 5;
+    const defaultOffset = 4;
+    let offset       = 4;
     const kdeThreshold = 0.35;
     let   simThreshold = 0.2;  // closeness threshold
-    let   realSimThreshold = 0.1; // similarity Threshold
+    let   realSimThreshold = 0; // similarity Threshold
 
     // CONSTANT DATA 
     let emb;             // positions
@@ -64,6 +65,8 @@ const Brushing = (props) => {
     let originEmb;       // original positions
     let density;         // initial snn density of points
     let pointLen;        // number of points
+
+    let brusher;
 
     // CONSTANT for managing selections
     let currSelections;          // grouping status for all points(currently [0, 0, ....])
@@ -88,7 +91,7 @@ const Brushing = (props) => {
     const traceRef = useRef(null);
 
     /* CONSTANT Functions for adjusting constant parameters */
-    function updateWheelSensitivity (e) { b.wheelSensitivity = e.target.value / 25; }
+    function updateWheelSensitivity (e) {  b.wheelSensitivity = e.target.value / 25; }
     function updateSimThreshold(e) { simThreshold = e.target.value / 100; }
     function updateRealSimThreshold(e) { 
         realSimThreshold = e.target.valueAsNumber / 100
@@ -278,6 +281,7 @@ const Brushing = (props) => {
                 mouseoverPoints.length === consideringPoints.length)
             ) {
                 status.step = Step.INITIALIZING; // should be fixed after adding brushing functionality
+                offset = defaultOffset * (brusher.attr("r") / defaultBR);
                 const [newEmb, contour, offsettedContour, pointsFromOutside] = await getUpdatedPosition (
                     url, emb, consideringPoints, prevSelectedPoints, resolution,
                     scale4offset, offset, kdeThreshold, simThreshold, "initiate"
@@ -349,6 +353,7 @@ const Brushing = (props) => {
                     updateSelectionText(selectionStatusDiv, selectionInfo);
                     props.getSelectionInfo(selectionInfo, overwritedSelectionInfo, currSelections, checkTime * 0.5);
                     mouseoverPoints = getMouseoverPoints(b, props.size, emb);
+                    offset = defaultOffset * (brusher.attr("r") / defaultBR);
                     [consideringPoints, prevSelectedPoints, pointSetIntersection] = getConsideringPoints(mouseoverPoints, currSelections, currSelectionNum);
                     const [newEmb, contour, offsettedContour, pointsFromOutside] = await getUpdatedPosition (
                         url, emb, consideringPoints, prevSelectedPoints, resolution,
@@ -485,6 +490,10 @@ const Brushing = (props) => {
             }
         })
     }, [props, splotRef]);
+
+    useEffect(() => {
+        brusher = d3.select("#brusherCircle");
+    });
     
     return (
         <div>
@@ -502,18 +511,18 @@ const Brushing = (props) => {
                     />
                 </div>
                 <div className="hparam">
-                    <div className="hname">Similarity Threshold</div>
+                    <div className="hname">Inner Bdry Thresold.</div> {/* Simialrity Threshold */}
                     <input 
                         type="range"
                         min={1} 
                         max={100}
-                        defaultValue={10} 
+                        defaultValue={0} 
                         onMouseUp={updateRealSimThreshold}
                         className="slider"
                     />
                 </div>
                 <div className="hparam">
-                    <div className="hname">Closeness Threshold</div>
+                    <div className="hname">Outer Bdry Threshold.</div> {/* Closeness Threshold */}
                     <input 
                         type="range"
                         min={1} 
@@ -568,7 +577,7 @@ const Brushing = (props) => {
                     ref={addSelectionButtonRef}
                     className={"brushButtons"} 
                     onClick={addSelection}
-                >Click to Add New Selections</button>
+                >Click to Add New Brush</button>
                 <button 
                     ref={initialProjectionButtonRef}
                     className={"brushButtons"} 

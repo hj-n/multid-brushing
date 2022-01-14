@@ -14,6 +14,7 @@ let brusher, brusherSvg;  // brusher component reference
 export function initializeBrusher(b) {
   brusherSvg = d3.select("#brusherSvg");
   brusher = brusherSvg.append("circle")
+                          .attr("id", "brusherCircle")
                           .attr("fill", "green")
                           .attr("r", b.bR)
                           .attr("transform", "translate(" + 300 + "," + 300 + ")")
