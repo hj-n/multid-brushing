@@ -1,0 +1,19 @@
+{
+  "name": "distortion-aware-brushing",
+  "version": "0.0.1",
+  "description": "Distortion-aware brushing for interactive cluster analysis in Multidimensional Projections",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hj-n/distortion-aware-brushing.git"
+  },
+  "author": "Hyeon Jeon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hj-n/distortion-aware-brushing/issues"
+  },
+  "homepage": "https://github.com/hj-n/distortion-aware-brushing#readme"
+}
