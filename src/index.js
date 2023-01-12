@@ -1,17 +1,26 @@
 
 class DistortionAwareBrushing {
 
-	constructor(canvas, path, identifier, defaultK) {
-		this.canvas  = canvas;
-		this.path    = require(`${path}/${idenifier}_ld`)
+	constructor(canvas, file, defaultK) {
+		this.canvas   = canvas;
+		this.file     = file;
+		this.ld 		  = this.file.ld;
+		this.knn 		  = this.file.hd_csr.knn;
+		this.maxK     = this.knn[0].length;
+		this.density  = this.file.density;
+		this.defaultK = defaultK;
+		this.initiateCanvas();
 	}
 
-	constructor(canvas, ld, knn, sim, defaultK) {
-		this.canvas   = canvas;
-		this.ld       = ld;
-		this.knn      = knn;
-		this.sim      = sim;
-		this.maxK     = this.knn[0].length;
-		this.defaultK = defaultK;
+
+	initiateCanvas() {
+		// initiate canvas
+		this.ctx = this.canvas.getContext('2d');
+		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	}
+
+	initiate() {
+		// render this.ld in canvas
 	}
 }
+
