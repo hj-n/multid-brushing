@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/hj-n/distortion-aware-brushing/issues"
   },
-  "homepage": "https://github.com/hj-n/distortion-aware-brushing#readme"
+  "homepage": "https://github.com/hj-n/distortion-aware-brushing#readme",
+  "dependencies": {
+    "d3": "^7.8.1",
+    "three": "^0.148.0"
+  }
 }
