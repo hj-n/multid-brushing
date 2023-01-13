@@ -6,16 +6,17 @@ import * as Three from "three";
 
 export class DistortionAwareBrushing {
 
-	constructor(canvas, slider, file, defaultK, pointRederingMethod) {
-		this.canvas   = canvas;
-		this.slider   = slider;
-		this.file     = file;
-		this.ld 		  = this.file.ld;
-		this.hd 		  = this.file.hd;
-		this.knn 		  = this.file.hd_csr.knn;
-		this.maxK     = this.knn[0].length;
-		this.density  = this.file.density;
-		this.defaultK = defaultK;
+	constructor(canvas, slider, file, pointScale, defaultK, pointRederingMethod) {
+		this.canvas     = canvas;
+		this.slider     = slider;
+		this.file       = file;
+		this.ld 		    = this.file.ld;
+		this.hd 		    = this.file.hd;
+		this.knn 		    = this.file.hd_csr.knn;
+		this.maxK       = this.knn[0].length;
+		this.density    = this.file.density;
+		this.pointScale = pointScale;
+		this.defaultK   = defaultK;
 		this.pointRederingMethod = pointRederingMethod;
 		this.initiateCanvas();
 		this.initiateSlider();
@@ -72,6 +73,7 @@ export class DistortionAwareBrushing {
 		});
 		// add point objects to the scene
 		this.pointObjects.forEach(d => this.scene.add(d));
+		this.pointObjects.forEach(d => d.scale.set(this.pointScale, this.pointScale, 1));
 	}
 
 
