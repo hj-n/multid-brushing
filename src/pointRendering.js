@@ -16,22 +16,23 @@ export function render2DMonochromeImage(hdDatum, xPos, yPos) {
 	for (let i = 0; i < n; i++) {
 		hdDatumFlipped.push(...hdDatum2DFlipped[i]);
 	}
-	
 
 	const meshDatum = new Uint8Array(hdDatumFlipped.length * 4);
 	for (let i = 0; i < hdDatumFlipped.length; i++) {
+
 		meshDatum[4 * i] = 255 - hdDatumFlipped[i] ;
 		meshDatum[4 * i + 1] = 255 - hdDatumFlipped[i] ;
 		meshDatum[4 * i + 2] = 255 - hdDatumFlipped[i] ;
-		if (hdDatumFlipped[i] < 0.01) {
-			meshDatum[4 * i + 3] = 0;
-		}
-		else {
-			meshDatum[4 * i + 3] = 255;
-		}
+		meshDatum[4 * i + 3] = 255;
+		const xIdx = i % n;
+		const yIdx = Math.floor(i / n);
+		const xDist = Math.abs(xIdx - n / 2);
+		const yDist = Math.abs(yIdx - n / 2);
+		const dist = Math.sqrt(xDist * xDist + yDist * yDist);
+		if (dist > n / 2) meshDatum[4 * i + 3] = 0;
+		else meshDatum[4 * i + 3] = 255;
 	}
 
-	console.log(meshDatum)
 	
 	// meshDatum
 	const texture = new Three.DataTexture(meshDatum, n, n, Three.RGBAFormat);
