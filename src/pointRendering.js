@@ -6,22 +6,32 @@ export function render2DMonochromeImage(hdDatum, xPos, yPos) {
 	// ctx is the canvas context
 	// render hdDatum in (xPos, yPos) in ctx
 	// render using Three.js
-	// generate 8-bit array
 	const n = Math.round(Math.sqrt(hdDatum.length));
-	const meshDatum = new Uint8Array(hdDatum.length * 4);
-	for (let i = 0; i < hdDatum.length; i++) {
-		const opIdx = hdDatum.length - i - 1;
-		meshDatum[4 * i] = 255 - hdDatum[opIdx] * 255;
-		meshDatum[4 * i + 1] = 255 - hdDatum[opIdx] * 255;
-		meshDatum[4 * i + 2] = 255 - hdDatum[opIdx] * 255;
-		if (hdDatum[opIdx] < 0.01) {
+	const hdDatum2D= [];
+	for (let i = 0; i < n; i++) {
+		hdDatum2D.push(hdDatum.slice(i * n, (i + 1) * n));
+	}
+	const hdDatum2DFlipped = hdDatum2D.reverse();
+	const hdDatumFlipped = []
+	for (let i = 0; i < n; i++) {
+		hdDatumFlipped.push(...hdDatum2DFlipped[i]);
+	}
+	
+
+	const meshDatum = new Uint8Array(hdDatumFlipped.length * 4);
+	for (let i = 0; i < hdDatumFlipped.length; i++) {
+		meshDatum[4 * i] = 255 - hdDatumFlipped[i] ;
+		meshDatum[4 * i + 1] = 255 - hdDatumFlipped[i] ;
+		meshDatum[4 * i + 2] = 255 - hdDatumFlipped[i] ;
+		if (hdDatumFlipped[i] < 0.01) {
 			meshDatum[4 * i + 3] = 0;
 		}
 		else {
 			meshDatum[4 * i + 3] = 255;
 		}
-		// meshDatum[4 * i + 3] = 255;
 	}
+
+	console.log(meshDatum)
 	
 	// meshDatum
 	const texture = new Three.DataTexture(meshDatum, n, n, Three.RGBAFormat);
@@ -32,27 +42,6 @@ export function render2DMonochromeImage(hdDatum, xPos, yPos) {
 	material.transparent = true;
 	const mesh = new Three.Mesh(geometry, material);
 	mesh.position.set(xPos, yPos, 0);
-	// mesh.scale.set(1, 1, 1);
 	return mesh;
-
-	// const n = Math.round(Math.sqrt(hdDatum.length));
-
-
-	// const imageData = ctx.createImageData(n, n);
-	// // scale hdDatum to [0, 255]
-	// const hdDatumScaled = hdDatum.map(d => d3.scaleLinear().domain([0, 1]).range([0, 255])(d));
-	
-
-
-	// for (let i = 0; i < hdDatum.length; i++) {
-	// 	imageData.data[4 * i] = 255 - hdDatumScaled[i];
-	// 	imageData.data[4 * i + 1] = 255 - hdDatumScaled[i];
-	// 	imageData.data[4 * i + 2] = 255 - hdDatumScaled[i];
-	// 	imageData.data[4 * i + 3] = 255;
-
-	// }
-	// ctx.putImageData(imageData, xPos, yPos);
-
-
 
 }

@@ -12,7 +12,7 @@ export class DistortionAwareBrushing {
 		this.file       = file;
 		this.ld 		    = this.file.ld;
 		this.hd 		    = this.file.hd;
-		this.knn 		    = this.file.hd_csr.knn;
+		this.knn 		    = this.file.knn;
 		this.maxK       = this.knn[0].length;
 		this.density    = this.file.density;
 		this.pointScale = pointScale;
@@ -38,15 +38,14 @@ export class DistortionAwareBrushing {
 	}
 
 	initiateSlider() {
-		// this.slider.min = this.pixel / 3;
-		// this.slider.max = this.pixel * 3;
-		// this.slider.value = this.pixel;
-		// this.slider.oninput = (e) => {
-		// 	this.pixel = e.target.value;
-		// 	this.initiateCanvas();
-		// 	this.initiateLdPositions();
-		// 	this.renderCurrentLd();
-		// }
+		this.slider.min = 0.1;
+		this.slider.max = 3;
+		this.slider.step = 0.01;
+		this.slider.value = this.pointScale;
+		this.slider.oninput = (e) => {
+			this.pointScale = e.target.value;
+			this.pointObjects.forEach(d => d.scale.set(this.pointScale, this.pointScale, 1));
+		}
 	}
 
 	initiateLdPositions() {
@@ -74,6 +73,12 @@ export class DistortionAwareBrushing {
 		// add point objects to the scene
 		this.pointObjects.forEach(d => this.scene.add(d));
 		this.pointObjects.forEach(d => d.scale.set(this.pointScale, this.pointScale, 1));
+
+		this.pointObjects.forEach((d, i) => {
+			// d.material.color.setRGB(1, 0, 0);
+			// d.material.opacity = 0.5;
+		});
+
 	}
 
 
