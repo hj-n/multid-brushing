@@ -1,30 +1,28 @@
 import * as utils from "./utils";
 import * as Three from "three";
 import * as d3 from "d3";
+import * as func from "./functionalities";
 
 
 
 
 export class DistortionAwareBrushing {
 
-	constructor(canvas, slider, file, pointScale, defaultK, pointRederingMethod) {
+	constructor(canvas, slider, file, pointScale, defaultBrusherSize, defaultK, pointRederingMethod) {
 		this.canvas     = canvas;
 		this.slider     = slider;
 		this.file       = file;
 		this.ld 		    = this.file.ld;
 		this.hd 		    = this.file.hd;
+		this.pointNum   = this.ld.length;
 		this.knn 		    = this.file.knn;
 		this.maxK       = this.knn[0].length;
 		this.density    = this.file.density;
 		this.densityMax = d3.max(this.density);
 		this.density    = this.density.map(d => d / this.densityMax);
-		// sort the ld, hd, and knn by density
-		this.ld  = this.ld.map((d, i) => [d, this.density[i]]).sort((a, b) => a[1] - b[1]).map(d => d[0]);
-		this.hd  = this.hd.map((d, i) => [d, this.density[i]]).sort((a, b) => a[1] - b[1]).map(d => d[0]);
-		this.knn = this.knn.map((d, i) => [d, this.density[i]]).sort((a, b) => a[1] - [1]).map(d => d[0]);
-		this.density = this.density.sort((a, b) => a - b);
 		this.pointScale = pointScale;
-		this.defaultK   = defaultK;
+		this.defaultBrusherSize = defaultBrusherSize;
+		this.k 				  = defaultK;
 		this.pointRederingMethod = pointRederingMethod;
 		this.initiateCanvas();
 		this.initiateSlider();
@@ -82,8 +80,52 @@ export class DistortionAwareBrushing {
 	}
 
 	initiateBrusher() {
-		this.brusher = new Brusher(this.scene);
-		this.canvas.addEventListener("mousemove", (e) => { this.brusher.updatePosition(e.offsetX, this.canvas.height - e.offsetY); });
+		this.brusher = new Brusher(this.scene, this.defaultBrusherSize);
+		this.canvas.addEventListener("mousemove", (e) => { 
+			this.brusher.updatePosition(e.offsetX, this.canvas.height - e.offsetY); 
+			const coveredPoints = this.updateCoveredPoints();
+			console.log(func.simPointsAndCluster(this.pointNum, coveredPoints, this.knn, this.k));
+		});
+		this.canvas.addEventListener("mouseover", (e) => {
+			this.brusher.updatePosition(e.offsetX, this.canvas.height - e.offsetY);
+			this.brusher.updateOpacity(0.3);
+		})
+		this.canvas.addEventListener("mouseout", (e) => { this.brusher.updateOpacity(0); });
+		this.canvas.addEventListener("wheel", (e) => { 
+			if (e.ctrlKey) {
+
+				this.updateK(-e.deltaY);
+				this.updateCoveredPoints();
+				return;
+			}
+			this.brusher.updateRadius(e.deltaY);
+			this.updateCoveredPoints();
+		} );
+	}
+
+	updateCoveredPoints() {
+		const coveredPoints = this.brusher.getCoveredPoints(this.currentLd);
+		if (coveredPoints.filter(d => d === true).length === 0) {
+			this.pointObjects.forEach(d => d.material.color.set(0xffffff));
+			return;
+		};
+		const highestDensityIdx = func.findHighestDensityIdx(coveredPoints, this.density);
+		const highestDensityIdxKnn = func.getKnn(highestDensityIdx, this.knn, this.k);
+		this.pointObjects.forEach((d, i) => {
+			d.material.color.set(0xffffff);
+			d.position.z = 0;
+		});
+		[highestDensityIdx, ...highestDensityIdxKnn].forEach((idx) => {
+			this.pointObjects[idx].material.color.set(0x8888ff);
+			this.pointObjects[idx].position.z = 0.00001;
+		});
+
+		return [highestDensityIdx, ...highestDensityIdxKnn];
+	}
+
+	updateK(delta) {
+		if (delta > 0) { if (this.k < this.maxK) this.k += 1; }
+		else { if (this.k >= 3) this.k -= 1; }
 	}
 
 	initiateRendering() {
@@ -99,24 +141,47 @@ export class DistortionAwareBrushing {
 }
 
 class Brusher {
-	constructor(scene) {
+	constructor(scene, defaultBrusherSize) {
 		this.scene = scene;
+		this.defaultBrusherSize = defaultBrusherSize;
 		this.embedBrusher();
 	}
 
 	embedBrusher() {
 		// make a circle in the middle of the canvas using Three.js
-		const geometry = new Three.CircleGeometry(100, 32);
-		const material = new Three.MeshBasicMaterial({color: 0xffff00});
+		const geometry = new Three.CircleGeometry(this.defaultBrusherSize, 32);
+		const material = new Three.MeshBasicMaterial({color: 0x8888ff});
 		this.mesh = new Three.Mesh(geometry, material);
 		this.mesh.position.set(0, 0, 0);
-		this.mesh.scale.set(0.5, 0.5, 1);
+		this.mesh.scale.set(1, 1, 1);
 		this.mesh.material.transparent = true;
-		this.mesh.material.opacity = 0.3;
+		this.updateOpacity(0);
 		this.scene.add(this.mesh);
 	}
 
 	updatePosition(x, y) { this.mesh.position.set(x, y, 0.001); }
+	updateOpacity(opacity) { this.mesh.material.opacity = opacity; }
+	updateRadius(deltaY) { 
+		const scaleX = this.mesh.scale.x;
+		const scaleY = this.mesh.scale.y;
+		if (scaleX - deltaY / 1000 < 0.3) return;
+		this.mesh.scale.set(scaleX - deltaY / 1000, scaleY - deltaY / 1000, 1);
+
+	}
+
+	getCoveredPoints(ld) {
+		const brusherX = this.mesh.position.x;
+		const brusherY = this.mesh.position.y;
+		const brusherRadius = this.mesh.scale.x * this.defaultBrusherSize;
+		const coveredPoints = ld.map((d, i) => {
+			const dist = Math.sqrt((d[0] - brusherX) ** 2 + (d[1] - brusherY) ** 2);
+			return dist <= brusherRadius;
+		});
+
+		return coveredPoints;
+
+	}
+
 
 }
 
