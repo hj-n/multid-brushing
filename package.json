@@ -1,0 +1,9 @@
+{
+  "name": "multid-brush",
+  "version": "1.0.0",
+  "description": "Implementation of several Multidimensional Burshing techniques",
+  "main": "index.js",
+  "repository": "https://github.com/hj-n/multid-brushing",
+  "author": "Hyeon Jeon",
+  "license": "MIT"
+}
