@@ -5,5 +5,8 @@
   "main": "index.js",
   "repository": "https://github.com/hj-n/multid-brushing",
   "author": "Hyeon Jeon",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "d3": "^7.8.5"
+  }
 }
