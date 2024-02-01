@@ -8,14 +8,12 @@ class MultiDBrushing {
 		technique, 
 		canvasDom, 
 		canvasSize, 
-		pointSize,
 		pointRenderingStyle
 	) {
 		this.preprocessed = preprocessed;
 		this.technique = technique;
 		this.canvasDom = canvasDom;
 		this.canvasSize = canvasSize;
-		this.pointSize = pointSize;
 		this.pointRenderingStyle = pointRenderingStyle;
 
 		// set context of the canvas
@@ -47,13 +45,10 @@ class MultiDBrushing {
 		 */
 		pr.render(
 			this.pointRenderingStyle,
-			this.canvasDom,
 			this.ctx,
+			this.hd,
 			this.ld,
-			"black",
-			0.5,
 			this.canvasSize,
-			this.pointSize
 		);
 
 
