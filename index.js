@@ -51,7 +51,7 @@ class MultiDBrushing {
 			this.ctx,
 			this.ld,
 			"black",
-			1,
+			0.5,
 			this.canvasSize,
 			this.pointSize
 		);

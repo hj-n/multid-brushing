@@ -22,9 +22,9 @@ function scalePoints(points, canvasSize) {
 export function render(renderingStyle, canvasDom, ctx, ld, color, opacity, canvasSize, pointSize) {
 	const ld_scaled = scalePoints(ld, canvasSize);
 	// if  not an array, convert it to array
-	if (!Array.isArray(color)) { color = [color] * ld_scaled.length; }
-	if (!Array.isArray(opacity)) { opacity = [opacity] * ld_scaled.length; }
-	if (!Array.isArray(pointSize)) { pointSize = [pointSize] * ld_scaled.length; }
+	if (!Array.isArray(color)) { color = Array(ld_scaled.length).fill(color); }
+	if (!Array.isArray(opacity)) { opacity = Array(ld_scaled.length).fill(opacity); }
+	if (!Array.isArray(pointSize)) { pointSize = Array(ld_scaled.length).fill(pointSize); }
 
 	if (renderingStyle === "dot") {
 		dotRender(canvasDom, ctx, ld_scaled, color, opacity, canvasSize, pointSize);
@@ -35,15 +35,14 @@ export function dotRender(canvasDom, ctx, ld, color, opacity, canvasSize, pointS
 	/**
 	 * Render the points as dots
 	 */
-	console.log(ld);
+
 	ctx.clearRect(0, 0, canvasSize, canvasSize);
 	for (let i = 0; i < ld.length; i++) {
-		console.log("TEXT")
 		ctx.beginPath();
 		ctx.arc(ld[i][0], ld[i][1], pointSize[i], 0, 2 * Math.PI);
-		ctx.fillStyle = color[i];
-		ctx.globalAlpha = opacity[i];
+		ctx.fillStyle = d3.color(color[i]).copy({ opacity: opacity[i] });
 		ctx.fill();
+		ctx.closePath();
 	}
 
 }
