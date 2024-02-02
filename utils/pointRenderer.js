@@ -19,7 +19,7 @@ function scalePoints(points, canvasSize) {
 	return points.map(p => [xScale(p[0]), yScale(p[1])]);
 }
 
-export function render(renderingStyle, ctx, hd, ld, canvasSize) {
+export function render(renderingStyle, ctx, hd, ld, canvasSize, density = undefined) {
 	const ld_scaled = scalePoints(ld, canvasSize);
 	// if  not an array, convert it to array
 	// if (!Array.isArray(color)) { color = Array(ld_scaled.length).fill(color); }
@@ -29,25 +29,38 @@ export function render(renderingStyle, ctx, hd, ld, canvasSize) {
 
 
 	if (renderingStyle.style === "dot") {
-		dotRender(ctx, ld_scaled, canvasSize, renderingStyle);
+		dotRender(ctx, ld_scaled, canvasSize, renderingStyle, density);
 	}
 	if (renderingStyle.style === "monochrome") {
-		monochromeRenderer(ctx, hd, ld_scaled, canvasSize, renderingStyle);
+		monochromeRenderer(ctx, hd, ld_scaled, canvasSize, renderingStyle); // Still implementing
 	
 	}
 }
 
-export function dotRender(ctx, ld, canvasSize, renderingStyle) {
+export function dotRender(ctx, ld, canvasSize, renderingStyle, density) {
 	/**
 	 * Render the points as dots
 	 */
 
 	let size = renderingStyle.size;
-	let color, opacity;
+	let color = renderingStyle.color;
+	let opacity = renderingStyle.opacity;
+
+	// set color and opacity based on given options
 	if (!color) { color = Array(ld.length).fill("black"); }
-	if (!opacity) { opacity = Array(ld.length).fill(0.5); }
+	if (!density) {
+		if (!opacity) { opacity = Array(ld.length).fill(1); }
+		else { opacity = Array(ld.length).fill(opacity); }
+	}
+	else {
+		opacity = density.map(
+			d => d3.scaleLinear().domain(d3.extent(density)).range([0, 1])(d)
+		)
+	}
 
 	if (!Array.isArray(size)) { size = Array(ld.length).fill(size); }
+
+	console.log(density);
 
 	ctx.clearRect(0, 0, canvasSize, canvasSize);
 	for (let i = 0; i < ld.length; i++) {
