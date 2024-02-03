@@ -47,8 +47,48 @@ export function painterRenderer(ctx, radius, xPos, yPos) {
 	ctx.closePath();
 }
 
+export function clearRender(ctx, canvasSize) {
+	/**
+	 * Clear the canvas
+	 */
+	ctx.clearRect(0, 0, canvasSize, canvasSize);
+}
 
 
+export function startDotRenderAnimation(
+	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, ctx, canvasSize,
+	currentLd, nextLd, duration, callback = undefined
+) {
+
+	let start = undefined;
+
+	const update = (timestamp) => {
+
+
+		if (!start) start = timestamp;
+		const progress = (timestamp - start) / duration;
+
+		// console.log(timestamp, progress, duration);
+
+		const intermediateLd = currentLd.map((d, i) => {
+			return [d[0] + (nextLd[i][0] - d[0]) * progress, d[1] + (nextLd[i][1] - d[1]) * progress];
+		});
+
+		clearRender(ctx, canvasSize);
+
+		dotRender(
+			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+			ctx, intermediateLd
+		);
+
+		if (progress < 1) {
+			requestAnimationFrame(update);
+		}
+		else { if (callback) { callback(); } }
+	}
+
+	requestAnimationFrame(update);
+}
 
 export function dotRender(
 	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, ctx, ld
@@ -56,8 +96,6 @@ export function dotRender(
 	/**
 	 * Render the points as dots
 	 */
-
-
 	// sort indices based on zIndex
 	const indices = Array.from(Array(ld.length).keys());
 	indices.sort((a, b) => zIndexArr[a] - zIndexArr[b]);
@@ -75,9 +113,6 @@ export function dotRender(
 
 		ctx.closePath();
 	}
-
-
-
 
 }
 

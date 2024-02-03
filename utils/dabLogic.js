@@ -60,3 +60,55 @@ export function closeness(targetGroup, zeta, hdSim, knn) {
 	});
 
 }
+
+function findSlopeToCircleCenter(x, y, cx, cy, radius) {
+	/**
+	 * find the slope of the line from (x, y) to the center of the circle (cx, cy)
+	 * then make the length of the line to be radius
+	 */
+	const dx = x - cx;
+	const dy = y - cy;
+	const dist = getDist(x, y, cx, cy);
+	const ratio = radius / dist;
+	return [dx * ratio, dy * ratio];
+} 
+
+function getDist(x, y, cx, cy) {
+	return Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
+}
+
+
+export function findInitialRelocationPositions(
+	seedPoints, painterXPos, painterYPos, painterRadius, currentLd, closenessArr
+) {
+  /**
+	find the initial relocation positions of the points based on seed points
+	*/
+
+
+	const relocatedLd = currentLd.map((pos, i) => {
+		if (seedPoints.includes(i)) { return pos; }
+		else {
+			const slope = findSlopeToCircleCenter(
+				pos[0], pos[1], painterXPos, painterYPos, painterRadius
+			);
+			if (closenessArr[i] === 1) { 
+				if (getDist(pos[0], pos[1], painterXPos, painterYPos) <= painterRadius) {
+					return [pos[0], pos[1]];
+				}
+				return [painterXPos + slope[0], painterYPos + slope[1]]; 
+			}
+			if (closenessArr[i] === 0) { 
+				if (getDist(pos[0], pos[1], painterXPos, painterYPos) > 2 * painterRadius) {
+					return [pos[0], pos[1]];
+				}
+				return [painterXPos + slope[0] * 2.5, painterYPos + slope[1] * 2.5]; 
+			}
+			else { return [painterXPos + slope[0] * (1 + closenessArr[i]), painterYPos + slope[1] * (1 + closenessArr[i])]; }
+		}
+	});
+
+
+	return relocatedLd;
+
+}

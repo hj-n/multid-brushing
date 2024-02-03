@@ -10,7 +10,13 @@ class MultiDBrushing {
 		canvasDom, 
 		canvasSize, 
 		pointRenderingStyle,
-		techniqueStyle,
+		techniqueStyle = {
+			"technique": "dab",
+			"painterColor": "green",
+			"initialPainterRadius": 50,
+			"initialRelocationThreshold": 600, // in ms
+			"initialRelocationDuration": 600 // in ms
+		},
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
 		maxOpacity = 0.75  // maximum opacity
@@ -41,6 +47,13 @@ class MultiDBrushing {
 		this.currentBrushIdx = 0;
 
 
+		// import flags to maintain distortion-aware brushing
+		this.mode = "inspect";
+		this.isInitialRelocationTriggered = false;
+		this.triggeredRelocation = null;
+		this.isRelocating = false;
+
+
 		// initialize
 		this.parser();
 		this.initializeRenderingInfo();
@@ -60,6 +73,8 @@ class MultiDBrushing {
 		this.hdSim = csrTo2DArray(csr);
 		this.hd = this.preprocessed.hd;
 		this.ld = pr.scalePoints(this.preprocessed.ld, this.canvasSize);
+		this.currLd = [...this.ld]; // current position of the points
+		this.prevLd = [...this.ld]; // previous position of the points
 		this.knn = this.preprocessed.knn;
 		this.labels = this.preprocessed.labels;
 
@@ -101,11 +116,11 @@ class MultiDBrushing {
 		if (this.techniqueStyle.technique == "dab") {
 			// find the initial seed point
 			this.initialSeedPoint = dabL.findInitialSeedPoint(
-				this.ld, this.xPos, this.yPos, this.painterRadius, this.density
+				this.currLd, this.xPos, this.yPos, this.painterRadius, this.density
 			);
 			if (this.initialSeedPoint !== -1) {
 				this.seedPoints = dabL.findSeedPoints(
-					this.ld, this.knn, this.xPos, this.yPos, this.painterRadius, this.density, this.initialSeedPoint
+					this.currLd, this.knn, this.xPos, this.yPos, this.painterRadius, this.density, this.initialSeedPoint
 				);
 
 				this.seedPoints.push(this.initialSeedPoint);
@@ -136,7 +151,7 @@ class MultiDBrushing {
 			this.zIndexArr,
 			this.ctx,
 			this.hd,
-			this.ld,
+			this.currLd,
 			this.canvasSize,
 			this.showDensity ? this.density : undefined,
 		);
@@ -147,7 +162,7 @@ class MultiDBrushing {
 	}
 
 	clearRendering() {
-		this.ctx.clearRect(0, 0, this.canvasSize, this.canvasSize);
+		pr.clearRender(this.ctx, this.canvasSize);
 	}
 
 	updater(e) {
@@ -159,6 +174,9 @@ class MultiDBrushing {
 		this.yPos = e.offsetY * this.scalingFactor;
 
 		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
+
+
+			this.isInitialRelocationTriggered = false;
 			if (this.timer) {
 				this.timer = false;
 				// rendering impo
@@ -173,14 +191,71 @@ class MultiDBrushing {
 		}
 	}
 
+	registerInitialRelocation() {
+		const isHoveringPoints = dabL.findInitialSeedPoint(
+			this.currLd, this.xPos, this.yPos, this.painterRadius, this.density
+		) !== -1;
+
+		if (isHoveringPoints) {
+
+			if (this.triggeredRelocation) clearTimeout(this.triggeredRelocation);
+			this.isInitialRelocationTriggered = true;
+			this.triggeredRelocation = setTimeout(() => {
+
+				if (!this.isInitialRelocationTriggered) return;
+				const newLd = dabL.findInitialRelocationPositions(
+					[...this.seedPoints],
+					this.xPos, this.yPos, this.painterRadius,
+					this.currLd, [...this.closenessArr]
+				)
+				
+				this.isRelocating = true;
+				pr.startDotRenderAnimation(
+					this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+					this.ctx, this.canvasSize,
+					this.currLd, newLd, this.techniqueStyle.initialRelocationDuration,
+					() => {
+						this.prevLd = [...this.currLd];
+						this.currLd = [...newLd];
+						this.mode = "initiate";
+						this.isRelocating = false;
+					}
+				);
+			}, this.techniqueStyle.initialRelocationThreshold);
+		}
+	}
+
+	cancelInitialRelocation() {
+		this.isRelocating = true;
+		pr.startDotRenderAnimation(
+			this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+			this.ctx, this.canvasSize,
+			this.currLd, this.prevLd, this.techniqueStyle.initialRelocationDuration,
+			() => {
+				this.mode = "inspect";
+				this.currLd = [...this.prevLd];
+				this.isRelocating = false;
+			}
+		)
+	}
+
 
 	registerPainter() {
-		this.canvasDom.addEventListener("mousemove", this.updater.bind(this)); // moving the painter
+		this.canvasDom.addEventListener("mousemove", (e) => {
+			
+			if (this.isRelocating) { return; }
+			if (this.mode === "inspect") {
+				this.updater(e);
+				this.registerInitialRelocation();
+			}
+			if (this.mode === "initiate") {
+				this.cancelInitialRelocation();
+			}
+		}); // moving the painter
 		this.canvasDom.addEventListener("wheel", (e) => { // wheeling to change the painter radius
 			this.painterRadius += e.deltaY * 0.017;
 			this.updater(e);
 		});
-
 	}
 
 	
