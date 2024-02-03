@@ -20,16 +20,20 @@ export function scalePoints(points, canvasSize) {
 }
 
 export function scatterplotRenderer(
-	renderingStyle, ctx, hd, ld, canvasSize, density // for data points
+	style, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+	ctx, hd, ld, canvasSize, density // for data points
 ) {
 
-	if (renderingStyle.style === "dot") {
-		dotRender(ctx, ld,  renderingStyle, density);
+	if (style === "dot") {
+		dotRender(
+			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+			ctx, ld
+		);
 	}
-	if (renderingStyle.style === "monochrome") {
-		monochromeRenderer(ctx, hd, ld, canvasSize, renderingStyle); // Still implementing
-	
-	}
+	// if (renderingStyle.style === "monochrome") {
+	// 	monochromeRenderer(ctx, hd, ld, canvasSize, renderingStyle); // Still implementing
+	// under construction
+	// }
 }
 
 export function painterRenderer(ctx, radius, xPos, yPos) {
@@ -46,97 +50,91 @@ export function painterRenderer(ctx, radius, xPos, yPos) {
 
 
 
-export function dotRender(ctx, ld, renderingStyle, density) {
+export function dotRender(
+	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, ctx, ld
+) {
 	/**
 	 * Render the points as dots
 	 */
 
 
-	let size = renderingStyle.size;
-	let color = renderingStyle.color;
-	let opacity = renderingStyle.opacity;
-
-	// set color and opacity based on given options
-	if (!color) { color = Array(ld.length).fill("black"); }
-	if (!density) {
-		if (!opacity) { opacity = Array(ld.length).fill(1); }
-		else { opacity = Array(ld.length).fill(opacity); }
-	}
-	else {
-		opacity = density.map(
-			d => d3.scaleLinear().domain(d3.extent(density)).range([0, 1])(d)
-		)
-	}
-
-	if (!Array.isArray(size)) { size = Array(ld.length).fill(size); }
-
+	// sort indices based on zIndex
+	const indices = Array.from(Array(ld.length).keys());
+	indices.sort((a, b) => zIndexArr[a] - zIndexArr[b]);
 
 
 	for (let i = 0; i < ld.length; i++) {
+		const index = indices[i];
 		ctx.beginPath();
-		ctx.arc(ld[i][0], ld[i][1], size[i], 0, 2 * Math.PI);
-		ctx.fillStyle = d3.color(color[i]).copy({ opacity: opacity[i] });
+		ctx.arc(ld[index][0], ld[index][1], sizeArr[index], 0, 2 * Math.PI);
+		ctx.fillStyle = d3.color(colorArr[index]).copy({ opacity: opacityArr[index] });
 		ctx.fill();
+		if (borderArr[index]) {
+			ctx.lineWidth = sizeArr[index] * 0.2;
+			ctx.strokeStyle = "black";
+			ctx.stroke();
+		}
 		ctx.closePath();
 	}
 
 
 
+
 }
 
 
-export function monochromeRenderer(
-	ctx, hd, ld, canvasSize, renderingStyle
-) {
-	/**
-	 * Render the points with monochrome coloring
-	 * Render the 3D image specified in "hd"
-	 */
+// export function monochromeRenderer(
+// 	ctx, hd, ld, canvasSize, renderingStyle
+// ) {
+// 	/**
+// 	 * Render the points with monochrome coloring
+// 	 * Render the 3D image specified in "hd"
+// 	 */
 
-	const pixelWidth = renderingStyle.pixelWidth;
-	const pixelHeight = renderingStyle.pixelHeight;
-	const inversed = renderingStyle.inversed;
-	const removeBackground = renderingStyle.removeBackground;
+// 	const pixelWidth = renderingStyle.pixelWidth;
+// 	const pixelHeight = renderingStyle.pixelHeight;
+// 	const inversed = renderingStyle.inversed;
+// 	const removeBackground = renderingStyle.removeBackground;
 	
-	let pointWidth = renderingStyle.width;
-	let pointHeight = renderingStyle.height;
+// 	let pointWidth = renderingStyle.width;
+// 	let pointHeight = renderingStyle.height;
 
 
-	if (!Array.isArray(pointWidth)) { pointWidth = Array(ld.length).fill(pointWidth); }
-	if (!Array.isArray(pointHeight)) { pointHeight = Array(ld.length).fill(pointHeight); }
+// 	if (!Array.isArray(pointWidth)) { pointWidth = Array(ld.length).fill(pointWidth); }
+// 	if (!Array.isArray(pointHeight)) { pointHeight = Array(ld.length).fill(pointHeight); }
 
 
 
-	const imageData = ctx.createImageData(canvasSize, canvasSize);
-	for (let i = 0; i < ld.length; i++) {
-		const xPos = parseInt(ld[i][0]);
-		const yPos = parseInt(ld[i][1]);
+// 	const imageData = ctx.createImageData(canvasSize, canvasSize);
+// 	for (let i = 0; i < ld.length; i++) {
+// 		const xPos = parseInt(ld[i][0]);
+// 		const yPos = parseInt(ld[i][1]);
 
-		for (let j = 0; j < pointWidth[i]; j++) {
-			for (let k = 0; k < pointHeight[i]; k++) {
-				const index = (xPos + j + (yPos + k) * canvasSize) * 4;
+// 		for (let j = 0; j < pointWidth[i]; j++) {
+// 			for (let k = 0; k < pointHeight[i]; k++) {
+// 				const index = (xPos + j + (yPos + k) * canvasSize) * 4;
 
-				const pixelJ = parseInt((j / pointWidth[i]) * pixelWidth);
-				const pixelK = parseInt((k / pointHeight[i]) * pixelHeight);
-				const pixelIndex = (pixelJ + pixelK * pixelWidth);
+// 				const pixelJ = parseInt((j / pointWidth[i]) * pixelWidth);
+// 				const pixelK = parseInt((k / pointHeight[i]) * pixelHeight);
+// 				const pixelIndex = (pixelJ + pixelK * pixelWidth);
 
-				let value = hd[i][pixelIndex] * 255;
-				if (!value) { value = 0; }
-				if (inversed) { value = 255 - value; }
-
-
-				if (removeBackground && value === 255) continue;
-				imageData.data[index] = value;
-				imageData.data[index + 1] = value;
-				imageData.data[index + 2] = value;
-				imageData.data[index + 3] = 255;
-			}
-		}
-
-	}
-
-	ctx.putImageData(imageData, 0, 0);
+// 				let value = hd[i][pixelIndex] * 255;
+// 				if (!value) { value = 0; }
+// 				if (inversed) { value = 255 - value; }
 
 
-}
+// 				if (removeBackground && value === 255) continue;
+// 				imageData.data[index] = value;
+// 				imageData.data[index + 1] = value;
+// 				imageData.data[index + 2] = value;
+// 				imageData.data[index + 3] = 255;
+// 			}
+// 		}
+
+// 	}
+
+// 	ctx.putImageData(imageData, 0, 0);
+
+
+// }
 
