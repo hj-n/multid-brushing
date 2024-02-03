@@ -69,11 +69,10 @@ export function dotRender(
 		ctx.arc(ld[index][0], ld[index][1], sizeArr[index], 0, 2 * Math.PI);
 		ctx.fillStyle = d3.color(colorArr[index]).copy({ opacity: opacityArr[index] });
 		ctx.fill();
-		if (borderArr[index]) {
-			ctx.lineWidth = sizeArr[index] * 0.2;
-			ctx.strokeStyle = "black";
-			ctx.stroke();
-		}
+		ctx.lineWidth = borderArr[index] ? sizeArr[i] * 0.3 : 0.5;
+		ctx.strokeStyle = "black";
+		ctx.stroke();
+
 		ctx.closePath();
 	}
 

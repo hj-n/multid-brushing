@@ -1,6 +1,16 @@
 export function csrTo2DArray(csrData) {
 	const numRows = csrData.indptr.length - 1;
-	const numCols = Math.max(...csrData.indices) + 1;
+
+	// this makes maximum call stack size exceeded
+	// this makes the code work
+	let numCols = -1;
+	for (let i = 0; i < csrData.indices.length; i++) {
+		if (csrData.indices[i] > numCols) {
+			numCols = csrData.indices[i];
+		}
+	}
+
+
 	const matrix = Array.from({ length: numRows }, () => new Array(numCols).fill(0));
 
 	for (let i = 0; i < numRows; i++) {
@@ -10,6 +20,8 @@ export function csrTo2DArray(csrData) {
 			matrix[i][col] = value;
 		}
 	}
+
+	console.log(csrData);
 
 	return matrix;
 }

@@ -12,7 +12,8 @@ class MultiDBrushing {
 		pointRenderingStyle,
 		techniqueStyle,
 		showDensity = true, // flag determining whether to show the HD density of the points,
-		frameRate = 20 // in ms
+		frameRate = 20, // in ms,
+		maxOpacity = 0.75  // maximum opacity
 	) {
 
 
@@ -28,14 +29,13 @@ class MultiDBrushing {
 		this.showDensity = showDensity;
 		this.frameRate = frameRate;
 		this.timer = true;
-
-
+		this.maxOpacity = maxOpacity;
 
 
 		// set context of the canvas
 		this.ctx = canvasDom.getContext("2d");
 
-		// interactively updated hyperparameters
+		// interactively updated hyperparameters for painter
 		this.painterRadius = this.techniqueStyle.initialPainterRadius;
 		this.zeta = undefined;
 		this.currentBrushIdx = 0;
@@ -80,12 +80,14 @@ class MultiDBrushing {
 		this.zIndexArr = Array(this.hd.length).fill(0);
 
 		if (this.showDensity) { 
-			const opacityScale = d3.scaleLinear().domain([0, d3.max(this.density)]).range([0, 1]);
+			const opacityScale = d3.scaleLinear().domain([0, d3.max(this.density)]).range([0, this.maxOpacity]);
 			this.opacityArr = this.density.map(d => opacityScale(d));
 		}
 		else if (!this.pointRenderingStyle.opacity) { this.opacityArr = Array(this.hd.length).fill(1); }
 		else { this.opacityArr = Array(this.hd.length).fill(this.pointRenderingStyle.opacity); }
 	}
+
+	
 
 	constructRenderingInfo() {
 		/**
@@ -103,18 +105,22 @@ class MultiDBrushing {
 			);
 			if (this.initialSeedPoint !== -1) {
 				this.seedPoints = dabL.findSeedPoints(
-					this.ld, this.knn, this.zeta, this.xPos, this.yPos, this.painterRadius, this.density, this.initialSeedPoint
+					this.ld, this.knn, this.xPos, this.yPos, this.painterRadius, this.density, this.initialSeedPoint
 				);
 
 				this.seedPoints.push(this.initialSeedPoint);
+				this.zeta = this.seedPoints.length;
 
-
-				this.seedPoints.forEach((d) => {
-					this.borderArr[d] = true;
-					this.sizeArr[d] = this.sizeArr[d] * 2.5;
-					this.colorArr[d] = this.getCurrentBrushColor();
-					this.zIndexArr[d] = 1;
+				this.closenessArr = dabL.closeness(
+					this.seedPoints, this.zeta, this.hdSim, this.knn
+				);
+				this.seedPoints.forEach((i) => {
+					this.borderArr[i] = true;
+					this.sizeArr[i] = this.sizeArr[i] * 1.2;
+					this.colorArr[i] = this.getCurrentBrushColor();
+					this.zIndexArr[i] = 1;
 				});
+				this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
 			}
 			
 		}
@@ -160,8 +166,6 @@ class MultiDBrushing {
 				this.constructRenderingInfo();	
 				this.scatterplotRendering();
 				this.painterRendering(this.painterRadius, this.xPos, this.yPos);
-
-
 				setTimeout(() => {
 					this.timer = true;
 				}, this.frameRate);

@@ -28,7 +28,7 @@ export function findInitialSeedPoint(ld, painterXPos, painterYPos, painterRadius
 
 }
 
-export function findSeedPoints(ld, knn, zeta, painterXPos, painterYPos, painterRadius, density, initialSeedPointIdx) {
+export function findSeedPoints(ld, knn, painterXPos, painterYPos, painterRadius, density, initialSeedPointIdx) {
 	const nnOfSeed = knn[initialSeedPointIdx];
 	// find the nnOfSeed within the painter
 	const nnOfSeedInPainter = nnOfSeed.filter(d => {
@@ -41,11 +41,22 @@ export function findSeedPoints(ld, knn, zeta, painterXPos, painterYPos, painterR
 	return nnOfSeedInPainter;
 }
 
-export function closeness(targetIndex, zeta, hdSim, knn) {
+export function closeness(targetGroup, zeta, hdSim, knn) {
 	/**
-	returns a 1D array that contains closeness of each point to the target point
+	returns a 1D array that contains closeness of each point to the target group
 	*/
+	return hdSim.map((simArr, i) => {
+		const zetaNN = knn[i].slice(0, zeta);
+		const zetaNNInTargetGroup = zetaNN.filter(d => targetGroup.includes(d));
 
-	// under implementation
+		
+		const simSumZetaNN = zetaNN.reduce((acc, cur) => acc + simArr[cur], 0);
+		const simSumZetaNNInTargetGroup = zetaNNInTargetGroup.reduce((acc, cur) => acc + simArr[cur], 0);
+
+		const closeness = simSumZetaNNInTargetGroup / simSumZetaNN;
+
+
+		return closeness;
+	});
 
 }
