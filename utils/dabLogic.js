@@ -28,6 +28,19 @@ export function findInitialSeedPoint(ld, painterXPos, painterYPos, painterRadius
 
 }
 
+export function findSeedPoints(ld, knn, zeta, painterXPos, painterYPos, painterRadius, density, initialSeedPointIdx) {
+	const nnOfSeed = knn[initialSeedPointIdx];
+	// find the nnOfSeed within the painter
+	const nnOfSeedInPainter = nnOfSeed.filter(d => {
+		let dist = Math.sqrt(
+			Math.pow(ld[d][0] - painterXPos, 2) + Math.pow(ld[d][1] - painterYPos, 2)
+		);
+		return dist < painterRadius;
+	});
+
+	return nnOfSeedInPainter;
+}
+
 export function closeness(targetIndex, zeta, hdSim, knn) {
 	/**
 	returns a 1D array that contains closeness of each point to the target point

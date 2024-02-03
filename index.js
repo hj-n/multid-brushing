@@ -55,6 +55,7 @@ class MultiDBrushing {
 		 */
 		const csr = this.preprocessed.csr;
 
+
 		// Important informations directly extracted from the preprocessed data
 		this.hdSim = csrTo2DArray(csr);
 		this.hd = this.preprocessed.hd;
@@ -95,17 +96,27 @@ class MultiDBrushing {
 		this.initializeRenderingInfo();
 
 		// update the rendering info based on the interaction
-		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
+		if (this.techniqueStyle.technique == "dab") {
 			// find the initial seed point
 			this.initialSeedPoint = dabL.findInitialSeedPoint(
 				this.ld, this.xPos, this.yPos, this.painterRadius, this.density
 			);
+			if (this.initialSeedPoint !== -1) {
+				this.seedPoints = dabL.findSeedPoints(
+					this.ld, this.knn, this.zeta, this.xPos, this.yPos, this.painterRadius, this.density, this.initialSeedPoint
+				);
 
-			this.borderArr[this.initialSeedPoint] = true;
-			this.sizeArr[this.initialSeedPoint] = this.sizeArr[this.initialSeedPoint] * 2.5;
-			this.colorArr[this.initialSeedPoint] = this.getCurrentBrushColor();
-			this.zIndexArr[this.initialSeedPoint] = 1;
+				this.seedPoints.push(this.initialSeedPoint);
 
+
+				this.seedPoints.forEach((d) => {
+					this.borderArr[d] = true;
+					this.sizeArr[d] = this.sizeArr[d] * 2.5;
+					this.colorArr[d] = this.getCurrentBrushColor();
+					this.zIndexArr[d] = 1;
+				});
+			}
+			
 		}
 	}
 
