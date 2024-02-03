@@ -13,9 +13,9 @@ class MultiDBrushing {
 		techniqueStyle = {
 			"technique": "dab",
 			"painterColor": "green",
-			"initialPainterRadius": 50,
+			"initialPainterRadius": 70,
 			"initialRelocationThreshold": 600, // in ms
-			"initialRelocationDuration": 600 // in ms
+			"initialRelocationDuration": 700 // in ms
 		},
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
