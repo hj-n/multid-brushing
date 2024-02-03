@@ -5,28 +5,41 @@ class MultiDBrushing {
 	
 	constructor(
 		preprocessed, 
-		technique, 
 		canvasDom, 
 		canvasSize, 
 		pointRenderingStyle,
-		showDensity = true // flag determining whether to show the HD density of the points
+		techniqueStyle,
+		showDensity = true, // flag determining whether to show the HD density of the points,
+		frameRate = 20 // in ms
 	) {
+
+
 		this.preprocessed = preprocessed;
-		this.technique = technique;
 		this.canvasDom = canvasDom;
 		this.canvasSize = canvasSize;
-		
+		this.canvasPixelSize = parseInt(this.canvasDom.style.width.slice(0, -2));
+		this.scalingFactor = this.canvasSize / this.canvasPixelSize;
 
-		// rendering options
+		// rendering and functionality options
 		this.pointRenderingStyle = pointRenderingStyle;
+		this.techniqueStyle = techniqueStyle;
 		this.showDensity = showDensity;
+		this.frameRate = frameRate;
+		this.timer = true;
+
+
+		// extract options
+		this.painterRadius = this.techniqueStyle.initialPainterRadius;
 
 		// set context of the canvas
 		this.ctx = canvasDom.getContext("2d");
 
 
+		// initialize
 		this.parser();
-		this.rendering();
+		this.clearRendering();
+		this.scatterplotRendering();
+		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") this.registerPainter();
 	}
 
 	parser() {
@@ -38,7 +51,7 @@ class MultiDBrushing {
 		// Important informations directly extracted from the preprocessed data
 		this.hdSim = csrTo2DArray(csr);
 		this.hd = this.preprocessed.hd;
-		this.ld = this.preprocessed.ld;
+		this.ld = pr.scalePoints(this.preprocessed.ld, this.canvasSize);
 		this.knn = this.preprocessed.knn;
 		this.labels = this.preprocessed.labels;
 
@@ -47,23 +60,56 @@ class MultiDBrushing {
 	}
 
 
-	rendering() {
-		/**
-		 * Render the initial points
-		 */
-		pr.render(
+
+	scatterplotRendering() {
+		pr.scatterplotRenderer(
 			this.pointRenderingStyle,
 			this.ctx,
 			this.hd,
 			this.ld,
 			this.canvasSize,
-			this.showDensity ? this.density : undefined
+			this.showDensity ? this.density : undefined,
 		);
-
 	}
 
+	painterRendering(radius, xPos, yPos) {
+		pr.painterRenderer(this.ctx, radius, xPos, yPos);
+	}
+
+	clearRendering() {
+		this.ctx.clearRect(0, 0, this.canvasSize, this.canvasSize);
+	}
+
+	updater(e) {
+		/**
+		* Update and rerender the entire system
+		*/
+		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
+			if (this.timer) {
+				this.timer = false;
+				this.clearRendering();
+				this.scatterplotRendering();
+				this.painterRendering(this.painterRadius, e.offsetX * this.scalingFactor, e.offsetY * this.scalingFactor);
+				setTimeout(() => {
+					this.timer = true;
+				}, this.frameRate);
+			}
+		}
+	}
+
+
 	registerPainter() {
-		
+
+
+
+		const update = (e) => {
+			console.log("UPDATE")
+			this.clearRendering();
+			this.scatterplotRendering();
+			this.painterRendering(this.painterRadius, e.offsetX * scalingFactor, e.offsetY * scalingFactor);
+		}
+
+		this.canvasDom.addEventListener("mousemove", this.updater.bind(this));
 	}
 
 	

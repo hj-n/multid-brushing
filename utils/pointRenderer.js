@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 
 
-function scalePoints(points, canvasSize) {
+export function scalePoints(points, canvasSize) {
 	/**
 	 * Scales the points to fit the canvas size
 	 * Left 10% for padding
@@ -19,28 +19,38 @@ function scalePoints(points, canvasSize) {
 	return points.map(p => [xScale(p[0]), yScale(p[1])]);
 }
 
-export function render(renderingStyle, ctx, hd, ld, canvasSize, density = undefined) {
-	const ld_scaled = scalePoints(ld, canvasSize);
-	// if  not an array, convert it to array
-	// if (!Array.isArray(color)) { color = Array(ld_scaled.length).fill(color); }
-	// if (!Array.isArray(opacity)) { opacity = Array(ld_scaled.length).fill(opacity); }
-	// if (!Array.isArray(pointWidth)) { pointWidth = Array(ld_scaled.length).fill(pointWidth); }
-	// if (!Array.isArray(pointHeight)) { pointHeight = Array(ld_scaled.length).fill(pointHeight); }
-
+export function scatterplotRenderer(
+	renderingStyle, ctx, hd, ld, canvasSize, density // for data points
+) {
 
 	if (renderingStyle.style === "dot") {
-		dotRender(ctx, ld_scaled, canvasSize, renderingStyle, density);
+		dotRender(ctx, ld,  renderingStyle, density);
 	}
 	if (renderingStyle.style === "monochrome") {
-		monochromeRenderer(ctx, hd, ld_scaled, canvasSize, renderingStyle); // Still implementing
+		monochromeRenderer(ctx, hd, ld, canvasSize, renderingStyle); // Still implementing
 	
 	}
 }
 
-export function dotRender(ctx, ld, canvasSize, renderingStyle, density) {
+export function painterRenderer(ctx, radius, xPos, yPos) {
+	/**
+	 * Render the painter on the canvas
+	 */
+	ctx.beginPath();
+	ctx.arc(xPos, yPos, radius, 0, 2 * Math.PI);
+	ctx.fillStyle = d3.color("green").copy({ opacity: 0.3 });
+	ctx.fill();
+	ctx.closePath();
+}
+
+
+
+
+export function dotRender(ctx, ld, renderingStyle, density) {
 	/**
 	 * Render the points as dots
 	 */
+
 
 	let size = renderingStyle.size;
 	let color = renderingStyle.color;
@@ -60,16 +70,17 @@ export function dotRender(ctx, ld, canvasSize, renderingStyle, density) {
 
 	if (!Array.isArray(size)) { size = Array(ld.length).fill(size); }
 
-	console.log(density);
 
-	ctx.clearRect(0, 0, canvasSize, canvasSize);
+
 	for (let i = 0; i < ld.length; i++) {
 		ctx.beginPath();
-		ctx.ellipse(ld[i][0], ld[i][1], size[i], size[i], 0, 0, 2 * Math.PI);
+		ctx.arc(ld[i][0], ld[i][1], size[i], 0, 2 * Math.PI);
 		ctx.fillStyle = d3.color(color[i]).copy({ opacity: opacity[i] });
 		ctx.fill();
 		ctx.closePath();
 	}
+
+
 
 }
 
@@ -95,7 +106,7 @@ export function monochromeRenderer(
 	if (!Array.isArray(pointHeight)) { pointHeight = Array(ld.length).fill(pointHeight); }
 
 
-	ctx.clearRect(0, 0, canvasSize, canvasSize);
+
 	const imageData = ctx.createImageData(canvasSize, canvasSize);
 	for (let i = 0; i < ld.length; i++) {
 		const xPos = parseInt(ld[i][0]);
