@@ -1,5 +1,6 @@
 import { csrTo2DArray } from "./utils/csrParser";
 import * as pr from "./utils/pointRenderer";
+import * as lr from "./utils/lensRenderer";
 import * as dabL from "./utils/dabLogic";
 import * as d3 from 'd3';
 
@@ -17,6 +18,10 @@ class MultiDBrushing {
 			"initialRelocationThreshold": 600, // in ms
 			"initialRelocationDuration": 700, // in ms
 			"showLens": true,
+			"lensStyle": {
+				"color": "red",
+				"strokeWidth": 5
+			}
 		},
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
@@ -162,6 +167,12 @@ class MultiDBrushing {
 		pr.painterRenderer(this.ctx, radius, xPos, yPos);
 	}
 
+	lensRendering(lensType, radius, xPos, yPos, opacity) {
+		if (lensType === "circle") {
+			lr.circleLensRenderer(this.ctx, radius, xPos, yPos, opacity, this.techniqueStyle.lensStyle);
+		}
+	}
+
 	clearRendering() {
 		pr.clearRender(this.ctx, this.canvasSize);
 	}
@@ -219,7 +230,10 @@ class MultiDBrushing {
 						this.mode = "initiate";
 						this.isRelocating = false;
 					},
-					() => { this.painterRendering(this.painterRadius, this.xPos, this.yPos); }
+					(progress) => { 
+						this.painterRendering(this.painterRadius, this.xPos, this.yPos);
+						this.lensRendering("circle", this.painterRadius, this.xPos, this.yPos, progress);
+					 }
 				);
 			}, this.techniqueStyle.initialRelocationThreshold);
 		}

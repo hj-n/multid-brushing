@@ -84,7 +84,7 @@ export function startDotRenderAnimation(
 		);
 
 		
-		if (updateCallback) { updateCallback(); }
+		if (updateCallback) { updateCallback(progress); }
 
 		if (progress < 1) {
 			requestAnimationFrame(update);
