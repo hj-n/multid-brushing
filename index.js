@@ -15,7 +15,8 @@ class MultiDBrushing {
 			"painterColor": "green",
 			"initialPainterRadius": 70,
 			"initialRelocationThreshold": 600, // in ms
-			"initialRelocationDuration": 700 // in ms
+			"initialRelocationDuration": 700, // in ms
+			"showLens": true,
 		},
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
@@ -170,8 +171,6 @@ class MultiDBrushing {
 		* Update and rerender the entire system
 		*/
 
-		this.xPos = e.offsetX * this.scalingFactor;
-		this.yPos = e.offsetY * this.scalingFactor;
 
 		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
 
@@ -219,7 +218,8 @@ class MultiDBrushing {
 						this.currLd = [...newLd];
 						this.mode = "initiate";
 						this.isRelocating = false;
-					}
+					},
+					() => { this.painterRendering(this.painterRadius, this.xPos, this.yPos); }
 				);
 			}, this.techniqueStyle.initialRelocationThreshold);
 		}
@@ -227,6 +227,7 @@ class MultiDBrushing {
 
 	cancelInitialRelocation() {
 		this.isRelocating = true;
+		this.initializeRenderingInfo();
 		pr.startDotRenderAnimation(
 			this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
 			this.ctx, this.canvasSize,
@@ -235,6 +236,9 @@ class MultiDBrushing {
 				this.mode = "inspect";
 				this.currLd = [...this.prevLd];
 				this.isRelocating = false;
+			},
+			() => {
+				this.painterRendering(this.painterRadius, this.xPos, this.yPos);
 			}
 		)
 	}
@@ -242,8 +246,12 @@ class MultiDBrushing {
 
 	registerPainter() {
 		this.canvasDom.addEventListener("mousemove", (e) => {
+			this.xPos = e.offsetX * this.scalingFactor;
+			this.yPos = e.offsetY * this.scalingFactor;
 			
-			if (this.isRelocating) { return; }
+			if (this.isRelocating) { 
+				return; 
+			}
 			if (this.mode === "inspect") {
 				this.updater(e);
 				this.registerInitialRelocation();

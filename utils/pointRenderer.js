@@ -56,8 +56,10 @@ export function clearRender(ctx, canvasSize) {
 
 
 export function startDotRenderAnimation(
-	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, ctx, canvasSize,
-	currentLd, nextLd, duration, callback = undefined
+	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, 
+	ctx, canvasSize, currentLd, nextLd, duration, 
+	callback = undefined,
+	updateCallback = undefined
 ) {
 
 	let start = undefined;
@@ -80,6 +82,9 @@ export function startDotRenderAnimation(
 			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
 			ctx, intermediateLd
 		);
+
+		
+		if (updateCallback) { updateCallback(); }
 
 		if (progress < 1) {
 			requestAnimationFrame(update);
