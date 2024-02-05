@@ -296,13 +296,13 @@ class MultiDBrushing {
 		else {
 			newBrushedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].add(d));
 		}
-
-
-
-
 	}
 
 	proceedBrushing() {
+		const newBrushedPoints = dabL.findPointsWithinPainter(
+			this.currLd, this.xPos, this.yPos, this.painterRadius
+		);
+		newBrushedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].add(d));
 
 	}
 
@@ -324,6 +324,7 @@ class MultiDBrushing {
 			}
 			if (this.mode === "brush") {
 				this.proceedBrushing();
+				this.updater(e);
 			}
 		}); // moving the painter
 		this.canvasDom.addEventListener("mousedown", (e) => {
