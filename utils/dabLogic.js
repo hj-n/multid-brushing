@@ -41,6 +41,19 @@ export function findSeedPoints(ld, knn, painterXPos, painterYPos, painterRadius,
 	return nnOfSeedInPainter;
 }
 
+export function findPointsWithinPainter(ld, painterXPos, painterYPos, painterRadius) {
+	const pointsWithinPainter = ld.map(pos => {
+		const dist = Math.sqrt(
+			Math.pow(pos[0] - painterXPos, 2) + Math.pow(pos[1] - painterYPos, 2)
+		);
+		return dist < painterRadius;
+	})
+
+	// convert boolean array to index array
+	return pointsWithinPainter.map((d, i) => d ? i : -1).filter(d => d !== -1);
+
+}
+
 export function closeness(targetGroup, zeta, hdSim, knn) {
 	/**
 	returns a 1D array that contains closeness of each point to the target group
@@ -85,6 +98,7 @@ export function findInitialRelocationPositions(
 	find the initial relocation positions of the points based on seed points
 	*/
 
+	console.log(Math.max(...closenessArr));
 
 	const relocatedLd = currentLd.map((pos, i) => {
 		if (seedPoints.includes(i)) { return pos; }
@@ -104,7 +118,7 @@ export function findInitialRelocationPositions(
 				}
 				return [painterXPos + slope[0] * 2.5, painterYPos + slope[1] * 2.5]; 
 			}
-			else { return [painterXPos + slope[0] * (1 + closenessArr[i]), painterYPos + slope[1] * (1 + closenessArr[i])]; }
+			else { return [painterXPos + slope[0] * (2 - closenessArr[i]), painterYPos + slope[1] * (2 - closenessArr[i])]; }
 		}
 	});
 

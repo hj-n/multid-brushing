@@ -42,7 +42,7 @@ export function painterRenderer(ctx, radius, xPos, yPos) {
 	 */
 	ctx.beginPath();
 	ctx.arc(xPos, yPos, radius, 0, 2 * Math.PI);
-	ctx.fillStyle = d3.color("green").copy({ opacity: 0.3 });
+	ctx.fillStyle = d3.color("green").copy({ opacity: 0.15 });
 	ctx.fill();
 	ctx.closePath();
 }

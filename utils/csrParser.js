@@ -21,7 +21,6 @@ export function csrTo2DArray(csrData) {
 		}
 	}
 
-	console.log(csrData);
 
 	return matrix;
 }

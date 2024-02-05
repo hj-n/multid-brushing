@@ -59,6 +59,9 @@ class MultiDBrushing {
 		this.triggeredRelocation = null;
 		this.isRelocating = false;
 
+		// brushing status
+		this.brushingStatus = {};
+
 
 		// initialize
 		this.parser();
@@ -121,28 +124,52 @@ class MultiDBrushing {
 		// update the rendering info based on the interaction
 		if (this.techniqueStyle.technique == "dab") {
 			// find the initial seed point
-			this.initialSeedPoint = dabL.findInitialSeedPoint(
-				this.currLd, this.xPos, this.yPos, this.painterRadius, this.density
-			);
-			if (this.initialSeedPoint !== -1) {
-				this.seedPoints = dabL.findSeedPoints(
-					this.currLd, this.knn, this.xPos, this.yPos, this.painterRadius, this.density, this.initialSeedPoint
-				);
 
-				this.seedPoints.push(this.initialSeedPoint);
-				this.zeta = this.seedPoints.length;
-
-				this.closenessArr = dabL.closeness(
-					this.seedPoints, this.zeta, this.hdSim, this.knn
+			if (this.mode === "inspect") {
+				this.initialSeedPoint = dabL.findInitialSeedPoint(
+					this.currLd, this.xPos, this.yPos, this.painterRadius, this.density
 				);
-				this.seedPoints.forEach((i) => {
-					this.borderArr[i] = true;
-					this.sizeArr[i] = this.sizeArr[i] * 1.2;
-					this.colorArr[i] = this.getCurrentBrushColor();
-					this.zIndexArr[i] = 1;
-				});
-				this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
+				if (this.initialSeedPoint !== -1) {
+					this.seedPoints = dabL.findSeedPoints(
+						this.currLd, this.knn, this.xPos, this.yPos, this.painterRadius, this.density, this.initialSeedPoint
+					);
+
+					this.seedPoints.push(this.initialSeedPoint);
+					this.zeta = this.seedPoints.length;
+
+					this.closenessArr = dabL.closeness(
+						this.seedPoints, this.zeta, this.hdSim, this.knn
+					);
+					this.seedPoints.forEach((i) => {
+						// this.borderArr[i] = true;
+						this.sizeArr[i] = this.sizeArr[i] * 1.3;
+						this.colorArr[i] = this.getCurrentBrushColor();
+						this.zIndexArr[i] = 1;
+					});
+					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
+				}
 			}
+			else if (this.mode === "brush") {
+				Object.keys(this.brushingStatus).forEach((brushIdx) => {
+					this.brushingStatus[brushIdx].forEach((i) => {
+						this.sizeArr[i] = this.sizeArr[i] * 1.3;
+						this.colorArr[i] = this.getCurrentBrushColor();
+						this.borderArr[i] = true;
+						this.zIndexArr[i] = 1;
+					});
+
+					// convert the set to array
+
+					if (brushIdx == this.currentBrushIdx) {
+						this.closenessArr = dabL.closeness(
+							Array.from(this.brushingStatus[brushIdx]), this.zeta, this.hdSim, this.knn
+						);
+						console.log(this.closenessArr);
+						this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
+					}
+				});
+			}
+			
 			
 		}
 	}
@@ -257,6 +284,28 @@ class MultiDBrushing {
 		)
 	}
 
+	startBrushing() {
+		this.mode = "brush";
+		const newBrushedPoints = dabL.findPointsWithinPainter(
+			this.currLd, this.xPos, this.yPos, this.painterRadius
+		);
+
+		if (this.brushingStatus[this.currentBrushIdx] === undefined) {
+			this.brushingStatus[this.currentBrushIdx] = new Set(newBrushedPoints);
+		}
+		else {
+			newBrushedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].add(d));
+		}
+
+
+
+
+	}
+
+	proceedBrushing() {
+
+	}
+
 
 	registerPainter() {
 		this.canvasDom.addEventListener("mousemove", (e) => {
@@ -273,7 +322,19 @@ class MultiDBrushing {
 			if (this.mode === "initiate") {
 				this.cancelInitialRelocation();
 			}
+			if (this.mode === "brush") {
+				this.proceedBrushing();
+			}
 		}); // moving the painter
+		this.canvasDom.addEventListener("mousedown", (e) => {
+			this.xPos = e.offsetX * this.scalingFactor;
+			this.yPos = e.offsetY * this.scalingFactor;
+
+			if (this.mode === "initiate") {
+				this.startBrushing();
+				this.updater(e);
+			}
+		})
 		this.canvasDom.addEventListener("wheel", (e) => { // wheeling to change the painter radius
 			this.painterRadius += e.deltaY * 0.017;
 			this.updater(e);
