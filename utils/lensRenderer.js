@@ -80,7 +80,7 @@ export function circleLensRenderer(ctx, painterRadius, xPos, yPos, opacity, lens
 	const color = lensStyle.color;
 	const strokeWidth = lensStyle.strokeWidth;
 
-	circleBorderRender(ctx, painterRadius * 2, color, strokeWidth, xPos, yPos, opacity);
+	circleBorderRender(ctx, painterRadius * 3, color, strokeWidth, xPos, yPos, opacity);
 
 }
 

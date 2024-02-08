@@ -245,11 +245,11 @@ export function findRelocationPositionsHull(
 				if (getDist(pos[0], pos[1], hullStartPoint[0], hullStartPoint[1]) > painterRadius) {
 					return [pos[0], pos[1]];
 				}
-				return [hullStartPoint[0] + slope[0] * 1.5, hullStartPoint[1] + slope[1] * 1.5];
+				return [hullStartPoint[0] + slope[0] * 3.5, hullStartPoint[1] + slope[1] * 3.5];
 	
 			}
 			else {
-				return [hullStartPoint[0] + slope[0] * (1 - closenessArr[i]), hullStartPoint[1] + slope[1] * (1 - closenessArr[i])];
+				return [hullStartPoint[0] + slope[0] * (3 - 2 * closenessArr[i]), hullStartPoint[1] + slope[1] * (3 -  2 * closenessArr[i])];
 			}
 		}
 	});
