@@ -17,6 +17,8 @@ class MultiDBrushing {
 			"initialPainterRadius": 70,
 			"initialRelocationThreshold": 600, // in ms
 			"initialRelocationDuration": 700, // in ms
+			"relocationInterval": 800, // in ms
+			"relocationUpdateDuration": 200, // ms
 			"showLens": true,
 			"lensStyle": {
 				"color": "red",
@@ -47,10 +49,15 @@ class MultiDBrushing {
 		// set context of the canvas
 		this.ctx = canvasDom.getContext("2d");
 
+
 		// interactively updated hyperparameters for painter
 		this.painterRadius = this.techniqueStyle.initialPainterRadius;
 		this.zeta = undefined;
 		this.currentBrushIdx = 0;
+
+		// interactively updated hyperparameter while brushing
+		this.lensHull = undefined;
+		this.prevLensHull = undefined;
 
 
 		// import flags to maintain distortion-aware brushing
@@ -164,7 +171,6 @@ class MultiDBrushing {
 						this.closenessArr = dabL.closeness(
 							Array.from(this.brushingStatus[brushIdx]), this.zeta, this.hdSim, this.knn
 						);
-						console.log(this.closenessArr);
 						this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
 					}
 				});
@@ -206,9 +212,8 @@ class MultiDBrushing {
 
 	updater(e) {
 		/**
-		* Update and rerender the entire system
+		* Update and rerender the entire system during inspection
 		*/
-
 
 		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
 
@@ -286,6 +291,8 @@ class MultiDBrushing {
 
 	startBrushing() {
 		this.mode = "brush";
+	  const startBrushingXPos = this.xPos;
+		const startBrushingYPos = this.yPos;
 		const newBrushedPoints = dabL.findPointsWithinPainter(
 			this.currLd, this.xPos, this.yPos, this.painterRadius
 		);
@@ -296,6 +303,43 @@ class MultiDBrushing {
 		else {
 			newBrushedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].add(d));
 		}
+		pr.initiateBrushingAnimation(
+			this.ctx, this.canvasSize, this.techniqueStyle.relocationInterval, this.techniqueStyle.relocationUpdateDuration,
+			() => {
+				// this.updateLensWhileBrushing();
+				this.updateLensWhileBrushing();
+			},
+			(progress, relocationProgress) => {
+				this.constructRenderingInfo();
+				pr.dotRender(
+					this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+					this.ctx, this.currLd
+				);
+				if (progress < 1) {
+					this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1);
+				}
+				else if (progress < 2) {
+					if (relocationProgress < 1) {
+						this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1 - relocationProgress);
+						lr.convexHullLensRenderer(this.ctx, this.lensHull, relocationProgress, this.techniqueStyle.lensStyle, this.painterRadius * 2);
+					}
+					else {
+						lr.convexHullLensRenderer(this.ctx, this.lensHull, 1, this.techniqueStyle.lensStyle, this.painterRadius * 2);
+					}
+				}
+				else {
+					if (relocationProgress < 1) {
+						lr.convexHullLensRenderer(this.ctx, this.lensHull, relocationProgress, this.techniqueStyle.lensStyle, this.painterRadius * 2);
+						lr.convexHullLensRenderer(this.ctx, this.prevLensHull, 1 - relocationProgress, this.techniqueStyle.lensStyle, this.painterRadius * 2);
+					}
+					else {
+						lr.convexHullLensRenderer(this.ctx, this.lensHull, 1, this.techniqueStyle.lensStyle, this.painterRadius * 2);
+					}
+				}
+			},
+			() => { return this.mode !== "brush"; }
+		);
+
 	}
 
 	proceedBrushing() {
@@ -304,6 +348,18 @@ class MultiDBrushing {
 		);
 		newBrushedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].add(d));
 
+	}
+
+	updateLensWhileBrushing() {
+		const brushedPointsPos = Array.from(this.brushingStatus[this.currentBrushIdx]).map(d => this.currLd[d]);
+		const newHull = lr.convexHull(brushedPointsPos);
+		if (this.prevLensHull === undefined) {
+			this.prevLensHull = newHull;
+		}
+		else {
+			this.prevLensHull = JSON.parse(JSON.stringify(this.lensHull));
+		}
+		this.lensHull = newHull;
 	}
 
 
@@ -335,7 +391,11 @@ class MultiDBrushing {
 				this.startBrushing();
 				this.updater(e);
 			}
-		})
+		});
+		this.canvasDom.addEventListener("mouseup", (e) => {
+			this.mode = "inspect";
+			this.updater(e);
+		});
 		this.canvasDom.addEventListener("wheel", (e) => { // wheeling to change the painter radius
 			this.painterRadius += e.deltaY * 0.017;
 			this.updater(e);

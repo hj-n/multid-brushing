@@ -66,7 +66,6 @@ export function startDotRenderAnimation(
 
 	const update = (timestamp) => {
 
-
 		if (!start) start = timestamp;
 		const progress = (timestamp - start) / duration;
 
@@ -82,10 +81,7 @@ export function startDotRenderAnimation(
 			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
 			ctx, intermediateLd
 		);
-
-		
 		if (updateCallback) { updateCallback(progress); }
-
 		if (progress < 1) {
 			requestAnimationFrame(update);
 		}
@@ -93,6 +89,39 @@ export function startDotRenderAnimation(
 	}
 
 	requestAnimationFrame(update);
+}
+
+export function initiateBrushingAnimation(
+	ctx, canvasSize, relocationInterval, relocationUpdateDuration,
+	intervalCallback = undefined, 
+	updateCallback = undefined, 
+	checkFinishCallback = undefined
+) {
+	let start = undefined;
+	let lastRelocationProgress = 0;
+
+	const update = (timestamp) => {
+		if (!start) start = timestamp;
+		const progress = (timestamp - start) / relocationInterval;
+		const relocationProgress = 
+			(progress - Math.floor(progress)) / (relocationUpdateDuration / relocationInterval) > 1 ?
+				100 : (progress - Math.floor(progress)) / (relocationUpdateDuration / relocationInterval);
+
+		clearRender(ctx, canvasSize);
+		if (progress - lastRelocationProgress >= 1) {
+			lastRelocationProgress = parseInt(Math.floor(progress));
+			if (intervalCallback) { intervalCallback(); } // run for every relocation interval
+		}
+
+		if (updateCallback) { updateCallback(progress, relocationProgress);} // run for every update iteration
+
+		if (!checkFinishCallback()) {
+			requestAnimationFrame(update);
+		}
+	}
+
+	requestAnimationFrame(update);
+
 }
 
 export function dotRender(
