@@ -21,7 +21,7 @@ export function scalePoints(points, canvasSize) {
 
 export function scatterplotRenderer(
 	style, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
-	ctx, hd, ld, canvasSize, density // for data points
+	ctx, hd, ld, canvasSize 
 ) {
 
 	if (style === "dot") {
@@ -52,6 +52,22 @@ export function clearRender(ctx, canvasSize) {
 	 * Clear the canvas
 	 */
 	ctx.clearRect(0, 0, canvasSize, canvasSize);
+}
+
+
+export function startScatterplotRenderAnimation(
+	style, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+	ctx, canvasSize, hd, currentLd, nextLd, duration,
+	callback = undefined,
+	updateCallback = undefined
+) {
+	if (style === "dot") {
+		startDotRenderAnimation(
+			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+			ctx, canvasSize, currentLd, nextLd, duration,
+			callback, updateCallback
+		);
+	}
 }
 
 

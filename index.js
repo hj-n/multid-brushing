@@ -253,9 +253,10 @@ class MultiDBrushing {
 				)
 				
 				this.isRelocating = true;
-				pr.startDotRenderAnimation(
+				pr.startScatterplotRenderAnimation(
+					this.pointRenderingStyle.style,
 					this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
-					this.ctx, this.canvasSize,
+					this.ctx, this.canvasSize, this.hd,
 					this.currLd, newLd, this.techniqueStyle.initialRelocationDuration,
 					() => {
 						this.prevLd = [...this.currLd];
@@ -275,9 +276,10 @@ class MultiDBrushing {
 	cancelInitialRelocation() {
 		this.isRelocating = true;
 		this.initializeRenderingInfo();
-		pr.startDotRenderAnimation(
+		pr.startScatterplotRenderAnimation(
+			this.pointRenderingStyle.style,
 			this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
-			this.ctx, this.canvasSize,
+			this.ctx, this.canvasSize, this.hd,
 			this.currLd, this.prevLd, this.techniqueStyle.initialRelocationDuration,
 			() => {
 				this.mode = "inspect";
