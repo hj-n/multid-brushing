@@ -27,7 +27,8 @@ class MultiDBrushing {
 		},
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
-		maxOpacity = 0.75  // maximum opacity
+		maxOpacity = 1,  // maximum opacity
+		minOpacity = 0.1 // minimum opacity
 	) {
 
 
@@ -44,6 +45,7 @@ class MultiDBrushing {
 		this.frameRate = frameRate;
 		this.timer = true;
 		this.maxOpacity = maxOpacity;
+		this.minOpacity = minOpacity;
 
 
 		// set context of the canvas
@@ -112,7 +114,7 @@ class MultiDBrushing {
 		this.zIndexArr = Array(this.hd.length).fill(0);
 
 		if (this.showDensity) { 
-			const opacityScale = d3.scaleLinear().domain([0, d3.max(this.density)]).range([0, this.maxOpacity]);
+			const opacityScale = d3.scaleLinear().domain([0, d3.max(this.density)]).range([this.minOpacity, this.maxOpacity]);
 			this.opacityArr = this.density.map(d => opacityScale(d));
 		}
 		else if (!this.pointRenderingStyle.opacity) { this.opacityArr = Array(this.hd.length).fill(1); }
@@ -154,7 +156,7 @@ class MultiDBrushing {
 						this.colorArr[i] = this.getCurrentBrushColor();
 						this.zIndexArr[i] = 1;
 					});
-					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
+					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d);});
 				}
 
 			}
@@ -173,7 +175,7 @@ class MultiDBrushing {
 						this.closenessArr = dabL.closeness(
 							Array.from(this.brushingStatus[brushIdx]), this.zeta, this.hdSim, this.knn
 						);
-						this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
+						this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d); });
 					}
 				});
 			}
@@ -184,7 +186,7 @@ class MultiDBrushing {
 
 	scatterplotRendering() {
 		pr.scatterplotRenderer(
-			this.pointRenderingStyle.style,
+			this.pointRenderingStyle,
 			this.sizeArr,
 			this.colorArr,
 			this.opacityArr,
@@ -257,7 +259,7 @@ class MultiDBrushing {
 					this.pointRenderingStyle.style,
 					this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
 					this.ctx, this.canvasSize, this.hd,
-					this.currLd, newLd, this.techniqueStyle.initialRelocationDuration,
+					this.currLd, newLd, this.techniqueStyle.initialRelocationDuration, this.pointRenderingStyle,
 					() => {
 						this.prevLd = [...this.currLd];
 						this.currLd = [...newLd];
@@ -279,8 +281,9 @@ class MultiDBrushing {
 		pr.startScatterplotRenderAnimation(
 			this.pointRenderingStyle.style,
 			this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
-			this.ctx, this.canvasSize, this.hd,
+			this.ctx, this.canvasSize, this.hd, 
 			this.currLd, this.prevLd, this.techniqueStyle.initialRelocationDuration,
+			this.pointRenderingStyle,
 			() => {
 				this.mode = "inspect";
 				this.currLd = [...this.prevLd];
@@ -339,7 +342,7 @@ class MultiDBrushing {
 					this.performRelocationDuringBrushing(relocationProgress);
 				}
 				pr.scatterplotRenderer(
-					this.pointRenderingStyle.style, this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+					this.pointRenderingStyle, this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
 					this.ctx, this.hd, this.currLd, this.canvasSize
 				);
 				if (progress < 1) {
@@ -434,9 +437,12 @@ class MultiDBrushing {
 			}
 		});
 		this.canvasDom.addEventListener("mouseup", (e) => {
-			if ([...this.brushingStatus[this.currentBrushIdx]].length > 0) this.mode = "rest";
-			else this.mode = "inspect";
-			this.updater(e);
+			if (this.mode === "brush") {
+				if ([...this.brushingStatus[this.currentBrushIdx]].length > 0) this.mode = "rest";
+				else this.mode = "inspect";
+				this.updater(e);
+
+			}
 		});
 		this.canvasDom.addEventListener("wheel", (e) => { // wheeling to change the painter radius
 			this.painterRadius += e.deltaY * 0.017;

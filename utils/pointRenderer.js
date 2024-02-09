@@ -6,7 +6,7 @@ export function scalePoints(points, canvasSize) {
 	 * Scales the points to fit the canvas size
 	 * Left 10% for padding
 	*/
-	const padding = 0.1;
+	const padding = 0.15;
 	const width = canvasSize;
 	const height = canvasSize;
 
@@ -20,20 +20,23 @@ export function scalePoints(points, canvasSize) {
 }
 
 export function scatterplotRenderer(
-	style, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+	pointRenderingStyle, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
 	ctx, hd, ld, canvasSize 
 ) {
 
+	const style = pointRenderingStyle.style;
 	if (style === "dot") {
 		dotRender(
 			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
 			ctx, ld
 		);
 	}
-	// if (renderingStyle.style === "monochrome") {
-	// 	monochromeRenderer(ctx, hd, ld, canvasSize, renderingStyle); // Still implementing
-	// under construction
-	// }
+	else if (style === "monochrome") {
+		monochromeRenderer(
+			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+			ctx, hd, ld, canvasSize, pointRenderingStyle
+		);
+	}
 }
 
 export function painterRenderer(ctx, radius, xPos, yPos) {
@@ -57,27 +60,10 @@ export function clearRender(ctx, canvasSize) {
 
 export function startScatterplotRenderAnimation(
 	style, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
-	ctx, canvasSize, hd, currentLd, nextLd, duration,
+	ctx, canvasSize, hd, currentLd, nextLd, duration, renderingStyle,
 	callback = undefined,
 	updateCallback = undefined
 ) {
-	if (style === "dot") {
-		startDotRenderAnimation(
-			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
-			ctx, canvasSize, currentLd, nextLd, duration,
-			callback, updateCallback
-		);
-	}
-}
-
-
-export function startDotRenderAnimation(
-	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, 
-	ctx, canvasSize, currentLd, nextLd, duration, 
-	callback = undefined,
-	updateCallback = undefined
-) {
-
 	let start = undefined;
 
 	const update = (timestamp) => {
@@ -92,11 +78,17 @@ export function startDotRenderAnimation(
 		});
 
 		clearRender(ctx, canvasSize);
-
-		dotRender(
-			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
-			ctx, intermediateLd
-		);
+		if (style === "dot")
+			dotRender(
+				sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+				ctx, intermediateLd
+			);
+		else if (style === "monochrome") {
+			monochromeRenderer(
+				sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+				ctx, hd, intermediateLd, canvasSize, renderingStyle
+			);
+		}
 		if (updateCallback) { updateCallback(progress); }
 		if (progress < 1) {
 			requestAnimationFrame(update);
@@ -106,6 +98,8 @@ export function startDotRenderAnimation(
 
 	requestAnimationFrame(update);
 }
+
+
 
 export function initiateBrushingAnimation(
 	ctx, canvasSize, relocationInterval, relocationUpdateDuration,
@@ -167,58 +161,85 @@ export function dotRender(
 }
 
 
-// export function monochromeRenderer(
-// 	ctx, hd, ld, canvasSize, renderingStyle
-// ) {
-// 	/**
-// 	 * Render the points with monochrome coloring
-// 	 * Render the 3D image specified in "hd"
-// 	 */
+export function monochromeRenderer(
+	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, 
+	ctx, hd, ld, canvasSize, renderingStyle
+) {
+	/**
+	 * Render the points with monochrome coloring
+	 * Render the 3D image specified in "hd"
+	 */
 
-// 	const pixelWidth = renderingStyle.pixelWidth;
-// 	const pixelHeight = renderingStyle.pixelHeight;
-// 	const inversed = renderingStyle.inversed;
-// 	const removeBackground = renderingStyle.removeBackground;
+	const pixelWidth = renderingStyle.pixelWidth;
+	const pixelHeight = renderingStyle.pixelHeight;
+	const inversed = renderingStyle.inversed;
+	const removeBackground = renderingStyle.removeBackground;
 	
-// 	let pointWidth = renderingStyle.width;
-// 	let pointHeight = renderingStyle.height;
-
-
-// 	if (!Array.isArray(pointWidth)) { pointWidth = Array(ld.length).fill(pointWidth); }
-// 	if (!Array.isArray(pointHeight)) { pointHeight = Array(ld.length).fill(pointHeight); }
 
 
 
-// 	const imageData = ctx.createImageData(canvasSize, canvasSize);
-// 	for (let i = 0; i < ld.length; i++) {
-// 		const xPos = parseInt(ld[i][0]);
-// 		const yPos = parseInt(ld[i][1]);
+	const imageData = ctx.createImageData(canvasSize, canvasSize);
+	for (let i = 0; i < ld.length; i++) {
+		const xPos = parseInt(ld[i][0] - 0.5 * sizeArr[i]) 
+		const yPos = parseInt(ld[i][1] - 0.5 * sizeArr[i]) 
 
-// 		for (let j = 0; j < pointWidth[i]; j++) {
-// 			for (let k = 0; k < pointHeight[i]; k++) {
-// 				const index = (xPos + j + (yPos + k) * canvasSize) * 4;
+		const rgb = d3.color(colorArr[i]);
+		if (rgb.r !== 0) 
+		console.log(rgb);
 
-// 				const pixelJ = parseInt((j / pointWidth[i]) * pixelWidth);
-// 				const pixelK = parseInt((k / pointHeight[i]) * pixelHeight);
-// 				const pixelIndex = (pixelJ + pixelK * pixelWidth);
+		for (let j = 0; j < sizeArr[i]; j++) {
+			for (let k = 0; k < sizeArr[i]; k++) {
+				const index = (xPos + j + (yPos + k) * canvasSize) * 4;
 
-// 				let value = hd[i][pixelIndex] * 255;
-// 				if (!value) { value = 0; }
-// 				if (inversed) { value = 255 - value; }
+				const pixelJ = parseInt((j / sizeArr[i]) * pixelWidth);
+				const pixelK = parseInt((k / sizeArr[i]) * pixelHeight);
+				const pixelIndex = (pixelJ + pixelK * pixelWidth);
 
-
-// 				if (removeBackground && value === 255) continue;
-// 				imageData.data[index] = value;
-// 				imageData.data[index + 1] = value;
-// 				imageData.data[index + 2] = value;
-// 				imageData.data[index + 3] = 255;
-// 			}
-// 		}
-
-// 	}
-
-// 	ctx.putImageData(imageData, 0, 0);
+				let value = hd[i][pixelIndex] * 255;
+				if (inversed) { value = 255 - value; }
+				if (value < 255) {
+					value = 255 - (255 - value) * opacityArr[i];
+				}
 
 
-// }
+				const r = rgb.r;
+				const g = rgb.g;
+				const b = rgb.b;
+
+
+
+
+
+
+				if (removeBackground && value === 255) continue;
+				imageData.data[index] = r
+				imageData.data[index + 1] = g
+				imageData.data[index + 2] = b;
+				imageData.data[index + 3] = (255 - value);
+			}
+		}
+
+	}
+
+
+	ctx.putImageData(imageData, 0, 0);
+
+	for (let i = 0; i < ld.length; i++) {
+		const xPos = parseInt(ld[i][0]);
+		const yPos = parseInt(ld[i][1]);
+		// circular border (thicker when borderArr[i] is true)
+		if (borderArr[i]) {
+			ctx.beginPath();
+			ctx.arc(xPos, yPos, sizeArr[i] / 1.5, 0, 2 * Math.PI);
+			ctx.strokeStyle = d3.color("black").copy({ opacity: opacityArr[i] });
+			ctx.lineWidth = 0.5;
+			ctx.stroke();
+			ctx.closePath();
+		}
+
+	}
+
+
+
+}
 
