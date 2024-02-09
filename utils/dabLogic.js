@@ -113,16 +113,68 @@ export function findInitialRelocationPositions(
 				return [painterXPos + slope[0], painterYPos + slope[1]]; 
 			}
 			if (closenessArr[i] === 0) { 
-				if (getDist(pos[0], pos[1], painterXPos, painterYPos) > 2 * painterRadius) {
+				if (getDist(pos[0], pos[1], painterXPos, painterYPos) > 3 * painterRadius) {
 					return [pos[0], pos[1]];
 				}
-				return [painterXPos + slope[0] * 2.5, painterYPos + slope[1] * 2.5]; 
+				return [painterXPos + slope[0] * 4, painterYPos + slope[1] * 4]; 
 			}
-			else { return [painterXPos + slope[0] * (2 - closenessArr[i]), painterYPos + slope[1] * (2 - closenessArr[i])]; }
+			else { return [painterXPos + slope[0] * (3  - 2 * closenessArr[i]), painterYPos + slope[1] * (3 - 2 * closenessArr[i])]; }
 		}
 	});
 	return relocatedLd;
 
+}
+
+export function extendHull(hull, extendLength) {
+	// extendLength = extendLength * 4;
+	const bisectors = getBisectors(hull);
+	const extendedHull = hull.map((point, i) => {
+		const slope = bisectors[i][0];
+		const slopeStep = [1, slope];
+		const normalizedStep = [
+			slopeStep[0] / Math.sqrt(slopeStep[0] ** 2 + slopeStep[1] ** 2),
+			slopeStep[1] / Math.sqrt(slopeStep[0] ** 2 + slopeStep[1] ** 2)
+		];
+		const x = point[0];
+		const y = point[1];
+		const check = d3.polygonContains(hull, [x + normalizedStep[0] * 0.01, y + normalizedStep[1] * 0.01]);
+		if (check) {
+			return [x - normalizedStep[0] * extendLength, y - normalizedStep[1] * extendLength];
+		}
+		return [x + normalizedStep[0] * extendLength, y + normalizedStep[1] * extendLength];
+	});
+	return extendedHull;
+}
+
+export function pointToLineDist(x, y, x1, y1, x2, y2) {
+	/**
+	 * find the distance between the point (x, y) and the line that connects (x1, y1) and (x2, y2)
+	 * if it is not possible to find the orthogonal projection of the point to the line, 
+	 * then find the distance to the closest endpoint
+	 */
+	const dx = x2 - x1;
+	const dy = y2 - y1;
+	const l2 = dx * dx + dy * dy;
+	const t = ((x - x1) * dx + (y - y1) * dy) / l2;
+	const t1 = Math.max(0, Math.min(1, t));
+	const projectionX = x1 + t1 * dx;
+	const projectionY = y1 + t1 * dy;
+
+	const projectionToP1 = Math.sqrt((projectionX - x1) ** 2 + (projectionY - y1) ** 2);
+	const projectionToP2 = Math.sqrt((projectionX - x2) ** 2 + (projectionY - y2) ** 2);
+	const P1toP2 = Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+
+	const distToProjection = Math.sqrt((projectionX - x) ** 2 + (projectionY - y) ** 2);
+	const distToP1 = Math.sqrt((x - x1) ** 2 + (y - y1) ** 2);
+	const distToP2 = Math.sqrt((x - x2) ** 2 + (y - y2) ** 2);
+
+	if (projectionToP1 + projectionToP2 > P1toP2) {
+		return Math.min(distToP1, distToP2);
+	}
+	else {
+		return distToProjection;
+	}
+	
 }
 
 export function findSlopeBasedOnHull(
@@ -130,19 +182,23 @@ export function findSlopeBasedOnHull(
 ) {
 	// for a given point (x,y), find the two bisectors that enclose the point
 	let bisectorIndices = undefined;
+	let minDist = 100000000;
 	for (let i = 0; i < hull.length; i++) {
+		const currIdx = i;
 		const nextIdx = (i + 1) % hull.length;
-		const currentBisector = bisectors[i];
-		const nextBisector = bisectors[nextIdx];
 
-		const isUnderCurrentBisector = y < currentBisector[0] * x + currentBisector[1];
-		const isUnderNextBisector = y < nextBisector[0] * x + nextBisector[1];
-
-		if (isUnderCurrentBisector !== isUnderNextBisector) {
-			bisectorIndices = [i, nextIdx];
-			continue;
+		const dist = pointToLineDist(
+			x, y, hull[currIdx][0], hull[currIdx][1], hull[nextIdx][0], hull[nextIdx][1]
+		)
+		console.log(dist);
+		if (dist < minDist) {
+			minDist = dist;
+			bisectorIndices = [currIdx, nextIdx];
 		}
 	}
+
+
+
 	// find the point where the line from (x,y) parallel to the hull edge intersects with the bisectors
 	const parallelSlope = (hull[bisectorIndices[1]][1] - hull[bisectorIndices[0]][1]) / (hull[bisectorIndices[1]][0] - hull[bisectorIndices[0]][0]);
 	const parallelIntercept = y - parallelSlope * x;
@@ -151,13 +207,13 @@ export function findSlopeBasedOnHull(
 	const bisector1Intercept = bisectors[bisectorIndices[0]][1];
 
 	const intersect1X = (parallelIntercept - bisector1Intercept) / (bisector1Slope - parallelSlope);
-	const intersect1Y = bisector1Slope * intersectX + bisector1Intercept;
+	const intersect1Y = bisector1Slope * intersect1X + bisector1Intercept;
 
 	const bisector2Slope = bisectors[bisectorIndices[1]][0];
 	const bisector2Intercept = bisectors[bisectorIndices[1]][1];
 
 	const intersect2X = (parallelIntercept - bisector2Intercept) / (bisector2Slope - parallelSlope);
-	const intersect2Y = bisector2Slope * intersectX + bisector2Intercept;
+	const intersect2Y = bisector2Slope * intersect2X + bisector2Intercept;
 
 	// find the ratio of the (x,y) that cuts the line between the two intersection points
 	const dist1 = getDist(x, y, intersect1X, intersect1Y);
@@ -201,11 +257,10 @@ export function getBisectors(hull) {
 			prevSlope[1] / Math.sqrt(prevSlope[0] ** 2 + prevSlope[1] ** 2)
 		];
 
-
 		// find the bisector of the two lines
 		const bisectorSlope = [normalizdeNextSlope[0] + normalizedPrevSlope[0], normalizdeNextSlope[1] + normalizedPrevSlope[1]];
 		const bisectorSlopeVal = bisectorSlope[1] / bisectorSlope[0];
-		const bisectorIntercept = d[1] - bisectorSlope * d[0];
+		const bisectorIntercept = d[1] - bisectorSlopeVal * d[0];
 		return [bisectorSlopeVal, bisectorIntercept];
 	});
 }
@@ -218,6 +273,8 @@ export function isPointWithinHull(x, y, hull) {
 
 }
 
+
+
 export function findRelocationPositionsHull(
 	seedPoints, hull, currentLd, closenessArr, painterRadius
 ) {
@@ -226,30 +283,37 @@ export function findRelocationPositionsHull(
 	*/
 
 	const bisectors = getBisectors(hull);
+	const extendedHull = extendHull(hull, painterRadius * 2);
+
 	
 	const relocatedLd = currentLd.map((pos, i) => {
-		if (seedPoints.includes(i)) { return pos; }
+		
+		if ([...seedPoints].includes(i)) { return pos; }
 		else {
 			const slopeInfo = findSlopeBasedOnHull(
 				pos[0], pos[1], bisectors, hull, painterRadius
 			);
-			const slope = slopeInfo.slope;
+			let slope = slopeInfo.slope;
 			const hullStartPoint = slopeInfo.hullStartPoint;
-			if (closenessArr === 1) {
+			if (isPointWithinHull(hullStartPoint[0] + slope[0] * 0.01, hullStartPoint[1] + slope[1] * 0.01, hull)) {
+				slope = [-slope[0], -slope[1]];
+			}
+			if (closenessArr[i] === 1) {
 				if (isPointWithinHull(pos[0], pos[1], hull)) {
 					return [pos[0], pos[1]];
 				}
 				return [hullStartPoint[0], hullStartPoint[1]];
 			}
-			else if (closenessArr === 0) {
-				if (getDist(pos[0], pos[1], hullStartPoint[0], hullStartPoint[1]) > painterRadius) {
+			else if (closenessArr[i] === 0) {
+				if (!isPointWithinHull(pos[0], pos[1], extendedHull)) {
 					return [pos[0], pos[1]];
 				}
-				return [hullStartPoint[0] + slope[0] * 3.5, hullStartPoint[1] + slope[1] * 3.5];
+				return [hullStartPoint[0] + slope[0] * 3, hullStartPoint[1] + slope[1] * 3];
+
 	
 			}
 			else {
-				return [hullStartPoint[0] + slope[0] * (3 - 2 * closenessArr[i]), hullStartPoint[1] + slope[1] * (3 -  2 * closenessArr[i])];
+				return [hullStartPoint[0] + slope[0] * (2 - 2 *  closenessArr[i]), hullStartPoint[1] + slope[1] * (2 -  2 * closenessArr[i])];
 			}
 		}
 	});

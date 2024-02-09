@@ -88,26 +88,7 @@ export function convexHull(brushedPoints) {
 	return d3.polygonHull(brushedPoints);
 }
 
-export function extendHull(hull, extendLength) {
-	// extendLength = extendLength * 4;
-	const bisectors = dabL.getBisectors(hull);
-	const extendedHull = hull.map((point, i) => {
-		const slope = bisectors[i][0];
-		const slopeStep = [1, slope];
-		const normalizedStep = [
-			slopeStep[0] / Math.sqrt(slopeStep[0] ** 2 + slopeStep[1] ** 2), 
-			slopeStep[1] / Math.sqrt(slopeStep[0] ** 2 + slopeStep[1] ** 2)
-		];
-		const x = point[0];
-		const y = point[1];
-		const check = d3.polygonContains(hull, [x + normalizedStep[0] * 0.01, y + normalizedStep[1] * 0.01]);
-		if (check) {
-			return [x - normalizedStep[0] * extendLength, y - normalizedStep[1] * extendLength];
-		}
-		return [x + normalizedStep[0] * extendLength, y + normalizedStep[1] * extendLength];
-	});
-	return extendedHull;
-}
+
 
 export function convexHullLensRenderer(ctx, hull, opacity, lensStyle, extendLength) {
 	/**
@@ -122,6 +103,6 @@ export function convexHullLensRenderer(ctx, hull, opacity, lensStyle, extendLeng
 
 
 
-	convexHullBorderRenderer(ctx, extendHull(hull, extendLength), color, strokeWidth, opacity);
+	convexHullBorderRenderer(ctx, dabL.extendHull(hull, extendLength), color, strokeWidth, opacity);
 	// convexHullBorderRenderer(ctx, hull, color, strokeWidth, opacity);
 }

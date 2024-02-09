@@ -17,8 +17,8 @@ class MultiDBrushing {
 			"initialPainterRadius": 70,
 			"initialRelocationThreshold": 600, // in ms
 			"initialRelocationDuration": 700, // in ms
-			"relocationInterval": 800, // in ms
-			"relocationUpdateDuration": 200, // ms
+			"relocationInterval": 1000, // in ms
+			"relocationUpdateDuration": 350, // ms
 			"showLens": true,
 			"lensStyle": {
 				"color": "red",
@@ -91,6 +91,7 @@ class MultiDBrushing {
 		this.ld = pr.scalePoints(this.preprocessed.ld, this.canvasSize);
 		this.currLd = [...this.ld]; // current position of the points
 		this.prevLd = [...this.ld]; // previous position of the points
+		this.nextLd = [...this.ld]; // next position of the points
 		this.knn = this.preprocessed.knn;
 		this.labels = this.preprocessed.labels;
 
@@ -289,6 +290,24 @@ class MultiDBrushing {
 		)
 	}
 
+	initiateRelocationDuringBrushing() {
+		const newLd = dabL.findRelocationPositionsHull(
+			this.brushingStatus[this.currentBrushIdx], this.lensHull, this.currLd, 
+			this.closenessArr, this.painterRadius
+		);
+		this.nextLd = [...newLd];
+	}
+
+	performRelocationDuringBrushing(relocationProgress) {
+		const intermediateLd = this.currLd.map((pos, i) => {
+			const posX = pos[0] + (this.nextLd[i][0] - pos[0]) * relocationProgress;
+			const posY = pos[1] + (this.nextLd[i][1] - pos[1]) * relocationProgress;
+			return [posX, posY];
+		});
+
+		this.currLd = [...intermediateLd];
+	}
+
 	startBrushing() {
 		this.mode = "brush";
 	  const startBrushingXPos = this.xPos;
@@ -306,11 +325,15 @@ class MultiDBrushing {
 		pr.initiateBrushingAnimation(
 			this.ctx, this.canvasSize, this.techniqueStyle.relocationInterval, this.techniqueStyle.relocationUpdateDuration,
 			() => {
-				// this.updateLensWhileBrushing();
 				this.updateLensWhileBrushing();
+				this.initiateRelocationDuringBrushing();
 			},
 			(progress, relocationProgress) => {
 				this.constructRenderingInfo();
+
+				if (relocationProgress < 1 && progress > 1) {
+					this.performRelocationDuringBrushing(relocationProgress);
+				}
 				pr.dotRender(
 					this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
 					this.ctx, this.currLd
