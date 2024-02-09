@@ -7,6 +7,7 @@
   "author": "Hyeon Jeon",
   "license": "MIT",
   "dependencies": {
-    "d3": "^7.8.5"
+    "d3": "^7.8.5",
+    "d3-voronoi": "^1.1.4"
   }
 }

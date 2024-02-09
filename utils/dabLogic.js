@@ -277,7 +277,7 @@ export function isPointWithinHull(x, y, hull) {
 
 
 export function findRelocationPositionsHull(
-	seedPoints, hull, currentLd, closenessArr, painterRadius
+	seedPoints, hull, currentLd, closenessArr, painterRadius, canvasSize
 ) {
 	/**
 	* find the relocation positions of the points based on seed points and convex hull
@@ -286,10 +286,13 @@ export function findRelocationPositionsHull(
 	const bisectors = getBisectors(hull);
 	const extendedHull = extendHull(hull, painterRadius * 2);
 
+	const relaxedPoints = relaxation([...seedPoints], currentLd, 100, canvasSize);
+
+	console.log(relaxedPoints);
 	
 	const relocatedLd = currentLd.map((pos, i) => {
 		
-		if ([...seedPoints].includes(i)) { return pos; }
+		if ([...seedPoints].includes(i)) { return relaxedPoints[i]; }
 		else {
 			const slopeInfo = findSlopeBasedOnHull(
 				pos[0], pos[1], bisectors, hull, painterRadius
@@ -314,4 +317,66 @@ export function findRelocationPositionsHull(
 		}
 	});
 	return relocatedLd;
+}
+
+
+
+export function relaxation(indices, ld, iteration, canvasSize) {
+  /**
+	* relaxation of the points based on lloyd's relaxation 
+	* for the points forming the convex hull, the points are fixed
+	* the relaxation is done within the hull
+	*/
+	let points = indices.map(i => ld[i]);
+
+	const hull = d3.polygonHull(points);
+	const hullIndices = [];
+	points.forEach((pos, i) => {
+		for (let j = 0; j < hull.length; j++) {
+			if (pos[0] === hull[j][0] && pos[1] === hull[j][1]) {
+				hullIndices.push(i);
+				break;
+			}
+		}
+	})
+
+
+	
+	for (let i = 0; i < iteration; i++) {
+		const delaunay = d3.Delaunay.from(points.map(d => [d[0], d[1]]));
+		const voronoi = delaunay.voronoi([0, 0, canvasSize, canvasSize]);
+		const voronoiPolygons = indices.map((idx, j) => { return voronoi.cellPolygon(j) });
+
+
+		// // clip the polygons to fit the hull
+		const clippedPolygons = voronoiPolygons.map((polygon, j) => {
+			if (polygon === null) return null;
+			const clippedPolygon = polygon.filter(point => d3.polygonContains(hull, point));
+			return clippedPolygon;
+		});
+
+
+		points = points.map((point, j) => {
+			if (hullIndices.includes(j)) { return point; }
+			if (clippedPolygons[j] === null) { return point; }
+			const clippedPolygon = clippedPolygons[j];
+			if (clippedPolygon.length === 0) { return point;}
+			else if (clippedPolygon.length === 1) { return point; }
+			else if (clippedPolygon.length === 2) { return point; }
+			else {
+				const centroid = d3.polygonCentroid(clippedPolygon);
+				if (isNaN(centroid[0]) || isNaN(centroid[1])) { return point; }
+				else return centroid;
+			}
+		});
+
+	}
+
+	const indicesToPos = {};
+	indices.forEach((idx, i) => {
+		indicesToPos[idx] = points[i];
+	});
+
+	return indicesToPos;
+
 }

@@ -293,7 +293,7 @@ class MultiDBrushing {
 	initiateRelocationDuringBrushing() {
 		const newLd = dabL.findRelocationPositionsHull(
 			this.brushingStatus[this.currentBrushIdx], this.lensHull, this.currLd, 
-			this.closenessArr, this.painterRadius
+			this.closenessArr, this.painterRadius, this.canvasSize
 		);
 		this.nextLd = [...newLd];
 	}
