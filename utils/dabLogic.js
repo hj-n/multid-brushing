@@ -181,7 +181,7 @@ export function findSlopeBasedOnHull(
 	x, y, bisectors, hull, painterRadius
 ) {
 	// for a given point (x,y), find the two bisectors that enclose the point
-	let bisectorIndices = undefined;
+	let bisectorIndices = [0, 1]
 	let minDist = 100000000;
 	for (let i = 0; i < hull.length; i++) {
 		const currIdx = i;
@@ -190,7 +190,8 @@ export function findSlopeBasedOnHull(
 		const dist = pointToLineDist(
 			x, y, hull[currIdx][0], hull[currIdx][1], hull[nextIdx][0], hull[nextIdx][1]
 		)
-		console.log(dist);
+
+		
 		if (dist < minDist) {
 			minDist = dist;
 			bisectorIndices = [currIdx, nextIdx];
@@ -295,9 +296,6 @@ export function findRelocationPositionsHull(
 			);
 			let slope = slopeInfo.slope;
 			const hullStartPoint = slopeInfo.hullStartPoint;
-			if (isPointWithinHull(hullStartPoint[0] + slope[0] * 0.01, hullStartPoint[1] + slope[1] * 0.01, hull)) {
-				slope = [-slope[0], -slope[1]];
-			}
 			if (closenessArr[i] === 1) {
 				if (isPointWithinHull(pos[0], pos[1], hull)) {
 					return [pos[0], pos[1]];
@@ -309,8 +307,6 @@ export function findRelocationPositionsHull(
 					return [pos[0], pos[1]];
 				}
 				return [hullStartPoint[0] + slope[0] * 3, hullStartPoint[1] + slope[1] * 3];
-
-	
 			}
 			else {
 				return [hullStartPoint[0] + slope[0] * (2 - 2 *  closenessArr[i]), hullStartPoint[1] + slope[1] * (2 -  2 * closenessArr[i])];

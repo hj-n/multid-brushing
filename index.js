@@ -299,6 +299,7 @@ class MultiDBrushing {
 	}
 
 	performRelocationDuringBrushing(relocationProgress) {
+		this.isRelocating = true;
 		const intermediateLd = this.currLd.map((pos, i) => {
 			const posX = pos[0] + (this.nextLd[i][0] - pos[0]) * relocationProgress;
 			const posY = pos[1] + (this.nextLd[i][1] - pos[1]) * relocationProgress;
@@ -315,6 +316,7 @@ class MultiDBrushing {
 		const newBrushedPoints = dabL.findPointsWithinPainter(
 			this.currLd, this.xPos, this.yPos, this.painterRadius
 		);
+
 
 		if (this.brushingStatus[this.currentBrushIdx] === undefined) {
 			this.brushingStatus[this.currentBrushIdx] = new Set(newBrushedPoints);
@@ -347,6 +349,7 @@ class MultiDBrushing {
 						lr.convexHullLensRenderer(this.ctx, this.lensHull, relocationProgress, this.techniqueStyle.lensStyle, this.painterRadius * 2);
 					}
 					else {
+						this.isRelocating = false;
 						lr.convexHullLensRenderer(this.ctx, this.lensHull, 1, this.techniqueStyle.lensStyle, this.painterRadius * 2);
 					}
 				}
@@ -356,9 +359,11 @@ class MultiDBrushing {
 						lr.convexHullLensRenderer(this.ctx, this.prevLensHull, 1 - relocationProgress, this.techniqueStyle.lensStyle, this.painterRadius * 2);
 					}
 					else {
+						this.isRelocating = false;
 						lr.convexHullLensRenderer(this.ctx, this.lensHull, 1, this.techniqueStyle.lensStyle, this.painterRadius * 2);
 					}
 				}
+				this.painterRendering(this.painterRadius, this.xPos, this.yPos);
 			},
 			() => { return this.mode !== "brush"; }
 		);
