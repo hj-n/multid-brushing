@@ -288,7 +288,6 @@ export function findRelocationPositionsHull(
 
 	const relaxedPoints = relaxation([...seedPoints], currentLd, 100, canvasSize);
 
-	console.log(relaxedPoints);
 	
 	const relocatedLd = currentLd.map((pos, i) => {
 		

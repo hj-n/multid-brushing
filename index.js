@@ -156,8 +156,9 @@ class MultiDBrushing {
 					});
 					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d; });
 				}
+
 			}
-			else if (this.mode === "brush") {
+			else if (this.mode === "brush" || this.mode === "rest") {
 				Object.keys(this.brushingStatus).forEach((brushIdx) => {
 					this.brushingStatus[brushIdx].forEach((i) => {
 						this.sizeArr[i] = this.sizeArr[i] * 1.3;
@@ -217,7 +218,6 @@ class MultiDBrushing {
 		*/
 
 		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
-
 
 			this.isInitialRelocationTriggered = false;
 			if (this.timer) {
@@ -309,7 +309,7 @@ class MultiDBrushing {
 		this.currLd = [...intermediateLd];
 	}
 
-	startBrushing() {
+	startBrushing(isResume = false) {
 		this.mode = "brush";
 	  const startBrushingXPos = this.xPos;
 		const startBrushingYPos = this.yPos;
@@ -341,11 +341,13 @@ class MultiDBrushing {
 					this.ctx, this.currLd
 				);
 				if (progress < 1) {
-					this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1);
+					if (!isResume) this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1);
+					else lr.convexHullLensRenderer(this.ctx, this.lensHull, progress, this.techniqueStyle.lensStyle, this.painterRadius * 2);
 				}
 				else if (progress < 2) {
 					if (relocationProgress < 1) {
-						this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1 - relocationProgress);
+						if (!isResume) this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1 - relocationProgress);
+						else lr.convexHullLensRenderer(this.ctx, this.prevLensHull, 1 - relocationProgress, this.techniqueStyle.lensStyle, this.painterRadius * 2);	
 						lr.convexHullLensRenderer(this.ctx, this.lensHull, relocationProgress, this.techniqueStyle.lensStyle, this.painterRadius * 2);
 					}
 					else {
@@ -395,6 +397,7 @@ class MultiDBrushing {
 		this.canvasDom.addEventListener("mousemove", (e) => {
 			this.xPos = e.offsetX * this.scalingFactor;
 			this.yPos = e.offsetY * this.scalingFactor;
+
 			
 			if (this.isRelocating) { 
 				return; 
@@ -410,6 +413,9 @@ class MultiDBrushing {
 				this.proceedBrushing();
 				this.updater(e);
 			}
+			if (this.mode === "rest") {
+				this.updater(e);
+			}
 		}); // moving the painter
 		this.canvasDom.addEventListener("mousedown", (e) => {
 			this.xPos = e.offsetX * this.scalingFactor;
@@ -419,9 +425,15 @@ class MultiDBrushing {
 				this.startBrushing();
 				this.updater(e);
 			}
+			else if (this.mode === "rest") {
+				this.mode = "brush";
+				this.startBrushing(true);
+				this.updater(e);
+			}
 		});
 		this.canvasDom.addEventListener("mouseup", (e) => {
-			this.mode = "inspect";
+			if ([...this.brushingStatus[this.currentBrushIdx]].length > 0) this.mode = "rest";
+			else this.mode = "inspect";
 			this.updater(e);
 		});
 		this.canvasDom.addEventListener("wheel", (e) => { // wheeling to change the painter radius
