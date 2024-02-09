@@ -336,9 +336,9 @@ class MultiDBrushing {
 				if (relocationProgress < 1 && progress > 1) {
 					this.performRelocationDuringBrushing(relocationProgress);
 				}
-				pr.dotRender(
-					this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
-					this.ctx, this.currLd
+				pr.scatterplotRenderer(
+					this.pointRenderingStyle.style, this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+					this.ctx, this.hd, this.currLd, this.canvasSize
 				);
 				if (progress < 1) {
 					if (!isResume) this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1);
