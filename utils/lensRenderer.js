@@ -105,4 +105,5 @@ export function convexHullLensRenderer(ctx, hull, opacity, lensStyle, extendLeng
 
 	convexHullBorderRenderer(ctx, dabL.extendHull(hull, extendLength), color, strokeWidth, opacity);
 	// convexHullBorderRenderer(ctx, hull, color, strokeWidth, opacity);
+	// convexHullBorderRenderer(ctx, hull, color, strokeWidth, opacity);
 }

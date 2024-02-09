@@ -184,8 +184,6 @@ export function monochromeRenderer(
 		const yPos = parseInt(ld[i][1] - 0.5 * sizeArr[i]) 
 
 		const rgb = d3.color(colorArr[i]);
-		if (rgb.r !== 0) 
-		console.log(rgb);
 
 		for (let j = 0; j < sizeArr[i]; j++) {
 			for (let k = 0; k < sizeArr[i]; k++) {
@@ -205,10 +203,6 @@ export function monochromeRenderer(
 				const r = rgb.r;
 				const g = rgb.g;
 				const b = rgb.b;
-
-
-
-
 
 
 				if (removeBackground && value === 255) continue;

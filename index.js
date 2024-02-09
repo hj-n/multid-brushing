@@ -14,7 +14,7 @@ class MultiDBrushing {
 		techniqueStyle = {
 			"technique": "dab",
 			"painterColor": "green",
-			"initialPainterRadius": 70,
+			"initialPainterRadius": 35,
 			"initialRelocationThreshold": 600, // in ms
 			"initialRelocationDuration": 700, // in ms
 			"relocationInterval": 1000, // in ms
@@ -22,7 +22,7 @@ class MultiDBrushing {
 			"showLens": true,
 			"lensStyle": {
 				"color": "red",
-				"strokeWidth": 5
+				"strokeWidth": 3
 			}
 		},
 		showDensity = true, // flag determining whether to show the HD density of the points,

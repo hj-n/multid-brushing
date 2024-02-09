@@ -85,6 +85,7 @@ function findSlopeToCircleCenter(x, y, cx, cy, radius) {
 	const dy = y - cy;
 	const dist = getDist(x, y, cx, cy);
 	const ratio = radius / dist;
+
 	return [dx * ratio, dy * ratio];
 } 
 
@@ -99,6 +100,7 @@ export function findInitialRelocationPositions(
   /**
 	find the initial relocation positions of the points based on seed points
 	*/
+
 
 	const relocatedLd = currentLd.map((pos, i) => {
 		if (seedPoints.includes(i)) { return pos; }
