@@ -232,7 +232,7 @@ export function monochromeRenderer(
 			ctx.beginPath();
 			ctx.arc(xPos, yPos, sizeArr[i] / 1.5, 0, 2 * Math.PI);
 			ctx.strokeStyle = d3.color("black").copy({ opacity: opacityArr[i] });
-			ctx.lineWidth = 0.5;
+			ctx.lineWidth = 0.3;
 			ctx.stroke();
 			ctx.closePath();
 		}

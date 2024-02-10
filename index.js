@@ -10,6 +10,7 @@ class MultiDBrushing {
 		preprocessed, 
 		canvasDom, 
 		canvasSize, 
+		statusUpdateCallback,
 		pointRenderingStyle,
 		techniqueStyle = {
 			"technique": "dab",
@@ -25,10 +26,11 @@ class MultiDBrushing {
 				"strokeWidth": 3
 			}
 		},
+		maxBrushNum = 10, // maximum number of brushes
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
 		maxOpacity = 1,  // maximum opacity
-		minOpacity = 0.05 // minimum opacity
+		minOpacity = 0.05, // minimum opacity
 	) {
 
 
@@ -38,6 +40,9 @@ class MultiDBrushing {
 		this.canvasPixelSize = parseInt(this.canvasDom.style.width.slice(0, -2));
 		this.scalingFactor = this.canvasSize / this.canvasPixelSize;
 
+		// callback
+		this.statusUpdateCallback = statusUpdateCallback;
+
 		// rendering and functionality options
 		this.pointRenderingStyle = pointRenderingStyle;
 		this.techniqueStyle = techniqueStyle;
@@ -46,6 +51,8 @@ class MultiDBrushing {
 		this.timer = true;
 		this.maxOpacity = maxOpacity;
 		this.minOpacity = minOpacity;
+
+		this.colorScale = d3.scaleOrdinal().domain(d3.range(10)).range(d3.schemeCategory10);
 
 
 		// set context of the canvas
@@ -67,9 +74,10 @@ class MultiDBrushing {
 		this.isInitialRelocationTriggered = false;
 		this.triggeredRelocation = null;
 		this.isRelocating = false;
+		this.triggerRest = false;
 
 		// brushing status
-		this.brushingStatus = {};
+		this.brushingStatus = { 0: new Set() };
 
 
 		// initialize
@@ -103,8 +111,7 @@ class MultiDBrushing {
 
 	getCurrentBrushColor() {
 		// currently use tab10 color scheme
-		const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-		return colorScale(this.currentBrushIdx);
+		return this.colorScale(this.currentBrushIdx);
 	}
 
 	initializeRenderingInfo() {
@@ -339,6 +346,13 @@ class MultiDBrushing {
 			(progress, relocationProgress) => {
 				this.constructRenderingInfo();
 
+				if (relocationProgress > 1 && this.triggerRest) {
+					this.triggerRest = false;
+					if ([...this.brushingStatus[this.currentBrushIdx]].length > 0) this.mode = "rest";
+					else this.mode = "inspect";
+					this.updater();
+				}
+
 				if (relocationProgress < 1 && progress > 1) {
 					this.performRelocationDuringBrushing(relocationProgress);
 				}
@@ -415,6 +429,7 @@ class MultiDBrushing {
 		}
 		if (this.mode === "brush") {
 			this.proceedBrushing();
+			this.statusUpdateCallback(this.getEntireBrushingStatus());
 			this.updater(e);
 		}
 		if (this.mode === "rest") {
@@ -428,6 +443,7 @@ class MultiDBrushing {
 
 		if (this.mode === "initiate") {
 			this.startBrushing();
+			this.statusUpdateCallback(this.getEntireBrushingStatus());
 			this.updater(e);
 		}
 		else if (this.mode === "rest") {
@@ -439,9 +455,7 @@ class MultiDBrushing {
 
 	mouseupEventHandler(e) {
 		if (this.mode === "brush") {
-			if ([...this.brushingStatus[this.currentBrushIdx]].length > 0) this.mode = "rest";
-			else this.mode = "inspect";
-			this.updater(e);
+			this.triggerRest = true;
 
 		}
 	}
@@ -475,6 +489,49 @@ class MultiDBrushing {
 		this.canvasDom.removeEventListener("mousedown", this.mousedownFunction);
 		this.canvasDom.removeEventListener("mouseup", this.mouseupFunction);
 		this.canvasDom.removeEventListener("wheel", this.mousewheelFunction);
+	}
+
+
+	// functions related to the update of the brushing status
+	addNewBrush() {
+		const maxBrushIdx = Math.max(...Object.keys(this.brushingStatus).map(d => parseInt(d)));
+		if (maxBrushIdx >= this.maxBrushNum) return;
+		this.currentBrushIdx = maxBrushIdx + 1;
+		this.brushingStatus[this.currentBrushIdx] = new Set();
+	}
+
+	changeBrush(brushIdx) {
+		this.currentBrushIdx = brushIdx;
+	}
+
+	removeBrush(brushIdx) {
+		delete this.brushingStatus[brushIdx];
+	}
+
+	getEntireBrushingStatus() {
+		const entireBrushingStatus = [];
+		Object.keys(this.brushingStatus).forEach((brushIdx) => {
+			entireBrushingStatus.push({
+				"idx": brushIdx,
+				"points": [...this.brushingStatus[brushIdx]],
+				"color": this.getBrushingColor(brushIdx),
+				"isCurrent": brushIdx == this.currentBrushIdx
+			});
+		});
+		return entireBrushingStatus;
+	}
+
+	getBrushingStatus() {
+		return this.brushingStatus;
+	}
+
+	getCurrentBrushIdx() {
+		return this.currentBrushIdx;
+	}
+
+	getBrushingColor(brushIdx) {
+		
+		return this.colorScale(brushIdx);
 	}
 
 

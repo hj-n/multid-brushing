@@ -297,7 +297,7 @@ export function findRelocationPositionsHull(
 	const bisectors = getBisectors(hull);
 	const extendedHull = extendHull(hull, painterRadius * 2);
 
-	const relaxedPoints = relaxation([...seedPoints], currentLd, 10, canvasSize);
+	const relaxedPoints = relaxation([...seedPoints], currentLd, 100, canvasSize);
 
 	
 	const relocatedLd = currentLd.map((pos, i) => {
