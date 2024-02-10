@@ -81,7 +81,6 @@ export function closeness(targetGroup, zeta, hdSim, knn) {
 		else { return d; }
 	});
 
-	console.log(d3.max(closenessArrWithoutTargetGroup));
 	return closenessArr;
 
 }
