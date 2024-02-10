@@ -172,6 +172,7 @@ class MultiDBrushing {
 					// convert the set to array
 
 					if (brushIdx == this.currentBrushIdx) {
+						this.zeta = this.brushingStatus[brushIdx].size;
 						this.closenessArr = dabL.closeness(
 							Array.from(this.brushingStatus[brushIdx]), this.zeta, this.hdSim, this.knn
 						);
@@ -397,60 +398,87 @@ class MultiDBrushing {
 		this.lensHull = newHull;
 	}
 
+	mousemoveEventHandler(e) {
+		this.xPos = e.offsetX * this.scalingFactor;
+		this.yPos = e.offsetY * this.scalingFactor;
 
-	registerPainter() {
-		this.canvasDom.addEventListener("mousemove", (e) => {
-			this.xPos = e.offsetX * this.scalingFactor;
-			this.yPos = e.offsetY * this.scalingFactor;
 
-			
-			if (this.isRelocating) { 
-				return; 
-			}
-			if (this.mode === "inspect") {
-				this.updater(e);
-				this.registerInitialRelocation();
-			}
-			if (this.mode === "initiate") {
-				this.cancelInitialRelocation();
-			}
-			if (this.mode === "brush") {
-				this.proceedBrushing();
-				this.updater(e);
-			}
-			if (this.mode === "rest") {
-				this.updater(e);
-			}
-		}); // moving the painter
-		this.canvasDom.addEventListener("mousedown", (e) => {
-			this.xPos = e.offsetX * this.scalingFactor;
-			this.yPos = e.offsetY * this.scalingFactor;
-
-			if (this.mode === "initiate") {
-				this.startBrushing();
-				this.updater(e);
-			}
-			else if (this.mode === "rest") {
-				this.mode = "brush";
-				this.startBrushing(true);
-				this.updater(e);
-			}
-		});
-		this.canvasDom.addEventListener("mouseup", (e) => {
-			if (this.mode === "brush") {
-				if ([...this.brushingStatus[this.currentBrushIdx]].length > 0) this.mode = "rest";
-				else this.mode = "inspect";
-				this.updater(e);
-
-			}
-		});
-		this.canvasDom.addEventListener("wheel", (e) => { // wheeling to change the painter radius
-			this.painterRadius += e.deltaY * 0.017;
+		if (this.isRelocating) {
+			return;
+		}
+		if (this.mode === "inspect") {
 			this.updater(e);
-		});
+			this.registerInitialRelocation();
+		}
+		if (this.mode === "initiate") {
+			this.cancelInitialRelocation();
+		}
+		if (this.mode === "brush") {
+			this.proceedBrushing();
+			this.updater(e);
+		}
+		if (this.mode === "rest") {
+			this.updater(e);
+		}
 	}
 
-	
+	mousedownEventHandler(e) {
+		this.xPos = e.offsetX * this.scalingFactor;
+		this.yPos = e.offsetY * this.scalingFactor;
+
+		if (this.mode === "initiate") {
+			this.startBrushing();
+			this.updater(e);
+		}
+		else if (this.mode === "rest") {
+			this.mode = "brush";
+			this.startBrushing(true);
+			this.updater(e);
+		}
+	}
+
+	mouseupEventHandler(e) {
+		if (this.mode === "brush") {
+			if ([...this.brushingStatus[this.currentBrushIdx]].length > 0) this.mode = "rest";
+			else this.mode = "inspect";
+			this.updater(e);
+
+		}
+	}
+
+	mousewheelEventHandler(e) {
+		this.painterRadius += e.deltaY * 0.017;
+		this.updater(e);
+	}
+
+
+	registerPainter() {
+		this.mousemoveHigherOrderFunction = () => (e) => { this.mousemoveEventHandler(e) };
+		this.mousedownHigherOrderFunction = () => (e) => { this.mousedownEventHandler(e) };
+		this.mouseupHigherOrderFunction = () => (e) => { this.mouseupEventHandler(e) };
+		this.mousewheelHigherOrderFunction = () => (e) => { this.mousewheelEventHandler(e) };
+		this.mousemoveFunction = this.mousemoveHigherOrderFunction();
+		this.mousedownFunction = this.mousedownHigherOrderFunction();
+		this.mouseupFunction = this.mouseupHigherOrderFunction();
+		this.mousewheelFunction = this.mousewheelHigherOrderFunction();
+
+
+
+		this.canvasDom.addEventListener("mousemove", this.mousemoveFunction); // moving the painter
+		this.canvasDom.addEventListener("mousedown", this.mousedownFunction); // start brushing
+		this.canvasDom.addEventListener("mouseup", this.mouseupFunction); // end brushing
+		this.canvasDom.addEventListener("wheel", this.mousewheelFunction); // change the radius of the painter
+	}
+
+	unMount() {
+		this.canvasDom.removeEventListener("mousemove", this.mousemoveFunction);
+		this.canvasDom.removeEventListener("mousedown", this.mousedownFunction);
+		this.canvasDom.removeEventListener("mouseup", this.mouseupFunction);
+		this.canvasDom.removeEventListener("wheel", this.mousewheelFunction);
+	}
+
+
+
 
 }
 

@@ -176,10 +176,16 @@ export function monochromeRenderer(
 	const removeBackground = renderingStyle.removeBackground;
 	
 
+	const maxHd = d3.max(hd.map(d => d3.max(d)));
+	hd = hd.map(d => d.map(e => e / maxHd));
 
+
+	const indices = Array.from(Array(ld.length).keys());
+	indices.sort((a, b) => zIndexArr[a] - zIndexArr[b]);
 
 	const imageData = ctx.createImageData(canvasSize, canvasSize);
-	for (let i = 0; i < ld.length; i++) {
+	for (let idx = 0; idx < ld.length; idx++) {
+		const i = indices[idx];
 		const xPos = parseInt(ld[i][0] - 0.5 * sizeArr[i]) 
 		const yPos = parseInt(ld[i][1] - 0.5 * sizeArr[i]) 
 

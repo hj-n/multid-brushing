@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import * as lr from "./lensRenderer";
 
 /**
 * implementation of core logics of distortion-aware brushing
@@ -60,7 +61,8 @@ export function closeness(targetGroup, zeta, hdSim, knn) {
 	/**
 	returns a 1D array that contains closeness of each point to the target group
 	*/
-	return hdSim.map((simArr, i) => {
+	
+	const closenessArr= hdSim.map((simArr, i) => {
 		const zetaNN = knn[i].slice(0, zeta);
 		const zetaNNInTargetGroup = zetaNN.filter(d => targetGroup.includes(d));
 
@@ -73,6 +75,14 @@ export function closeness(targetGroup, zeta, hdSim, knn) {
 
 		return closeness;
 	});
+
+	const closenessArrWithoutTargetGroup = closenessArr.map((d, i) => {
+		if (targetGroup.includes(i)) { return 0; }
+		else { return d; }
+	});
+
+	console.log(d3.max(closenessArrWithoutTargetGroup));
+	return closenessArr;
 
 }
 
@@ -288,7 +298,7 @@ export function findRelocationPositionsHull(
 	const bisectors = getBisectors(hull);
 	const extendedHull = extendHull(hull, painterRadius * 2);
 
-	const relaxedPoints = relaxation([...seedPoints], currentLd, 150, canvasSize);
+	const relaxedPoints = relaxation([...seedPoints], currentLd, 10, canvasSize);
 
 	
 	const relocatedLd = currentLd.map((pos, i) => {
@@ -330,7 +340,7 @@ export function relaxation(indices, ld, iteration, canvasSize) {
 	*/
 	let points = indices.map(i => ld[i]);
 
-	const hull = d3.polygonHull(points);
+	const hull = lr.convexHull(points);
 	const hullIndices = [];
 	points.forEach((pos, i) => {
 		for (let j = 0; j < hull.length; j++) {
@@ -359,7 +369,7 @@ export function relaxation(indices, ld, iteration, canvasSize) {
 
 		points = points.map((point, j) => {
 			if (hullIndices.includes(j)) { return point; }
-			if (clippedPolygons[j] === null) { return point; }
+			if (clippedPolygons[j] === null || clippedPolygons[j] === undefined) { return point; }
 			const clippedPolygon = clippedPolygons[j];
 			if (clippedPolygon.length === 0) { return point;}
 			else if (clippedPolygon.length === 1) { return point; }

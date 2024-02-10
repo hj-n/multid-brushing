@@ -85,6 +85,20 @@ export function circleLensRenderer(ctx, painterRadius, xPos, yPos, opacity, lens
 }
 
 export function convexHull(brushedPoints) {
+	if (brushedPoints.length < 3) {
+		// add little noise
+		brushedPoints.push([brushedPoints[0][0] + 1, brushedPoints[0][1] + 1]);
+		brushedPoints.push([brushedPoints[0][0] + 1, brushedPoints[0][1] - 1]);
+		brushedPoints.push([brushedPoints[0][0] - 1, brushedPoints[0][1] + 1]);
+		brushedPoints.push([brushedPoints[0][0] - 1, brushedPoints[0][1] - 1]);
+
+		if (brushedPoints.length === 2) {
+			brushedPoints.push([brushedPoints[1][0] + 1, brushedPoints[1][1] + 1]);
+			brushedPoints.push([brushedPoints[1][0] + 1, brushedPoints[1][1] - 1]);
+			brushedPoints.push([brushedPoints[1][0] - 1, brushedPoints[1][1] + 1]);
+			brushedPoints.push([brushedPoints[1][0] - 1, brushedPoints[1][1] - 1]);
+		}
+	}
 	return d3.polygonHull(brushedPoints);
 }
 
