@@ -46,6 +46,7 @@ class MultiDBrushing {
 		// rendering and functionality options
 		this.pointRenderingStyle = pointRenderingStyle;
 		this.techniqueStyle = techniqueStyle;
+		this.maxBrushNum = maxBrushNum;
 		this.showDensity = showDensity;
 		this.frameRate = frameRate;
 		this.timer = true;
@@ -99,6 +100,7 @@ class MultiDBrushing {
 		this.hdSim = csrTo2DArray(csr);
 		this.hd = this.preprocessed.hd;
 		this.ld = pr.scalePoints(this.preprocessed.ld, this.canvasSize);
+		this.originalLd = [...this.ld];
 		this.currLd = [...this.ld]; // current position of the points
 		this.prevLd = [...this.ld]; // previous position of the points
 		this.nextLd = [...this.ld]; // next position of the points
@@ -143,6 +145,14 @@ class MultiDBrushing {
 			// find the initial seed point
 
 			if (this.mode === "inspect") {
+
+				Object.keys(this.brushingStatus).forEach((brushIdx) => {
+					this.brushingStatus[brushIdx].forEach((i) => {
+						this.colorArr[i] = this.getBrushingColor(brushIdx);
+						this.zIndexArr[i] = 0.5;
+					});
+				});
+
 				this.initialSeedPoint = dabL.findInitialSeedPoint(
 					this.currLd, this.xPos, this.yPos, this.painterRadius, this.density
 				);
@@ -157,23 +167,27 @@ class MultiDBrushing {
 					this.closenessArr = dabL.closeness(
 						this.seedPoints, this.zeta, this.hdSim, this.knn
 					);
+					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d);});
 					this.seedPoints.forEach((i) => {
 						// this.borderArr[i] = true;
 						this.sizeArr[i] = this.sizeArr[i] * 1.3;
 						this.colorArr[i] = this.getCurrentBrushColor();
 						this.zIndexArr[i] = 1;
+						this.opacityArr[i] = 1;
 					});
-					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d);});
 				}
 
 			}
-			else if (this.mode === "brush" || this.mode === "rest") {
+			else if (this.mode === "brush" || this.mode === "rest" || this.mode === "reconstruct") {
 				Object.keys(this.brushingStatus).forEach((brushIdx) => {
 					this.brushingStatus[brushIdx].forEach((i) => {
-						this.sizeArr[i] = this.sizeArr[i] * 1.3;
-						this.colorArr[i] = this.getCurrentBrushColor();
-						this.borderArr[i] = true;
-						this.zIndexArr[i] = 1;
+						if (brushIdx == this.currentBrushIdx) {
+							this.sizeArr[i] = this.sizeArr[i] * 1.3;
+							this.borderArr[i] = true;
+							this.zIndexArr[i] = 1;
+						}
+						this.colorArr[i] = this.getBrushingColor(brushIdx);
+						this.zIndexArr[i] = 0.5;
 					});
 
 					// convert the set to array
@@ -187,6 +201,7 @@ class MultiDBrushing {
 					}
 				});
 			}
+
 			
 			
 		}
@@ -498,6 +513,9 @@ class MultiDBrushing {
 		if (maxBrushIdx >= this.maxBrushNum) return;
 		this.currentBrushIdx = maxBrushIdx + 1;
 		this.brushingStatus[this.currentBrushIdx] = new Set();
+
+		this.reconstructInitialScatterplot();
+
 	}
 
 	changeBrush(brushIdx) {
@@ -534,6 +552,58 @@ class MultiDBrushing {
 		return this.colorScale(brushIdx);
 	}
 
+	reconstructInitialScatterplot() {
+		// update the position and opacity of the points 
+		this.constructRenderingInfo();
+		this.isRelocating = true;
+		this.borderArr = Array(this.hd.length).fill(false);
+		this.opacityArr = this.density.map(d => d3.scaleLinear().domain([0, d3.max(this.density)]).range([this.minOpacity, this.maxOpacity])(d));
+		pr.startScatterplotRenderAnimation(
+			this.pointRenderingStyle.style,
+			this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+			this.ctx, this.canvasSize, this.hd, this.mode === "reconstruct" ? this.originalLd : this.currLd, this.originalLd, this.techniqueStyle.initialRelocationDuration, this.pointRenderingStyle,
+			() => {
+				this.isRelocating = false;
+				this.prevLd = [...this.originalLd];
+				this.currLd = [...this.originalLd];
+				this.nextLd = [...this.originalLd];
+				this.mode = "inspect";
+			},
+			(progress) => {
+				this.painterRendering(this.painterRadius, this.xPos, this.yPos);
+			}
+		);
+	}
+
+	temporalReconstructInitialScatterplot() {
+		this.isRelocating = true;
+
+		this.opacityArr = this.density.map(d => d3.scaleLinear().domain([0, d3.max(this.density)]).range([this.minOpacity, this.maxOpacity])(d));
+		pr.startScatterplotRenderAnimation(
+			this.pointRenderingStyle.style,
+			this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+			this.ctx, this.canvasSize, this.hd, this.currLd, this.originalLd, this.techniqueStyle.initialRelocationDuration, this.pointRenderingStyle,
+			() => {
+				this.mode = "reconstruct";
+			},
+			(progress) => { }
+		);
+	}
+
+	cancelTemporalReconstruction() {
+		this.constructRenderingInfo();
+		pr.startScatterplotRenderAnimation(
+			this.pointRenderingStyle.style,
+			this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
+			this.ctx, this.canvasSize, this.hd, this.originalLd, this.currLd, this.techniqueStyle.initialRelocationDuration, this.pointRenderingStyle,
+			() => {
+				this.isRelocating = false;
+				this.prevLd = [...this.currLd];
+				this.mode = "rest";
+			},
+			(progress) => { }
+		);
+	}
 
 
 
