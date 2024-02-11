@@ -30,7 +30,7 @@ class MultiDBrushing {
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
 		maxOpacity = 1,  // maximum opacity
-		minOpacity = 0.05, // minimum opacity
+		minOpacity = 0.15, // minimum opacity
 	) {
 
 
@@ -318,12 +318,18 @@ class MultiDBrushing {
 		)
 	}
 
-	initiateRelocationDuringBrushing() {
-		const newLd = dabL.findRelocationPositionsHull(
-			this.brushingStatus[this.currentBrushIdx], this.lensHull, this.currLd, 
-			this.closenessArr, this.painterRadius, this.canvasSize
-		);
-		this.nextLd = [...newLd];
+	initiateRelocationDuringBrushing(perform = true) {
+		if (perform) {
+			const newLd = dabL.findRelocationPositionsHull(
+				this.brushingStatus[this.currentBrushIdx], this.lensHull, this.currLd,
+				this.closenessArr, this.painterRadius, this.canvasSize
+			);
+			this.nextLd = [...newLd];
+		}
+		else {
+			this.nextLd = [...this.currLd];
+		}
+		
 	}
 
 	performRelocationDuringBrushing(relocationProgress) {
@@ -341,6 +347,8 @@ class MultiDBrushing {
 		this.mode = "brush";
 	  const startBrushingXPos = this.xPos;
 		const startBrushingYPos = this.yPos;
+
+
 		const newBrushedPoints = dabL.findPointsWithinPainter(
 			this.currLd, this.xPos, this.yPos, this.painterRadius
 		);
@@ -352,11 +360,22 @@ class MultiDBrushing {
 		else {
 			newBrushedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].add(d));
 		}
+
+		this.beforeBrushPointNum = -1;
+
+		// console.log(beforeBrushPointNum, afterBrushPointNum);
 		pr.initiateBrushingAnimation(
 			this.ctx, this.canvasSize, this.techniqueStyle.relocationInterval, this.techniqueStyle.relocationUpdateDuration,
 			() => {
 				this.updateLensWhileBrushing();
-				this.initiateRelocationDuringBrushing();
+				
+				this.afterBrushPointNum = [...this.brushingStatus[this.currentBrushIdx]].length;
+				if (this.beforeBrushPointNum !== this.afterBrushPointNum)
+					this.initiateRelocationDuringBrushing(true);
+				else 
+					this.initiateRelocationDuringBrushing(false);
+				
+				this.beforeBrushPointNum = this.afterBrushPointNum;
 			},
 			(progress, relocationProgress) => {
 				this.constructRenderingInfo();

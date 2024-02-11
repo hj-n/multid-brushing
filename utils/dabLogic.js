@@ -297,7 +297,7 @@ export function findRelocationPositionsHull(
 	const bisectors = getBisectors(hull);
 	const extendedHull = extendHull(hull, painterRadius * 2);
 
-	const relaxedPoints = relaxation([...seedPoints], currentLd, 100, canvasSize);
+	const relaxedPoints = relaxation([...seedPoints], currentLd, 100, canvasSize, closenessArr);
 
 	
 	const relocatedLd = currentLd.map((pos, i) => {
@@ -331,13 +331,14 @@ export function findRelocationPositionsHull(
 
 
 
-export function relaxation(indices, ld, iteration, canvasSize) {
+export function relaxation(indices, ld, iteration, canvasSize, closenessArr) {
   /**
 	* relaxation of the points based on lloyd's relaxation 
 	* for the points forming the convex hull, the points are fixed
 	* the relaxation is done within the hull
 	*/
 	let points = indices.map(i => ld[i]);
+	let closesnssOfPoints = indices.map(i => closenessArr[i]);
 
 	const hull = lr.convexHull(points);
 	const hullIndices = [];
@@ -349,8 +350,6 @@ export function relaxation(indices, ld, iteration, canvasSize) {
 			}
 		}
 	})
-
-
 	
 	for (let i = 0; i < iteration; i++) {
 		const delaunay = d3.Delaunay.from(points.map(d => [d[0], d[1]]));
@@ -379,14 +378,63 @@ export function relaxation(indices, ld, iteration, canvasSize) {
 				else return centroid;
 			}
 		});
-
 	}
+
+	// substitute
+	const substitutedPoints = substitute(points, hull, closesnssOfPoints);
 
 	const indicesToPos = {};
 	indices.forEach((idx, i) => {
-		indicesToPos[idx] = points[i];
+		indicesToPos[idx] = substitutedPoints[i];
 	});
 
 	return indicesToPos;
+
+}
+
+export function substitute(points, hull, closenessOfPoints) {
+	/**
+	* substitute the points that are outside the hull with the points that are inside the hull
+	* based on their closeness 
+	*/
+	const distanceToHull = points.map((pos, i) => {
+		const distanceArr = hull.map((_, i) => {
+			const currIdx = i;
+			const nextIdx = (i + 1) % hull.length;
+			const dist = pointToLineDist(
+				pos[0], pos[1], hull[currIdx][0], hull[currIdx][1], hull[nextIdx][0], hull[nextIdx][1]
+			);
+			return dist;
+		});
+		return d3.min(distanceArr);
+	});
+
+	const closenessSorter = Array.from(Array(closenessOfPoints.length).keys()).sort((a, b) => closenessOfPoints[b] - closenessOfPoints[a]);
+	const distanceToHullSorter = Array.from(Array(distanceToHull.length).keys()).sort((a, b) => distanceToHull[b] - distanceToHull[a]);
+	const closenessRanking = new Array(closenessOfPoints.length).fill(0);
+	closenessSorter.forEach((d, i) => {
+		closenessRanking[d] = i;
+	});
+
+
+	// step 1: zip distance to ranking and points
+	const posesAndDistances = points.map((pos, i) => {
+		return {
+			pos: pos,
+			distance: distanceToHull[i]
+		}
+	});
+
+	// step 2: sort the points based on the distance to the hull
+	posesAndDistances.sort((a, b) => b.distance - a.distance);
+
+
+	// step 3: 
+	const newPositions = closenessRanking.map(i => posesAndDistances[i].pos);
+	const newDistances = closenessRanking.map(i => posesAndDistances[i].distance);
+
+
+
+	return newPositions;
 
 }
