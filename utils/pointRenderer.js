@@ -39,13 +39,13 @@ export function scatterplotRenderer(
 	}
 }
 
-export function painterRenderer(ctx, radius, xPos, yPos) {
+export function painterRenderer(ctx, radius, xPos, yPos, color) {
 	/**
 	 * Render the painter on the canvas
 	 */
 	ctx.beginPath();
 	ctx.arc(xPos, yPos, radius, 0, 2 * Math.PI);
-	ctx.fillStyle = d3.color("green").copy({ opacity: 0.15 });
+	ctx.fillStyle = d3.color(color).copy({ opacity: 0.15 });
 	ctx.fill();
 	ctx.closePath();
 }

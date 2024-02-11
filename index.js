@@ -15,6 +15,7 @@ class MultiDBrushing {
 		techniqueStyle = {
 			"technique": "dab",
 			"painterColor": "green",
+			"erasingPainterColor": "red",
 			"initialPainterRadius": 35,
 			"initialRelocationThreshold": 600, // in ms
 			"initialRelocationDuration": 700, // in ms
@@ -76,6 +77,9 @@ class MultiDBrushing {
 		this.triggeredRelocation = null;
 		this.isRelocating = false;
 		this.triggerRest = false;
+		this.isPainterRendering = true;
+		this.isErasing = false; // flag to determine whether the erasing mode is on (only for rest mode)
+		this.readyErasing = false;
 
 		// brushing status
 		this.brushingStatus = { 0: new Set() };
@@ -201,8 +205,6 @@ class MultiDBrushing {
 					}
 				});
 			}
-
-			
 			
 		}
 	}
@@ -224,7 +226,10 @@ class MultiDBrushing {
 	}
 
 	painterRendering(radius, xPos, yPos) {
-		pr.painterRenderer(this.ctx, radius, xPos, yPos);
+		pr.painterRenderer(
+			this.ctx, radius, xPos, yPos, 
+			this.readyErasing ? this.techniqueStyle.erasingPainterColor : this.techniqueStyle.painterColor
+		);
 	}
 
 	lensRendering(lensType, radius, xPos, yPos, opacity) {
@@ -251,7 +256,8 @@ class MultiDBrushing {
 				this.clearRendering();
 				this.constructRenderingInfo();	
 				this.scatterplotRendering();
-				this.painterRendering(this.painterRadius, this.xPos, this.yPos);
+				if (this.isPainterRendering)
+					this.painterRendering(this.painterRadius, this.xPos, this.yPos);
 				setTimeout(() => {
 					this.timer = true;
 				}, this.frameRate);
@@ -434,6 +440,13 @@ class MultiDBrushing {
 
 	}
 
+	eraseBruhsing() {
+		const erasedPoints = dabL.findPointsWithinPainter(
+			this.currLd, this.xPos, this.yPos, this.painterRadius
+		);
+		erasedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].delete(d));
+	}
+
 	updateLensWhileBrushing() {
 		const brushedPointsPos = Array.from(this.brushingStatus[this.currentBrushIdx]).map(d => this.currLd[d]);
 		const newHull = lr.convexHull(brushedPointsPos);
@@ -449,6 +462,10 @@ class MultiDBrushing {
 	mousemoveEventHandler(e) {
 		this.xPos = e.offsetX * this.scalingFactor;
 		this.yPos = e.offsetY * this.scalingFactor;
+
+		// check whether the shift key is pressed
+		if (e.shiftKey) { this.readyErasing = true; }
+		else { this.readyErasing = false; this.isErasing = false;}
 
 
 		if (this.isRelocating) {
@@ -467,7 +484,13 @@ class MultiDBrushing {
 			this.updater(e);
 		}
 		if (this.mode === "rest") {
-			this.updater(e);
+			if (this.isErasing) {
+				this.eraseBruhsing();
+				this.updater(e);
+			}
+			else {
+				this.updater(e);
+			}
 		}
 	}
 
@@ -475,15 +498,24 @@ class MultiDBrushing {
 		this.xPos = e.offsetX * this.scalingFactor;
 		this.yPos = e.offsetY * this.scalingFactor;
 
+		if (this.isRelocating) {
+			return;
+		}
+
 		if (this.mode === "initiate") {
 			this.startBrushing();
 			this.statusUpdateCallback(this.getEntireBrushingStatus());
 			this.updater(e);
 		}
 		else if (this.mode === "rest") {
+			if (this.readyErasing) {
+				this.isErasing = true;
+				return;
+			}
 			this.mode = "brush";
 			this.startBrushing(true);
 			this.updater(e);
+			
 		}
 	}
 
@@ -491,6 +523,9 @@ class MultiDBrushing {
 		if (this.mode === "brush") {
 			this.triggerRest = true;
 
+		}
+		if (this.mode === "rest") {
+			this.isErasing = false;
 		}
 	}
 
@@ -521,6 +556,7 @@ class MultiDBrushing {
 	unMount() {
 		this.canvasDom.removeEventListener("mousemove", this.mousemoveFunction);
 		this.canvasDom.removeEventListener("mousedown", this.mousedownFunction);
+		this.canvasDom.removeEventListener("mouseout", this.mouseoutFunction);
 		this.canvasDom.removeEventListener("mouseup", this.mouseupFunction);
 		this.canvasDom.removeEventListener("wheel", this.mousewheelFunction);
 	}
