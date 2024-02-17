@@ -1,27 +1,54 @@
 import * as d3 from 'd3';
 
+const padding = 0.15;
+let xScale, yScale;
 
-export function scalePoints(points, canvasSize) {
+
+export function scalePoints(points, canvasSize, pointRenderingStyle) {
 	/**
 	 * Scales the points to fit the canvas size
 	 * Left 10% for padding
 	*/
-	const padding = 0.15;
 	const width = canvasSize;
 	const height = canvasSize;
 
 	const xDomain = d3.extent(points, d => d[0]);
 	const yDomain = d3.extent(points, d => d[1]);
 
-	const xScale = d3.scaleLinear().domain(xDomain).range([padding * width, width - padding * width]);
-	const yScale = d3.scaleLinear().domain(yDomain).range([padding * height, height - padding * height]);
+	if (pointRenderingStyle.x_map_range && pointRenderingStyle.y_map_range) {
+		const xMapRange = pointRenderingStyle.x_map_range;
+		const yMapRange = pointRenderingStyle.y_map_range;
+
+		const xRangeLength = xMapRange[1] - xMapRange[0];
+		const yRangeLength = yMapRange[1] - yMapRange[0];
+
+		const ratio = xRangeLength / yRangeLength;
+
+		if (ratio > 1) {
+			const newPaddingForY = (height - (height - 2 * padding * height) * (1 / ratio)) / 2;
+			xScale = d3.scaleLinear().domain(xDomain).range([padding * width, width - padding * width]);
+			yScale = d3.scaleLinear().domain(yDomain).range([newPaddingForY, height - newPaddingForY]);
+
+			return points.map(p => [xScale(p[0]), yScale(p[1])]);
+		}
+		else {
+			const newPaddingForX = width - (width - 2 * padding * width) * ratio;
+			xScale = d3.scaleLinear().domain(xDomain).range([newPaddingForX, width - newPaddingForX]);
+			yScale = d3.scaleLinear().domain(yDomain).range([padding * height, height - padding * height]);
+
+			return points.map(p => [xScale(p[0]), yScale(p[1])]);
+		}
+	}
+
+	xScale = d3.scaleLinear().domain(xDomain).range([padding * width, width - padding * width]);
+	yScale = d3.scaleLinear().domain(yDomain).range([padding * height, height - padding * height]);
 
 	return points.map(p => [xScale(p[0]), yScale(p[1])]);
 }
 
 export function scatterplotRenderer(
 	pointRenderingStyle, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
-	ctx, hd, ld, canvasSize 
+	ctx, hd, ld, canvasSize, showContext = true
 ) {
 
 	const style = pointRenderingStyle.style;
@@ -35,6 +62,12 @@ export function scatterplotRenderer(
 		monochromeRenderer(
 			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
 			ctx, hd, ld, canvasSize, pointRenderingStyle
+		);
+	}
+	else if (style === "dot_map") {
+		dotMapRender(
+			sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+			ctx, ld, canvasSize, pointRenderingStyle, showContext
 		);
 	}
 }
@@ -87,6 +120,12 @@ export function startScatterplotRenderAnimation(
 			monochromeRenderer(
 				sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
 				ctx, hd, intermediateLd, canvasSize, renderingStyle
+			);
+		}
+		else if (style === "dot_map") {
+			dotMapRender(
+				sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
+				ctx, intermediateLd, canvasSize, renderingStyle, false
 			);
 		}
 		if (updateCallback) { updateCallback(progress); }
@@ -160,6 +199,51 @@ export function dotRender(
 
 }
 
+
+export function dotMapRender(
+	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, ctx, ld, canvasSize, renderingStyle, renderMap=true
+) {
+
+	if (renderMap){
+		const geoJson = renderingStyle.geoJson;
+
+		// draw the map (only boundary) on the canvas ctx; use xScale and yScale to scale the map
+		geoJson.features.forEach(feature => {
+			const coordinates = feature.geometry.coordinates;
+			coordinates.forEach(polygon => {
+				polygon.forEach((coordinate, i) => {
+
+					let xPos = renderingStyle.x_inverse ? xScale(-coordinate[0]) : xScale(coordinate[0]);
+					let yPos = renderingStyle.y_inverse ? yScale(-coordinate[1]) : yScale(coordinate[1]);
+					if (i === 0) {
+						ctx.beginPath();
+						ctx.moveTo(xPos, yPos);
+					}
+					else {
+						ctx.lineTo(xPos, yPos);
+					}
+				});
+			});
+
+			ctx.strokeStyle = "black";
+			ctx.lineWidth = 0.5;
+			ctx.stroke();
+			ctx.closePath();
+		});
+	}
+
+
+
+
+
+
+	// render dots
+	dotRender(sizeArr, colorArr, opacityArr, borderArr, zIndexArr, ctx, ld);
+
+
+
+
+}
 
 export function monochromeRenderer(
 	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, 

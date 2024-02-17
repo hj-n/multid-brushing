@@ -39,6 +39,7 @@ class MultiDBrushing {
 		this.canvasDom = canvasDom;
 		this.canvasSize = canvasSize;
 		this.canvasPixelSize = parseInt(this.canvasDom.style.width.slice(0, -2));
+		if (this.canvasPixelSize === NaN) this.canvasPixelSize = this.canvasDom.style.width
 		this.scalingFactor = this.canvasSize / this.canvasPixelSize;
 
 		// callback
@@ -103,7 +104,14 @@ class MultiDBrushing {
 		// Important informations directly extracted from the preprocessed data
 		this.hdSim = csrTo2DArray(csr);
 		this.hd = this.preprocessed.hd;
-		this.ld = pr.scalePoints(this.preprocessed.ld, this.canvasSize);
+		this.ld = [...this.preprocessed.ld];
+		if (this.pointRenderingStyle["x_inverse"]) {
+			this.ld = this.ld.map(d => [-d[1], d[0]]);
+		}
+		if (this.pointRenderingStyle["y_inverse"]) {
+			this.ld = this.ld.map(d => [d[0], -d[1]]);
+		}
+		this.ld = pr.scalePoints(this.ld, this.canvasSize, this.pointRenderingStyle);
 		this.originalLd = [...this.ld];
 		this.currLd = [...this.ld]; // current position of the points
 		this.prevLd = [...this.ld]; // previous position of the points
@@ -221,7 +229,7 @@ class MultiDBrushing {
 			this.hd,
 			this.currLd,
 			this.canvasSize,
-			this.showDensity ? this.density : undefined,
+			this.mode === "inspect" || this.mode === "reconstruct"
 		);
 	}
 
@@ -246,6 +254,7 @@ class MultiDBrushing {
 		/**
 		* Update and rerender the entire system during inspection
 		*/
+
 
 		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
 
@@ -398,7 +407,8 @@ class MultiDBrushing {
 				}
 				pr.scatterplotRenderer(
 					this.pointRenderingStyle, this.sizeArr, this.colorArr, this.opacityArr, this.borderArr, this.zIndexArr,
-					this.ctx, this.hd, this.currLd, this.canvasSize
+					this.ctx, this.hd, this.currLd, this.canvasSize,
+					this.mode === "inspect" || this.mode === "reconstruct"
 				);
 				if (progress < 1) {
 					if (!isResume) this.lensRendering("circle", this.painterRadius, startBrushingXPos, startBrushingYPos, 1);
@@ -462,6 +472,7 @@ class MultiDBrushing {
 	mousemoveEventHandler(e) {
 		this.xPos = e.offsetX * this.scalingFactor;
 		this.yPos = e.offsetY * this.scalingFactor;
+
 
 		// check whether the shift key is pressed
 		if (e.shiftKey) { this.readyErasing = true; }
