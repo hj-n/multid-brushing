@@ -31,7 +31,7 @@ class MultiDBrushing {
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
 		maxOpacity = 1,  // maximum opacity
-		minOpacity = 0.15, // minimum opacity
+		minOpacity = 0.05, // minimum opacity
 	) {
 
 
@@ -161,7 +161,7 @@ class MultiDBrushing {
 				Object.keys(this.brushingStatus).forEach((brushIdx) => {
 					this.brushingStatus[brushIdx].forEach((i) => {
 						this.colorArr[i] = this.getBrushingColor(brushIdx);
-						this.zIndexArr[i] = 0.5;
+						this.zIndexArr[i] = 1;
 					});
 				});
 
@@ -184,7 +184,7 @@ class MultiDBrushing {
 						// this.borderArr[i] = true;
 						this.sizeArr[i] = this.sizeArr[i] * 1.3;
 						this.colorArr[i] = this.getCurrentBrushColor();
-						this.zIndexArr[i] = 1;
+						this.zIndexArr[i] = 2;
 						this.opacityArr[i] = 1;
 					});
 				}
@@ -485,6 +485,9 @@ class MultiDBrushing {
 		if (this.mode === "inspect") {
 			this.updater(e);
 			this.registerInitialRelocation();
+			this.statusUpdateCallback(this.getEntireBrushingStatus(), {
+				"points": this.seedPoints ? this.seedPoints : [], 
+				"color": this.getBrushingColor(this.currentBrushIdx)});
 		}
 		if (this.mode === "initiate") {
 			this.cancelInitialRelocation();
