@@ -5,7 +5,7 @@ Multid-Brushing is a React NPM package designed to assist with visualizing and e
 ## Installation
 
 ```sh
-npm install multid-brushing
+#Todo npm install multid-brushing
 ```
 
 ## Usage
@@ -19,12 +19,26 @@ new MultiDBrushing(
   canvasSize,
   statusUpdateCallback,
   pointRenderingStyle,
-  techniqueStyle,
-  maxBrushNum,
-  showDensity,
-  frameRate,
-  maxOpacity,
-  minOpacity
+  techniqueStyle = {
+    technique: "dab",
+    painterColor: "green",
+    erasingPainterColor: "red",
+    initialPainterRadius: 35,
+    initialRelocationThreshold: 600, // ms
+    initialRelocationDuration: 700, // ms
+    relocationInterval: 1000, // ms
+    relocationUpdateDuration: 350, // ms
+    showLens: true,
+    lensStyle: {
+      color: "red",
+      strokeWidth: 3,
+    },
+  },
+  maxBrushNum = 10,
+  showDensity = true,
+  frameRate = 20, // ms,
+  maxOpacity = 1,
+  minOpacity = 0.05
 );
 ```
 
@@ -32,98 +46,147 @@ new MultiDBrushing(
 
 The `MultiDBrushing` class is used to create an instance of MultiDBrushing. The constructor of this class accepts the following parameters:
 
-### `preprocessed` : array-like of shape (n_samples, n_features), default=None
+#### `preprocessed` : array-like of shape (n_samples, n_features) 
 
-<div style="margin-left: 20px;">
-  An object representing the preprocessed data. This parameter is **required**.
-</div>
+An object representing the preprocessed data. This parameter is **required**.
 
-### `canvasDom` : HTMLElement, default=None
+#### `canvasDom` : HTMLElement 
 
-<div style="margin-left: 20px;">
-  An HTMLElement representing the canvas DOM element. This parameter is **required**.
-</div>
+An HTMLElement representing the canvas DOM element. This parameter is **required**.
 
-### `canvasSize` : int, default=None
+#### `canvasSize` : int 
 
-<div style="margin-left: 20px;">
-  A number representing the size of the canvas. This parameter is **required**.
-</div>
+A number representing the size of the canvas. This parameter is **required**.
 
-### `statusUpdateCallback` : callable, default=None
+#### `statusUpdateCallback` : callable 
 
-<div style="margin-left: 20px;">
-  A function serving as the callback for status updates. This parameter is **required**.
-</div>
+A function serving as the callback for status updates. This parameter is **required**.
 
-### `pointRenderingStyle` : dict, default=None
+#### `pointRenderingStyle` : dict 
 
-<div style="margin-left: 20px;">
-  An object representing the style for rendering points. This parameter is **required**.
-</div>
+An object representing the style for rendering points. This parameter is **required**.
 
-### `techniqueStyle` : dict, default={'technique': 'dab', 'painterColor': 'green', 'erasingPainterColor': 'red', 'initialPainterRadius': 35, 'initialRelocationThreshold': 600, 'initialRelocationDuration': 700, 'relocationInterval': 1000, 'relocationUpdateDuration': 350, 'showLens': true, 'lensStyle': {'color': 'red', 'strokeWidth': 3}}
+#### `techniqueStyle` : dict, default=
 
-<div style="margin-left: 20px;">
-  An object representing the style for the brushing technique. This object can include style information such as the color and size of the brush.
-</div>
+```
+{'technique': 'dab',
+  'painterColor': 'green',
+  'erasingPainterColor': 'red',
+  'initialPainterRadius': 35,
+  'initialRelocationThreshold': 600,
+  'initialRelocationDuration': 700,
+  'relocationInterval': 1000,
+  'relocationUpdateDuration': 350,
+  'showLens': true,
+  'lensStyle': {
+    'color': 'red',
+    'strokeWidth': 3
+    }
+ }
+```
 
-### `maxBrushNum` : int, default=10
+An object representing the style for the brushing technique. This object can include style information such as the color and size of the brush.
 
-<div style="margin-left: 20px;">
-  A number representing the maximum number of brushes. This value determines the maximum number of brushes that can be displayed on the screen at the same time.
-</div>
+#### `maxBrushNum` : int, default=10
 
-### `showDensity` : bool, default=True
+A number representing the maximum number of brushes. This value determines the maximum number of brushes that can be displayed on the screen at the same time.
 
-<div style="margin-left: 20px;">
-  A boolean flag determining whether to show the HD density of the points. If this value is `true`, the density of the points is displayed.
-</div>
+#### `showDensity` : bool, default=True
 
-### `frameRate` : int, default=20
+A boolean flag determining whether to show the HD density of the points. If this value is `true`, the density of the points is displayed.
 
-<div style="margin-left: 20px;">
-  A number representing the frame rate for rendering. This value determines the number of frames per second.
-</div>
+#### `frameRate` : int, default=20
 
-### `maxOpacity` : float, default=1.0
+A number representing the frame rate for rendering. This value determines the number of frames per second.
 
-<div style="margin-left: 20px;">
-  A number representing the maximum opacity. This value determines the maximum opacity of the points.
-</div>
+#### `maxOpacity` : float, default=1.0
 
-### `minOpacity` : float, default=0.05
+A number representing the maximum opacity. This value determines the maximum opacity of the points.
 
-<div style="margin-left: 20px;">
-  A number representing the minimum opacity. This value determines the minimum opacity of the points.
-</div>
+#### `minOpacity` : float, default=0.05
+
+A number representing the minimum opacity. This value determines the minimum opacity of the points.
 
 ## Key Functions
 
-- [`constructor`](index.js#L9): Sets the initial state of the component. This is where you define the initial state of your component.
+The `MultiDBrushing` class is designed for handling multiple brushing techniques in a data visualization context, particularly for scatterplots. It provides functionalities for adding, changing, and removing brushes, as well as managing brushing status and rendering updates.
 
-- [`unMount`](index.js#L570): Invoked immediately before a component is unmounted and destroyed. Perform any necessary cleanup in this method.
+### <u>[constructor](index.js#L53)</u>
 
-- [`addNewBrush`](index.js#L580): Adds a new brush. This function is used when you want to add a new brush to your visualization.
+Initializes a new instance of the MultiDBrushing visualization component. This constructor sets up the initial environment for the component, including the setup of the canvas where the visualization will be drawn, preprocessing of the data to be visualized, and configuration of various visualization and interaction settings.
+<details>
+<summary><b>Parameters</b></summary>
 
-- [`changeBrush`](index.js#L590): Changes an existing brush. Use this function when you want to modify the properties of an existing brush.
+  - `preprocessed`: Preprocessed data necessary for visualization.
 
-- [`removeBrush`](index.js#L594): Removes a specific brush. Use this function when you want to remove a specific brush from your visualization.
+  - `canvasDom`: The DOM element of the canvas where the visualization will be rendered.
 
-- [`getEntireBrushingStatus`](index.js#L598): Returns the entire brushing status. This function is used when you want to get the status of all brushes in your visualization.
+  - `canvasSize`: The size of the canvas in pixels.
 
-- [`getCurrentBrushIdx`](index.js#L615): Returns the index of the currently selected brush. Use this function when you want to know which brush is currently selected.
+  - `statusUpdateCallback`: A callback function that updates the status of the brushing.
+  - `pointRenderingStyle`: An object defining how points should be rendered.
+  - `techniqueStyle`: An object defining the style and parameters for the brushing technique.
+  - `maxBrushNum`: The maximum number of brushes allowed.
+  - `showDensity`: A boolean indicating whether to show the density of points.
+  - `frameRate`: The frame rate for animations.
+  - `maxOpacity`: The maximum opacity for points.
+  - `minOpacity`: The minimum opacity for points.
+</details>
 
-- [`getBrushingColor`](index.js#L619): Returns the color of a specific brush. Use this function when you want to get the color of a specific brush.
 
-- [`temproralReconstructIntiialScatterplot`](index.js#L647): Temporally reconstructs the initial scatterplot. Use this function when you want to perform a temporal reconstruction of your scatterplot.
+### <u>[unMount()](index.js#L570)</u>
 
-- [`cancelTemproalReconstruction`](index.js#L662): Cancels the temporal reconstruction. Use this function when you want to cancel the temporal reconstruction of your scatterplot.
+Cleans up event listeners and other resources to prevent memory leaks and ensure the component can be safely removed or replaced. This method is essential for maintaining performance and avoiding issues related to excessive resource consumption.
+
+### <u>[addNewBrush()](index.js#L580)</u>
+
+Creates a new brush action within the visualization. This function increments the number of active brushes and sets up the necessary state for a user to perform a new brushing action. It's essential for interactive visualizations where the user needs to highlight or select multiple data points or regions simultaneously.
+- **Additional Details**: Updates the current brush index and initializes the new brush's status. This method enforces the maximum number of brushes.
+
+### <u>[changeBrush(brushIdx: number)](index.js#L586)</u>
+
+Switches the current brush action to another existing brush, based on the specified brush index. This allows users to modify or delete previous brushes or further interact with selected data points within those brushes.
+
+**Parameters**:
+  - `brushIdx`: The index of the brush to switch to.
+
+### <u>[removeBrush(brushIdx: number)](index.js#L594)</u>
+
+Removes a specific brush from the visualization. This function deletes the brush specified by the index, along with any visual indicators or effects it had on the visualization.
+
+**Parameters**:
+  - `brushIdx`: The index of the brush to be removed.
+
+### <u>[getEntireBrushingStatus()](index.js#L598)</u>
+
+Retrieves a comprehensive snapshot of the current brushing state, including details on all active brushes. This overview is instrumental for external analyses or for synchronizing the visualization state with other components or data views.
+
+### <u>[getCurrentBrushIdx()](index.js#L615)</u>
+
+Returns the index of the currently active brush, aiding in the identification and manipulation of the brush currently in focus.
+
+### <u>[getBrushingColor(brushIdx: number)](index.js#L619)</u>
+
+Retrieves the color of a specific brush, allowing for the extraction of color information for further processing or analysis.
+
+**Parameters**:
+  - `brushIdx`: The index of the brush whose color is to be retrieved.
+
+### <u>[temporalReconstructInitialScatterplot()](index.js#L647)</u>
+
+Initiates a process to temporally reconstruct the scatterplot to its initial state. This can be part of an animation or interaction where the visualization transitions back to its original form, often used in dynamic visualizations to show changes over time or to reset the visualization to a baseline state.
+
+**Additional Details**: This function triggers the temporal reconstruction process, which involves animating the visualization back to its initial state.
+
+### <u>[cancelTemporalReconstruction()](index.js#L662)</u>
+
+Cancels any ongoing temporal reconstruction of the scatterplot, effectively halting the animation or process that was reverting the visualization back to its initial state. This function allows for user interruptions or changes in interaction that necessitate stopping the reconstruction process.
+
 
 ## Data Preprocessing
 
-You can preprocess your data appropriately using the `dabrush-preprocessing` package. For more details, refer to dabrush-preprocessing.
+You can preprocess your data appropriately using the [dabrush-preprocessing](https://github.com/hj-n/dabrush-preprocessing.git) package. For more details, please refer to the dabrush-preprocessing documentation.
 
 ## Demo
 
-You can check out examples of this package's usage in `multid-brush-demo`. For more details, refer to multid-brush-demo.
+You can check out examples of this package's usage in [multid-brush-demo](https://github.com/hj-n/multid-brush-demo.git). For more details, refer to multid-brush-demo.
