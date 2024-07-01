@@ -50,7 +50,6 @@ export function scatterplotRenderer(
 	pointRenderingStyle, sizeArr, colorArr, opacityArr, borderArr, zIndexArr,
 	ctx, hd, ld, canvasSize, showContext = true
 ) {
-
 	const style = pointRenderingStyle.style;
 	if (style === "dot") {
 		dotRender(
@@ -190,12 +189,6 @@ export function dotRender(
 		ctx.arc(ld[index][0], ld[index][1], sizeArr[index], 0, 2 * Math.PI);
 		ctx.fillStyle = d3.color(colorArr[index]).copy({ opacity: opacityArr[index] });
 		ctx.fill();
-		// temporarilly commented for california housing dataset
-		// ctx.lineWidth = borderArr[index] ? sizeArr[i] * 0.3 : 0.5;
-		// ctx.lineWidth = 0;
-		// ctx.strokeStyle = "black";
-		// ctx.stroke();
-
 		ctx.closePath();
 	}
 
@@ -203,7 +196,8 @@ export function dotRender(
 
 
 export function dotMapRender(
-	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, ctx, ld, canvasSize, renderingStyle, renderMap=true
+	sizeArr, colorArr, opacityArr, borderArr, zIndexArr, 
+	ctx, ld, canvasSize, renderingStyle, renderMap=true
 ) {
 
 	if (renderMap){

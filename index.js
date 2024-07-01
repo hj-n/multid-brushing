@@ -12,6 +12,8 @@ class MultiDBrushing {
 		canvasSize, 
 		statusUpdateCallback,
 		pointRenderingStyle,
+		showGlobalDensity = true, // flag determining whether to show the HD density of the points,
+		showLocalCloseness = true, // flag determining whether to show local closeness in the inspection mode
 		techniqueStyle = {
 			"technique": "dab",
 			"painterColor": "green",
@@ -28,11 +30,11 @@ class MultiDBrushing {
 			}
 		},
 		maxBrushNum = 10, // maximum number of brushes
-		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
 		maxOpacity = 1,  // maximum opacity
 		minOpacity = 0.1 // minimum opacity
 	) {
+
 
 
 		this.preprocessed = preprocessed;
@@ -49,7 +51,8 @@ class MultiDBrushing {
 		this.pointRenderingStyle = pointRenderingStyle;
 		this.techniqueStyle = techniqueStyle;
 		this.maxBrushNum = maxBrushNum;
-		this.showDensity = showDensity;
+		this.showGlobalDensity = showGlobalDensity;
+		this.showLocalCloseness = showLocalCloseness;
 		this.frameRate = frameRate;
 		this.timer = true;
 		this.maxOpacity = maxOpacity;
@@ -133,8 +136,7 @@ class MultiDBrushing {
 		this.colorArr = Array(this.hd.length).fill("black");
 		this.borderArr = Array(this.hd.length).fill(0);
 		this.zIndexArr = Array(this.hd.length).fill(0);
-
-		if (this.showDensity) { 
+		if (this.showGlobalDensity) { 
 			const opacityScale = d3.scaleLinear().domain([0, d3.max(this.density)]).range([this.minOpacity, this.maxOpacity]);
 			this.opacityArr = this.density.map(d => opacityScale(d));
 		}
@@ -181,7 +183,12 @@ class MultiDBrushing {
 					this.closenessArr = dabL.closeness(
 						this.seedPoints, this.zeta, this.hdSim, this.knn
 					);
-					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d);});
+					if (this.showLocalCloseness) {
+						this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d);});
+					}
+					else {
+						this.opacityArr = Array(this.hd.length).fill(1);
+					}
 					this.seedPoints.forEach((i) => {
 						// this.borderArr[i] = true;
 						this.sizeArr[i] = this.sizeArr[i] * 1.3;
