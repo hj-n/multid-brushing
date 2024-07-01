@@ -31,7 +31,7 @@ class MultiDBrushing {
 		showDensity = true, // flag determining whether to show the HD density of the points,
 		frameRate = 20, // in ms,
 		maxOpacity = 1,  // maximum opacity
-		minOpacity = 0.05, // minimum opacity
+		minOpacity = 0.1 // minimum opacity
 	) {
 
 
@@ -157,6 +157,8 @@ class MultiDBrushing {
 			// find the initial seed point
 
 			if (this.mode === "inspect") {
+
+				this.seedPoints = [];
 
 				Object.keys(this.brushingStatus).forEach((brushIdx) => {
 					this.brushingStatus[brushIdx].forEach((i) => {

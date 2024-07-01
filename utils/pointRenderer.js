@@ -190,9 +190,11 @@ export function dotRender(
 		ctx.arc(ld[index][0], ld[index][1], sizeArr[index], 0, 2 * Math.PI);
 		ctx.fillStyle = d3.color(colorArr[index]).copy({ opacity: opacityArr[index] });
 		ctx.fill();
-		ctx.lineWidth = borderArr[index] ? sizeArr[i] * 0.3 : 0.5;
-		ctx.strokeStyle = "black";
-		ctx.stroke();
+		// temporarilly commented for california housing dataset
+		// ctx.lineWidth = borderArr[index] ? sizeArr[i] * 0.3 : 0.5;
+		// ctx.lineWidth = 0;
+		// ctx.strokeStyle = "black";
+		// ctx.stroke();
 
 		ctx.closePath();
 	}
