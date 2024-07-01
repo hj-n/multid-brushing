@@ -14,8 +14,8 @@ class MultiDBrushing {
 		pointRenderingStyle,
 		showGlobalDensity = true, // flag determining whether to show the HD density of the points,
 		showLocalCloseness = true, // flag determining whether to show local closeness in the inspection mode
+		technique = "dab", // brushing technique
 		techniqueStyle = {
-			"technique": "dab",
 			"painterColor": "green",
 			"erasingPainterColor": "red",
 			"initialPainterRadius": 35,
@@ -49,6 +49,7 @@ class MultiDBrushing {
 
 		// rendering and functionality options
 		this.pointRenderingStyle = pointRenderingStyle;
+		this.technique = technique;
 		this.techniqueStyle = techniqueStyle;
 		this.maxBrushNum = maxBrushNum;
 		this.showGlobalDensity = showGlobalDensity;
@@ -94,7 +95,7 @@ class MultiDBrushing {
 		this.initializeRenderingInfo();
 		this.clearRendering();
 		this.scatterplotRendering();
-		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") this.registerPainter();
+		if (this.technique == "dab" || this.technique == "sb") this.registerPainter();
 	}
 
 	parser() {
@@ -155,13 +156,11 @@ class MultiDBrushing {
 		this.initializeRenderingInfo();
 
 		// update the rendering info based on the interaction
-		if (this.techniqueStyle.technique == "dab") {
+		if (this.technique == "dab") {
 			// find the initial seed point
-
 			if (this.mode === "inspect") {
 
 				this.seedPoints = [];
-
 				Object.keys(this.brushingStatus).forEach((brushIdx) => {
 					this.brushingStatus[brushIdx].forEach((i) => {
 						this.colorArr[i] = this.getBrushingColor(brushIdx);
@@ -185,6 +184,9 @@ class MultiDBrushing {
 					);
 					if (this.showLocalCloseness) {
 						this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d);});
+					}
+					else if (this.showGlobalDensity) {
+						this.opacityArr = this.density.map(d => d3.scaleLinear().domain([0, d3.max(this.density)]).range([this.minOpacity, this.maxOpacity])(d));
 					}
 					else {
 						this.opacityArr = Array(this.hd.length).fill(1);
@@ -265,7 +267,7 @@ class MultiDBrushing {
 		*/
 
 
-		if (this.techniqueStyle.technique == "dab" || this.techniqueStyle.technique == "sb") {
+		if (this.technique == "dab" || this.technique == "sb") {
 
 			this.isInitialRelocationTriggered = false;
 			if (this.timer) {
