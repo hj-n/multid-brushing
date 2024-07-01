@@ -570,10 +570,22 @@ class MultiDBrushing {
 	}
 
 	eraseBruhsing() {
+		if (this.technique === "sb") {
+			const erasedPoints = dabL.findPointsWithinPainter(
+				this.currLd, this.xPos, this.yPos, this.painterRadius
+			);
+			erasedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].delete(d));
+			const extendedBrushedPoints = sbL.extendBrushedPoints(
+				this.brushingStatus[this.currentBrushIdx], this.hdSim, this.hdRadius
+			);
+			this.modifiedBrushingStatus[this.currentBrushIdx] = new Set([...this.brushingStatus[this.currentBrushIdx], ...extendedBrushedPoints]);
+		}
+		if (this.technique === "dab") {
 		const erasedPoints = dabL.findPointsWithinPainter(
-			this.currLd, this.xPos, this.yPos, this.painterRadius
-		);
-		erasedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].delete(d));
+				this.currLd, this.xPos, this.yPos, this.painterRadius
+			);
+			erasedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].delete(d));
+		}
 	}
 
 	updateLensWhileBrushing() {
@@ -593,6 +605,10 @@ class MultiDBrushing {
 		this.yPos = e.offsetY * this.scalingFactor;
 
 		if (this.technique == "sb") {
+			if (this.mode !== "brush") {
+				if (e.shiftKey) { this.readyErasing = true; }
+				else { this.readyErasing = false; this.isErasing = false; }
+			}
 			if (this.mode === "inspect") {
 				this.updater(e);
 				this.statusUpdateCallback(this.getEntireBrushingStatus(), {
@@ -606,15 +622,23 @@ class MultiDBrushing {
 				this.updater(e);
 			}
 			if (this.mode === "rest") {
-				this.updater(e);
+				if (this.isErasing) {
+					this.eraseBruhsing();
+					this.updater(e);
+				}
+				else {
+					this.updater(e);
+				}
 			}
 		}
 
 
 		if (this.technique == "dab") {
 			// check whether the shift key is pressed
-			if (e.shiftKey) { this.readyErasing = true; }
-			else { this.readyErasing = false; this.isErasing = false;}
+			if (this.mode !== "brush") {
+				if (e.shiftKey) { this.readyErasing = true; }
+				else { this.readyErasing = false; this.isErasing = false;}
+			}
 
 
 			if (this.isRelocating) {
@@ -657,6 +681,10 @@ class MultiDBrushing {
 		if (this.technique == "sb") {
 
 			if (this.mode === "inspect" || this.mode === "rest") {
+				if (this.readyErasing) {
+					this.isErasing = true;
+					return;
+				}
 				this.startSbBrushing();
 				this.statusUpdateCallback(this.getEntireBrushingStatus());
 				this.updater(e);
@@ -711,6 +739,7 @@ class MultiDBrushing {
 		if (e.ctrlKey && this.technique === "sb") {
 			this.hdRadius += e.deltaY * 0.0001;
 			if (this.hdRadius < 0) this.hdRadius = 0;
+			else if (this.hdRadius > 1) this.hdRadius = 1;
 			let extendedBrushedPoints = sbL.extendBrushedPoints(
 				this.brushingStatus[this.currentBrushIdx], this.hdSim, this.hdRadius
 			)
