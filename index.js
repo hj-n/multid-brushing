@@ -3,6 +3,8 @@ import * as pr from "./utils/pointRenderer";
 import * as lr from "./utils/lensRenderer";
 import * as dabL from "./utils/dabLogic";
 import * as sbL from "./utils/sbLogic";
+import * as ddbL from "./utils/ddbLogic";
+import * as mbbL from "./utils/mbbLogic";
 import * as d3 from 'd3';
 
 class MultiDBrushing {
@@ -28,13 +30,17 @@ class MultiDBrushing {
 			"lensStyle": {
 				"color": "red",
 				"strokeWidth": 3
-			}
+			},
+			// style for m-ball brushing and data-driven brushing
+			"regionColor": "green"
+		
 		},
 		maxBrushNum = 10, // maximum number of brushes
 		frameRate = 20, // in ms,
 		maxOpacity = 1,  // maximum opacity
 		minOpacity = 0.1 // minimum opacity
 	) {
+
 
 
 
@@ -91,9 +97,15 @@ class MultiDBrushing {
 		this.readyErasing = false;
 
 
+		// import flags for region-based brushing
+		this.startBrushingXPos = undefined;
+		this.startBrushingYPos = undefined;
+
 		// brushing status
 		this.brushingStatus = { 0: new Set() };
 		this.modifiedBrushingStatus = { 0: new Set() };
+
+		this.currentRegionBrushingStatus = new Set();
 
 
 		// initialize
@@ -101,7 +113,11 @@ class MultiDBrushing {
 		this.initializeRenderingInfo();
 		this.clearRendering();
 		this.scatterplotRendering();
-		if (this.technique == "dab" || this.technique == "sb") this.registerPainter();
+		this.registerPainter();
+		
+
+		// change cursor on canvasDom
+		this.canvasDom.style.cursor = "crosshair";
 	}
 
 	parser() {
@@ -154,6 +170,15 @@ class MultiDBrushing {
 		else { this.opacityArr = Array(this.hd.length).fill(this.pointRenderingStyle.opacity); }
 	}
 
+	constructInspectionRenderingInfoBasedOnRegion() {
+		Object.keys(this.brushingStatus).forEach((brushIdx) => {
+			this.brushingStatus[brushIdx].forEach((i) => {
+				this.colorArr[i] = this.getBrushingColor(brushIdx);
+				this.zIndexArr[i] = 1;
+			});
+		});	
+	}
+
 
 	constructInspectionRenderingInfoBasedOnPainter() {
 
@@ -190,7 +215,7 @@ class MultiDBrushing {
 			}
 			this.seedPoints.forEach((i) => {
 				// this.borderArr[i] = true;
-				this.sizeArr[i] = this.sizeArr[i] * 1.3;
+				this.sizeArr[i] = this.sizeArr[i] * 1;
 				this.colorArr[i] = this.getCurrentBrushColor();
 				this.zIndexArr[i] = 2;
 				this.opacityArr[i] = 1;
@@ -198,12 +223,48 @@ class MultiDBrushing {
 		}
 	}
 
+	constructBrushingRenderingInfoBasedOnRegion() {
+		Object.keys(this.brushingStatus).forEach((brushIdx) => {
+
+			this.brushingStatus[brushIdx].forEach((i) => {
+				if (brushIdx == this.currentBrushIdx) {
+					this.borderArr[i] = true;
+					this.zIndexArr[i] = 1;
+				}
+				this.colorArr[i] = this.getBrushingColor(brushIdx);
+				this.zIndexArr[i] = 0.5;
+			});
+
+			this.currentRegionBrushingStatus.forEach((i) => {
+				this.borderArr[i] = true;
+				this.zIndexArr[i] = 1;
+				this.colorArr[i] = this.getCurrentBrushColor();
+				this.zIndexArr[i] = 0.5;
+			})
+
+			this.currentRegionBrushingStatus.union(this.brushingStatus[brushIdx]).forEach((i) => {
+				this.sizeArr[i] = this.sizeArr[i] * 1;
+			});
+
+			if (brushIdx == this.currentBrushIdx) {
+				if (this.showLocalCloseness) {
+					this.closenessArr = dabL.closeness(
+						Array.from(this.brushingStatus[brushIdx].union(this.currentRegionBrushingStatus)), this.zeta, this.hdSim, this.knn
+					);
+					this.closenessArr.forEach((d, i) => { this.opacityArr[i] = d3.scaleLinear().domain([0, 1]).range([this.minOpacity, this.maxOpacity])(d); });
+				}
+			}
+		});
+
+
+	}
+
 	constructBrushingRenderingInfoBasedOnPainter() {
 		Object.keys(this.brushingStatus).forEach((brushIdx) => {
 			if (this.technique == "dab") {
 				this.brushingStatus[brushIdx].forEach((i) => {
 					if (brushIdx == this.currentBrushIdx) {
-						this.sizeArr[i] = this.sizeArr[i] * 1.3;
+						this.sizeArr[i] = this.sizeArr[i] * 1;
 						this.borderArr[i] = true;
 						this.zIndexArr[i] = 1;
 					}
@@ -214,7 +275,7 @@ class MultiDBrushing {
 			else if (this.technique == "sb") {
 				this.brushingStatus[brushIdx].forEach((i) => {
 					if (brushIdx == this.currentBrushIdx) {
-						this.sizeArr[i] = this.sizeArr[i] * 1.3;
+						this.sizeArr[i] = this.sizeArr[i] * 1;
 						this.borderArr[i] = true;
 						this.zIndexArr[i] = 1;
 					}
@@ -223,7 +284,7 @@ class MultiDBrushing {
 				});
 				this.modifiedBrushingStatus[brushIdx].forEach((i) => {
 					if (brushIdx == this.currentBrushIdx) {
-						this.sizeArr[i] = this.sizeArr[i] * 1.3;
+						this.sizeArr[i] = this.sizeArr[i] * 1;
 						this.zIndexArr[i] = 1;
 					}
 					this.colorArr[i] = this.getBrushingColor(brushIdx);
@@ -274,6 +335,16 @@ class MultiDBrushing {
 		/*
 		Similarity brushing
 		*/
+
+		if (this.technique == "ddb" || this.technique == "mbb") {
+			if (this.mode === "inspect") { 
+				this.constructInspectionRenderingInfoBasedOnRegion();
+			}
+			// else if ()
+			else if (this.mode === "brush" || this.mode === "rest") {
+				this.constructBrushingRenderingInfoBasedOnRegion();
+			}
+		}
 		if (this.technique == "sb") {
 			if (this.mode === "inspect") {
 				this.constructInspectionRenderingInfoBasedOnPainter();
@@ -317,6 +388,19 @@ class MultiDBrushing {
 		);
 	}
 
+	rectRegionRendering(startXPos, startYPos, endXPos, endYPos) {
+		pr.rectRegionRenderer(
+			this.ctx, startXPos, startYPos, endXPos, endYPos, this.techniqueStyle.regionColor
+		);
+	}
+
+
+	circleRegionRendering(startXPos, startYPos, endXPos, endYPos) {
+		pr.circleRegionRenderer(
+			this.ctx, startXPos, startYPos, endXPos, endYPos, this.techniqueStyle.regionColor
+		);
+	}
+
 	painterRendering(radius, xPos, yPos) {
 		pr.painterRenderer(
 			this.ctx, radius, xPos, yPos, 
@@ -338,6 +422,24 @@ class MultiDBrushing {
 		/**
 		* Update and rerender the entire system during inspection
 		*/
+
+		if (this.technique == "ddb" || this.technique == "mbb") {
+			if (this.timer) {
+				this.timer = false;
+				this.clearRendering();
+				this.constructRenderingInfo();
+				this.scatterplotRendering();
+				if (this.mode === "brush") {
+					if (this.technique == "ddb")
+						this.rectRegionRendering(this.startBrushingXPos, this.startBrushingYPos, this.xPos, this.yPos);
+					if (this.technique == "mbb")
+						this.circleRegionRendering(this.startBrushingXPos, this.startBrushingYPos, this.xPos, this.yPos);
+				}
+				setTimeout(() => {
+					this.timer = true;
+				}, this.frameRate);
+			}
+		}
 
 		if (this.technique == "dab" || this.technique == "sb") {
 
@@ -441,6 +543,12 @@ class MultiDBrushing {
 		this.currLd = [...intermediateLd];
 	}
 
+	startRegionBrushing() {
+		this.mode = "brush";
+		this.startBrushingXPos = this.xPos;
+		this.startBrushingYPos = this.yPos;
+	}
+
 	startSbBrushing() {
 		this.mode = "brush";
 		const startBrushingXPos = this.xPos;
@@ -466,7 +574,6 @@ class MultiDBrushing {
 			extendedBrushedPoints.forEach(d => this.modifiedBrushingStatus[this.currentBrushIdx].add(d));
 		}
 
-		console.log(this.brushingStatus[this.currentBrushIdx], this.modifiedBrushingStatus[this.currentBrushIdx]);
 
 		this.beforeBrushPointNum = -1;
 
@@ -492,7 +599,6 @@ class MultiDBrushing {
 
 		this.beforeBrushPointNum = -1;
 
-		// console.log(beforeBrushPointNum, afterBrushPointNum);
 		pr.initiateBrushingAnimation(
 			this.ctx, this.canvasSize, this.techniqueStyle.relocationInterval, this.techniqueStyle.relocationUpdateDuration,
 			() => {
@@ -556,17 +662,58 @@ class MultiDBrushing {
 
 	}
 
+	confirmRegionBrushing() {
+			this.startBrushingXPos = undefined;
+			this.startBrushingYPos = undefined;
+
+			this.brushingStatus[this.currentBrushIdx] = new Set([
+				...this.brushingStatus[this.currentBrushIdx], ...this.currentRegionBrushingStatus
+			]);
+	}
+
+	proceedRegionBrushing() {
+		if (this.technique == "ddb") {
+			const currentXPos = this.xPos;
+			const currentYPos = this.yPos;
+			const newBrushedPoints = ddbL.findPointsWithinRect(
+				this.currLd, this.startBrushingXPos, this.startBrushingYPos, currentXPos, currentYPos
+			);
+			const newHdBrushedPoints = ddbL.findPointsWithinHDRect(
+				newBrushedPoints, this.hd
+			);
+			this.currentRegionBrushingStatus = new Set(newHdBrushedPoints);
+			// this.brushingStatus[this.currentBrushIdx] = new Set(newBrushedPoints);
+		}
+		if (this.technique == "mbb") {
+			const currentXPos = this.xPos;
+			const currentYPos = this.yPos;
+			const newBrushedPoints = mbbL.findPointsWithinCircle(
+				this.currLd, this.startBrushingXPos, this.startBrushingYPos, currentXPos, currentYPos
+			);
+			if (newBrushedPoints.length <= 1) {
+				this.currentRegionBrushingStatus = new Set();
+				return;
+			}
+			const newHdBrushedPoints = mbbL.findPointsWithinHDCircle(
+				newBrushedPoints, this.hd, this.ld, this.startBrushingXPos, this.startBrushingYPos
+			);
+			this.currentRegionBrushingStatus = new Set(newHdBrushedPoints);
+			// this.brushingStatus[this.currentBrushIdx] = new Set(newBrushedPoints);
+		}
+	}
+
 	proceedBrushing() {
 		const newBrushedPoints = dabL.findPointsWithinPainter(
 			this.currLd, this.xPos, this.yPos, this.painterRadius
 		);
-		const extendedBrushedPoints = sbL.extendBrushedPoints(newBrushedPoints, this.hdSim, this.hdRadius);
 		newBrushedPoints.forEach(d => this.brushingStatus[this.currentBrushIdx].add(d));
-		newBrushedPoints.forEach(d => {
-			this.modifiedBrushingStatus[this.currentBrushIdx].add(d);
-		});
-		extendedBrushedPoints.forEach(d => this.modifiedBrushingStatus[this.currentBrushIdx].add(d));
-
+		if (this.technique === "sb") {
+			const extendedBrushedPoints = sbL.extendBrushedPoints(newBrushedPoints, this.hdSim, this.hdRadius);
+			newBrushedPoints.forEach(d => {
+				this.modifiedBrushingStatus[this.currentBrushIdx].add(d);
+			});
+			extendedBrushedPoints.forEach(d => this.modifiedBrushingStatus[this.currentBrushIdx].add(d));
+		}
 	}
 
 	eraseBruhsing() {
@@ -603,6 +750,23 @@ class MultiDBrushing {
 	mousemoveEventHandler(e) {
 		this.xPos = e.offsetX * this.scalingFactor;
 		this.yPos = e.offsetY * this.scalingFactor;
+
+		if (this.technique == "ddb" || this.technique == "mbb") {
+			if (this.mode === "inspect") {
+				this.updater(e);
+				this.statusUpdateCallback(this.getEntireBrushingStatus(), {
+					"points": this.seedPoints ? this.seedPoints : [], 
+					"color": this.getBrushingColor(this.currentBrushIdx)});
+			}
+			if (this.mode === "brush") {
+				this.proceedRegionBrushing();
+				this.statusUpdateCallback(this.getEntireBrushingStatus());
+				this.updater(e);
+			}
+			if (this.mode === "rest") {
+				this.updater(e);
+			}
+		}
 
 		if (this.technique == "sb") {
 			if (this.mode !== "brush") {
@@ -678,6 +842,13 @@ class MultiDBrushing {
 		/**
 		Similarity brushing
 		*/
+		if (this.technique == "ddb" || this.technique == "mbb") {
+			if (this.mode === "inspect" || this.mode == "rest") {
+				this.updater(e);
+				this.startRegionBrushing();
+				this.statusUpdateCallback(this.getEntireBrushingStatus());
+			}
+		}
 		if (this.technique == "sb") {
 
 			if (this.mode === "inspect" || this.mode === "rest") {
@@ -720,6 +891,12 @@ class MultiDBrushing {
 	}
 
 	mouseupEventHandler(e) {
+		if (this.technique === "ddb" || this.technique === "mbb") {
+			if (this.mode === "brush") {
+				this.mode = "rest";
+				this.confirmRegionBrushing();
+			}
+		}
 		if (this.technique === "sb") {
 			if (this.mode === "brush") {
 				this.mode = "rest";
@@ -756,23 +933,41 @@ class MultiDBrushing {
 		this.updater(e);
 	}
 
+	keydownEventHandler(e) {
+		if (this.technique === "ddb" || this.technique === "mbb") {
+			if (e.key === "Escape") {
+				this.mode = "inspect";
+				this.currentRegionBrushingStatus = new Set();
+
+				this.updater(e);
+			}
+		}
+	}
+
 
 	registerPainter() {
+
+		this.canvasDom.tabIndex = 1;
+		this.canvasDom.style.outline = "none";
+
 		this.mousemoveHigherOrderFunction = () => (e) => { this.mousemoveEventHandler(e) };
 		this.mousedownHigherOrderFunction = () => (e) => { this.mousedownEventHandler(e) };
 		this.mouseupHigherOrderFunction = () => (e) => { this.mouseupEventHandler(e) };
 		this.mousewheelHigherOrderFunction = () => (e) => { this.mousewheelEventHandler(e) };
+		this.keydownHigherOrderFunction = () => (e) => { this.keydownEventHandler(e) };
 		this.mousemoveFunction = this.mousemoveHigherOrderFunction();
 		this.mousedownFunction = this.mousedownHigherOrderFunction();
 		this.mouseupFunction = this.mouseupHigherOrderFunction();
 		this.mousewheelFunction = this.mousewheelHigherOrderFunction();
-
+		this.keydownFunction = this.keydownHigherOrderFunction();
 
 
 		this.canvasDom.addEventListener("mousemove", this.mousemoveFunction); // moving the painter
 		this.canvasDom.addEventListener("mousedown", this.mousedownFunction); // start brushing
 		this.canvasDom.addEventListener("mouseup", this.mouseupFunction); // end brushing
 		this.canvasDom.addEventListener("wheel", this.mousewheelFunction); // change the radius of the painter
+		this.canvasDom.addEventListener("keydown", this.keydownFunction);
+
 	}
 
 	unMount() {
@@ -781,6 +976,7 @@ class MultiDBrushing {
 		this.canvasDom.removeEventListener("mouseout", this.mouseoutFunction);
 		this.canvasDom.removeEventListener("mouseup", this.mouseupFunction);
 		this.canvasDom.removeEventListener("wheel", this.mousewheelFunction);
+		this.canvasDom.removeEventListener("keydown", this.keydownFunction);
 	}
 
 
@@ -792,6 +988,7 @@ class MultiDBrushing {
 		this.brushingStatus[this.currentBrushIdx] = new Set();
 		this.modifiedBrushingStatus[this.currentBrushIdx] = new Set();
 
+		this.sizeArr = Array(this.hd.length).fill(this.pointRenderingStyle.size);
 		this.reconstructInitialScatterplot();
 
 	}
@@ -831,6 +1028,7 @@ class MultiDBrushing {
 	}
 
 	reconstructInitialScatterplot() {
+		this.mode = "inspect"
 		if (this.technique !== "dab") return;
 		// update the position and opacity of the points 
 		this.constructRenderingInfo();

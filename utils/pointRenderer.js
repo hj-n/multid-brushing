@@ -82,6 +82,29 @@ export function painterRenderer(ctx, radius, xPos, yPos, color) {
 	ctx.closePath();
 }
 
+export function rectRegionRenderer(ctx, x0, y0, x1, y1, color) {
+	/**
+	 * Render the rectangular region on the canvas
+	 */
+	ctx.beginPath();
+	ctx.rect(x0, y0, x1 - x0, y1 - y0);
+	ctx.fillStyle = d3.color(color).copy({ opacity: 0.15 });
+	ctx.fill();
+	ctx.closePath();
+}
+
+export function circleRegionRenderer(ctx, x0, y0, x1, y1, color) {
+	/**
+	 * Render the circular region on the canvas
+	 */
+	const radius = Math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2) * (1 / Math.sqrt(2));
+	ctx.beginPath();
+	ctx.arc(x0, y0, radius, 0, 2 * Math.PI);
+	ctx.fillStyle = d3.color(color).copy({ opacity: 0.15 });
+	ctx.fill();
+	ctx.closePath();
+}
+
 export function clearRender(ctx, canvasSize) {
 	/**
 	 * Clear the canvas
