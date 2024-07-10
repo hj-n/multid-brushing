@@ -21,7 +21,7 @@ class MultiDBrushing {
 		techniqueStyle = {
 			"painterColor": "green",
 			"erasingPainterColor": "red",
-			"initialPainterRadius": 35,
+			"initialPainterRadius": 20,
 			"initialRelocationThreshold": 600, // in ms
 			"initialRelocationDuration": 700, // in ms
 			"relocationInterval": 1000, // in ms

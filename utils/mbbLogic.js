@@ -43,7 +43,6 @@ export function findPointsWithinHDCircle(
 		}
 	});
 
-	console.log(centerPoint, furthestPoint);
 	// find the hd radius (distance between the center point and the furthest point in HD)
 	let hdRadius = 0
 	hd[centerPoint].forEach((value, i) => {
