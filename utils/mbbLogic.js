@@ -43,8 +43,13 @@ export function findPointsWithinHDCircle(
 		}
 	});
 
+	if (furthestPoint === -1) {
+		return currentBrushedPoints;
+	}
+
 	// find the hd radius (distance between the center point and the furthest point in HD)
 	let hdRadius = 0
+	console.log(hd[furthestPoint], furthestPoint)
 	hd[centerPoint].forEach((value, i) => {
 		hdRadius += (value - hd[furthestPoint][i]) ** 2;
 	});
